@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html><title>Would Synthgramelodia make a good base for livecoding music? ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Would Synthgramelodia make a good base for livecoding music?</h1><div class="metadata">Kragen Javier Sitaker, 2015-09-03
+(8 minutes)</div><p>I wrote a thing a while back called "synthgramelodia", which randomly
+synthesizes melodies from a grammar, many of which are listenable.
+Its homepage, which is currently just a list of outputs, is at
+<a href="http://canonical.org/~kragen/sw/synthgramelodia">http://canonical.org/~kragen/sw/synthgramelodia</a>.  I should probably
+at least put the software there.</p>
+<p>I think it's probably possible and worthwhile to use this same grammar
+for interactive improvisational composition, but I don't feel up to
+actually implementing it at the moment.  (I'm horizontal with what I
+think is a flu.)  But I think I can explain the idea.</p>
+<p>Synthgramelodia uses a tiny six-production grammar of melodies which
+is capable, in theory, of expressing basically any chromatic melody
+using the Chinese equal-temperament scale and the binary note values
+used in mainstream Western music today; but it's intended to be biased
+towards things that will sound "nice", so that the result will often
+be listenable, and it uses a DAG to promote repetition of motifs with
+some variation.</p>
+<p>The grammar can be expressed as follows in a single line:</p>
+<pre><code>m ::= "." | [a-z] | _&lt;m&gt; | +&lt;m&gt; | (&lt;m&gt; &lt;m&gt;) | (&lt;m&gt; ^ &lt;m&gt;)
+</code></pre>
+<p>The two fundamental atomic melodies of the grammar are:</p>
+<ul>
+<li>a <strong>Rest</strong>, written <code>.</code>, which is a silence lasting one beat, and</li>
+<li>a <strong>NoteScore</strong>, written with a letter <code>a</code>, <code>b</code>, etc., to indicate
+  which of the synthesizer's various "instruments" to play.  A NoteScore
+  by itself represents the instrument being played for a single beat at
+  220Hz, which is A3 or A below middle C.</li>
+</ul>
+<p>On top of these, there are four compound melody types which modify one
+or more melodies:</p>
+<ul>
+<li>a <strong>Transpose</strong>, written <code>_x</code>, where <code>x</code> is the melody being
+  transposed; it represents the same melody as <code>x</code>, except lower in
+  pitch by a perfect fifth.</li>
+<li>a <strong>Louder</strong>, written <code>+x</code>, where <code>x</code> is the melody being amplified;
+  it represents the same melody as <code>x</code>, except louder in volume by 3
+  dB;</li>
+<li>a <strong>Sequence</strong>, written <code>(x y)</code>, where <code>x</code> and <code>y</code> are two melodies
+  being concatenated, which consists of first the notes of <code>x</code> and
+  then the notes of <code>y</code>; if <code>x</code> and <code>y</code> are of different lengths, the
+  shorter one is slowed down to equal the longer one in length.  Also,
+  <code>y</code> is reduced in volume by 2 dB.</li>
+<li>a <strong>Parallel</strong>, written <code>(x ^ y)</code> where <code>x</code> and <code>y</code> are two melodies
+  being played simultaneously; <code>y</code> is raised in pitch by an octave,
+  while the bass line <code>x</code> is left unchanged, and if they are of
+  different lengths, the longer of the two is accelerated in order to
+  be of the same length as the shorter.</li>
+</ul>
+<p>(At some point, I replaced the stretching of the shorter melody with
+repetition, which I don't think improved it.)</p>
+<p>Synthgramelodia builds up random melody DAGs using these productions
+or node types in a bottom-up fashion that tends to reuse the same node
+in many parts of the tree, with the result that you tend to hear the
+same motif at diferent speeds and transposed to different pitches,
+although not using different instruments.</p>
+<p>It should be apparent that you can raise a melody's pitch arbitrarily
+high by paralleling it with a bass line consisting of a rest several
+times, lower it arbitrarily low by transposing it several times, reach
+any chromatic pitch by combining these two, amplify it arbitrarily by
+loudering it many times, accelerate it arbitrarily by concatenating it
+with many rests (or with itself) and then paralleling it with a single
+rest, and slow it down arbitrarily to an arbitrarily slow speed by
+concatenating it with a long sequence of rests, although at the cost
+of embedding it in a longer silence.</p>
+<p>It should also be apparent that the only reachable pitches are in the
+chromatic scale, the only reachable melody lengths are powers of 2,
+and all integer numbers of decibels are reachable amplitudes.</p>
+<p>(It might make more sense to reverse the speedup/slowdown semantics of
+Parallel and Sequence, so that you can slow things down arbitrarily by
+paralleling them with a long silence, while speeding them up would
+just require concatenating them with a single rest; or maybe make a
+separate node type for speeding things up.)</p>
+<p>Given all this, it also seems clear that you should be able to write
+an expression (infix or Forthlike) to generate a "gramelodia", perhaps
+even synthesizing it in real time as you improvise.  I suspect that
+some kind of Forth-like interface, like GlitchMachine, is probably the
+best way to edit this; it gives you a linear thing you can edit which
+is essentially immune to syntax errors.</p>
+<p>Constructing arbitrary DAGs on a Forth stack might seem
+tricky. Arbitrary trees are of course straightforward: the postorder
+traversal of the tree forms the Forth-style command sequence, and
+you're done.  Some DAGs can of course be constructed with nothing more
+than "dup", but you need some amount of stack manipulation to
+construct things like <code>(a b) (a c)</code>.</p>
+<p>If we consider a Forth two-stack machine as a sort of Turing machine
+that can insert and delete cells on its tape, we can see that the four
+operations <code>dup</code>, <code>r&gt;</code>, <code>&gt;r</code>, and <code>shift</code> are sufficient to shuttle nodes
+around in order to construct arbitrary DAGs. With the operand stack on
+the left, the auxiliary ("return") stack on the right, and
+top-of-stack outlined with parens, these operations are as follows:</p>
+<ul>
+<li><code>dup</code>: "... (a) ..." → "... a (a) ..."</li>
+<li><code>&gt;r</code>: "... b (a) ..." → "... (b) a ..."</li>
+<li><code>r&gt;</code>: "... (b) a ..." → "... b (a) ..."</li>
+<li><code>shift</code>: "...(a) b ..." → "... b (a) ..."</li>
+</ul>
+<p>The sequence of cells on the tape, omitting duplication, remains
+unchanged except by <code>shift</code>, which moves the current top-of-stack to
+the right on the tape, which can be repeated until it reaches the
+position it needs to combine with whatever it needs to combine with;
+<code>&gt;r</code> and <code>r&gt;</code> move the head left or right on the tape; and <code>dup</code> is
+what you do to use a node in two places.  (Arguably the duplicate
+ought to be on the auxiliary stack to the right, not the main stack to
+the left.)</p>
+<p>I've made several attempts to reduce this to three operations, but
+none has yet been successful.  There's probably something hiding just
+out of sight; but, for example, with just <code>r!</code>, <code>shift</code>, and <code>r&gt;</code>,
+there's no way to write <code>swap</code>, which is a problem in the presence of
+non-commutative operations like the gramelodia melody combinations;
+and if you integrate <code>dup</code> into one of the other operations, you
+probably need to add <code>drop</code> as well.</p>
+<p>You could imagine a live display not only of the melody, but also the
+sheet music, the DAG, sheet music for individual DAG nodes, an infix
+version of it, and a highlight on each of these indicating where your
+editing cursor is in the Forth sequence; and also keys to jump your
+cursor to the construction of one or the other top stack items at that
+point in execution, so you can navigate the DAG structurally.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/audio.html">Audio</a> (40 notes)
+</li><li><a href="../topics/stacks.html">Stacks</a> (21 notes)
+</li><li><a href="../topics/music.html">Music</a> (18 notes)
+</li><li><a href="../topics/dsls.html">Domain-specific languages</a> (4 notes)
+</li></ul></div></html>

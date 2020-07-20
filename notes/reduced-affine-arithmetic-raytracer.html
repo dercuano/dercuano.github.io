@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html><title>Reduced affine arithmetic raytracer ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Reduced affine arithmetic raytracer</h1><div class="metadata">Kragen Javier Sitaker, 2017-05-10
+(1 minute)</div><p>I want to do a reduced-affine-arithmetic raytracer.</p>
+<p>The idea is that an “image” is a function from pixel coordinates x and
+y to color component intensities r, g, and b, and we merely want to
+compute an adequate approximation to that function.  We recursively
+subdivide the image into rectangular regions, and restrict ourselves
+to a linear approximation within each region, so that the overall
+approximation is piecewise linear (though not necessarily continuous
+between the pieces).</p>
+<p>In this way, we can avoid spending much computation time on smooth
+gradient regions, concentrating on the regions where aliasing is
+possible.</p>
+<p>Extending this, a “video” is a similar function, but has three
+independent variables: x, y, and t.  This allows us to avoid spending
+computation time on parts of the scene that don’t change much from
+frame to frame.</p>
+<p>You can derive such an approximation by applying a self-validated
+arithmetic model from a mathematical description of the ray-traced
+scene.  Most self-validated arithmetic models only give you
+zeroth-order approximations in any given region; interval arithmetic
+and the use of Lipschitz constants are examples.  Affine arithmetic
+gives you a first-order approximation, but it is crushingly
+computationally expensive; reduced affine arithmetic, though it
+doesn’t provide such tight bounds, is more efficient, and has been
+successfully used for raytracing.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li><li><a href="../topics/gradients.html">Gradients</a> (8 notes)
+</li><li><a href="../topics/raytracing.html">Raytracing</a> (2 notes)
+</li></ul></div></html>

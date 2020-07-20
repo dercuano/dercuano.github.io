@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html><title>A stack of coordinate contexts ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>A stack of coordinate contexts</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(9 minutes)</div><p>I thought I had a novel way of thinking about automatic APL-style
+lifting of pointwise operators, and it yielded some interesting
+suggestions, but I think it turns out it kind of sucks as a generic
+way of thinking about APL operators.  Here I document my blind alley
+in case other people find it interesting.</p>
+<h2>The Problem</h2>
+<p>In APL, you can write 4 + 5 and get 9, or 4 + 3 4 5 6 and get 7 8 9
+10, or 4 5 6 + 2 3 8 and get 6 8 14.  And you can similarly add a
+vector to a matrix, and each element of the vector will be added to an
+entire row (or column, depending on your point of view) of the matrix.
+And so on.</p>
+<h2>The Basic Approach</h2>
+<p>So here's a way to think about that.</p>
+<p>Suppose we have a (possibly finite) stack of coordinate contexts, each
+of which contains one coordinate, and each of our values is a function
+of this stack.  Scalars don't look at the stack at all.  Vectors look
+at the top item on the stack to figure out which scalar to return.
+Matrices look at the top two.  Now we consider our language's
+e.g. multiplication to be pointwise multiplication over these
+functions.</p>
+<p>Suppose we use + to denote mathematical addition and +. to denote the
+addition operator of our language.  Then we can say</p>
+<pre><code>x + y = \ C . x(C) +. y(C)  where C is a coordinate stack.
+</code></pre>
+<p>So if x and y are both scalars, then so is the result; if one is a
+vector and the other is a scalar, then the result will be a vector, in
+that it will depend on the top item of the coordinate stack for one side
+of the addition; and so on.  This automatically provides the desired
+behavior for binary operators on vectors of different ranks.</p>
+<p>Unintuitively, the indices that we normally think of as changing
+fastest are further down the stack.</p>
+<p>Can we define other APL functions this way?</p>
+<h2>Transpose and Compose</h2>
+<p>If we want to define the transposition operator that transposes the
+first two indices, we can define it in terms of cons, car, and cdr
+functions on coordinate stacks.  car returns the top index off the
+stack; cdr returns a coordinate stack missing that top index; and cons
+returns a coordinate stack with a new car pushed on top of what was
+previously there.</p>
+<pre><code>transpose x = \ C . x(cons (car (cdr C)) (cons (car C) (cdr (cdr C))))
+</code></pre>
+<p>That's just the Forth SWAP or the PostScript exch operator.  It's
+probably clearer if I write it with Haskell's right-associative infix
+cons operator ':' and pattern-matching:</p>
+<pre><code>transpose x = \a:b:z . x (b:a:z)
+</code></pre>
+<p>If we define transpose this way, then we can apply it to a scalar ---
+but the resulting value will require at least two stack levels that it
+actually ignores, i.e. will be an infinite matrix.  I could add
+error-checking cases to transpose to handle this.</p>
+<p>(XXX this is wrong.  What you want is something that transposes the
+two leftmost indices, the ones that change slowest, not the ones that
+chnage fastest.)</p>
+<p>There's a useful operator that Numeric calls "take", and which APL
+implements by indexing one array with another (e.g. 4 5 6[1 2 1]
+yields 4 5 4, and 4 5 6[2 3 rho 1 2 2 1 3 1] yields 2 3 rho 4 5 5 4 6 4).</p>
+<p>In its most basic form it only applies to a one-dimensional array as
+its first argument.  I'll call it "compose".  Can we define this
+"compose" operator?</p>
+<pre><code>compose(lookuptable, indices) = \C.lookuptable(cons(indices(C), nil))
+</code></pre>
+<p>That is, we create a new coordinate stack to use to index the
+lookuptable, consisting only of the values from indices.  That's OK
+for one-dimensional lookuptables, but maybe we can generalize it so
+that it does the right thing if the elements of the lookuptable are
+vectors or more complicated things.</p>
+<p>To do that, we need to provide the leftover elements of the coordinate
+stack --- the ones not needed to index into indices --- to lookuptable
+in place of the nil.</p>
+<h2>Taking Rank Into Account</h2>
+<p>So now we need to consider each array as more than just a function
+from coordinate stacks to scalars; now we also care about its rank
+(although that was obvious from the start, since without knowing its
+rank and also its size in each dimension, we can't do simple things
+like display it on the screen).</p>
+<p>So now I am losing interest, because I think this way of thinking
+about it doesn't actually simplify things any over the traditional
+view (where an array consists of a vector of dimensions and a vector
+of contents).  But I'll pursue it just a little bit longer.  Let's
+call the contents function of x "x.f", and its rank function, which
+tells how many items it cares about on the coordinate stack, "x.r",
+and write { f = x.f, r = x.r } to express a new one identical to x.
+So we have</p>
+<pre><code>x + y = { f = \ C . x.f(C) +. y.f(C), r = max(x.r, y.r) }
+transpose x = { f = \a:b:z . x.f(b:a:z), r = x.r }
+compose(lookuptable, indices) = {
+    f = \ C . lookuptable.f(cons(indices.f(C), dropn(C, indices.r))),
+    r = indices.r + lookuptable.r - 1
+} where dropn(X, 0) = X and dropn(X, N&gt;0) = cdr dropn(X, N-1)
+</code></pre>
+<p>The more general form of the "+" case for scalar binary operations is</p>
+<pre><code>scalarop(op, x, y) = { f = \C . op(x.f(C), y.f(C)), r = max(x.r, y.r) }
+</code></pre>
+<p>You could treat arbitrary unary scalar operations as if they were
+vectors, then apply them with compose:</p>
+<pre><code>opvalue(op) = { f = \C . op(car C), r = 1 }
+</code></pre>
+<p>Or you could have a scalarunop:</p>
+<pre><code>scalarunop(op, x) = { f = \C . op(x C), r = x.r }
+</code></pre>
+<p>(It seems like you ought to be able to derive the "r"s mechanically
+from the expressions for the stacks to which you're applying the "f"s.
+In the transpose case, the stack is still the same height, so the rank
+is the same; in the compose case, we drop indices.r items from the
+stack and then add one, so we need an extra indices.r - 1 items.  But
+I'm not quite sure how to do that yet.)</p>
+<p>The other basic Forth stack manipulation operators also have
+interesting functions.  DUP, diminishing the rank by 1, takes the
+diagonal of a matrix; DROP, increasing the rank by 1, turns a vector
+into a matrix so that it can be applied column-wise.  For now I'm not
+going to think about OVER (diagonal between first and third
+dimensions?), ROT (rearranging the order of the top three
+coordinates?), NIP, TUCK, 2DUP, and 2DROP.</p>
+<h2>Iota</h2>
+<p>One-dimensional monadic iota is fairly straightforward; its content
+function doesn't depend at all on its argument.  (Only its size does,
+and we haven't talked about size yet.)</p>
+<pre><code>iota = { f = car, r = 1 }
+</code></pre>
+<p>APL's N-dimensional monadic iota is kind of stupid; it takes the
+values produced by the one-dimensional iota --- as many as needed ---
+and then reshapes them into the requested shape.</p>
+<p>Numerical Python has a somewhat more general operation called
+"indices".  Applied to a vector describing an N-dimensional shape, it
+returns N sets of indices, each of which has the shape requested, and
+contains the Nth index.  For example:</p>
+<pre><code>&gt;&gt;&gt; Numeric.indices((2, 3))
+array([[[0, 0, 0],
+        [1, 1, 1]],
+       [[0, 1, 2],
+        [0, 1, 2]]])
+</code></pre>
+<p>So the first top-level item has the first coordinate of each location,
+the second item has the second coordinate, etc.  That is,
+Numeric.indices((a,b))[0][x][y] == x, and
+Numeric.indices((a,b))[1][x][y] == y.  This sounds stupid but is very
+useful if you want to tabulate values of N-dimensional functions.</p>
+<p>Unfortunately it's a little clumsy to work with in the one-dimensional
+case, because iota (which it calls "arange") is wrapped in another
+layer of nesting.  It's a little clumsy to define in this system;
+although its pointwise value is, like iota, just one of the
+coordinates, the number that specifies which coordinate is hidden deep
+in the stack, and counts backward from there.</p>
+<pre><code>indices(dims) = {
+    f(C) = C[length(dims) - C[length(dims)] - 1],
+    r = length(dims) + 1 
+}
+</code></pre>
+<p>The "- 1" is there to make the coordinates zero-based.</p>
+<h2>Reshape</h2>
+<p>Reshape (dyadic rho) is extremely simple in the standard
+representation, and rather a dog's breakfast in this one.</p>
+<h2>Reduce</h2>
+<p>Reduce ought to work by default along the axis that changes slowest,
+and that's kind of ugly here.</p>
+<h2>Conclusions</h2>
+<p>It was a cute idea --- especially the Forth stack manipulations
+turning into operations --- but I think it makes things more
+complicated, not less.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/facepalm.html">Facepalm</a> (24 notes)
+</li><li><a href="../topics/stacks.html">Stacks</a> (21 notes)
+</li><li><a href="../topics/arrays.html">Arrays</a> (17 notes)
+</li><li><a href="../topics/apl.html">APL</a> (9 notes)
+</li></ul></div></html>

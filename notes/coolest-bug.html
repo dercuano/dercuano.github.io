@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html><title>The coolest bug in Ur-Scheme ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>The coolest bug in Ur-Scheme</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(2 minutes)</div><p>One of the fun things about writing graphics code is that you get
+better bugs.  In normal programming, bugs are mostly frustrating: they
+get in your way, make things harder, corrupt data you painstakingly
+created, or crash the program and interrupt what you're doing.  But a
+lot of bugs in graphics code either look really cool or have no real
+visible effect.</p>
+<p>At the moment I'm not writing graphics code.  I'm writing an
+almost-Scheme compiler in itself.  But I just created a really bizarre
+bug.</p>
+<p>Here's a little bit of the assembly output from the compiler:</p>
+<pre><code>epacse__4:
+        # compute desired %esp on return in %ebx and push it
+        lea 4(%esp,%edx,4), %ebx
+...
+        movl (htgnel_gnirts__2), %eax
+</code></pre>
+<p>Where did <code>htgnel_gnirts__2</code> come from?  Well, it's <code>_string_length</code>
+spelled backwards, followed by <code>_2</code>.  And <code>epacse</code> is <code>escape</code> spelled
+backwards.  I accidentally created a bug that <em>spells names
+backwards</em>.  That's almost as funny as some of my graphics-code bugs.</p>
+<p>How this happened requires a little bit of explanation.  In Scheme, as
+in most Lisps, adding items to the beginning of a list is fast and
+safe, but adding onto the end of a list is either slow and bug-prone,
+safe but extremely slow, or very verbose and therefore bug-prone and
+hard to maintain.  But reversing a list is relatively fast.  So I
+wrote a function that looked like this:</p>
+<pre><code>(define (stringlist-&gt;string stringlist) 
+  (list-&gt;string (reverse (stringlist-&gt;string-2 stringlist 0))))
+</code></pre>
+<p>Because I thought stringlist-&gt;string-2 was going to have to build up a
+list of all the characters <em>backwards</em>, and then I was going to have
+to reverse it.</p>
+<p>When stringlist-&gt;string-2 turned out to be able to build up the list
+of characters in the right order --- by adding them backwards --- I
+forgot to take out the <code>reverse</code>.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/humor.html">Humor</a> (9 notes)
+</li><li><a href="../topics/ur-scheme.html">Ur-Scheme</a> (3 notes)
+</li></ul></div></html>

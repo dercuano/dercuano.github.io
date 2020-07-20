@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html><title>Reconstructing a 3-D Lambertian surface from video with a moving light source ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Reconstructing a 3-D Lambertian surface from video with a moving light source</h1><div class="metadata">Kragen Javier Sitaker, 2016-09-16
+(1 minute)</div><p>Lambertian surface reconstruction</p>
+<p>To 3-d scan a Lambertian surface with a plain video camera and a
+light:</p>
+<p>Move a point source of light near a Lambertian surface as you capture
+video from a camera stationary relative to the surface. Pixelwise
+differences between frames show the effect of removing the source from
+one frame and adding it to another. Hypothetically, ambient diffusion
+from other reflectors contributes negligibly to this difference, since
+the source is close to the surface being scanned. Given an estimated
+depth for each pixel and per-frame estimated light locations in
+3-space, you can compute a simulated frame difference, which you can
+compare to the real frame difference to get an error. Each pixel of
+this error is a nonlinear (?) function of ten unknowns: the two x, y,
+z of the light locations, the estimated depth to that pixel, the
+surface gradient depth at that object point, and the estimated
+reflectance at that point. Given just one such error image, we can
+optimize the two light locations to minimize the error using gradient
+descent, holding the estimated depths fixed, or we can optimize the
+depths</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/optimization.html">Mathematical optimization</a> (29 notes)
+</li><li><a href="../topics/3d-modeling.html">3-D modeling</a> (9 notes)
+</li><li><a href="../topics/cameras.html">Cameras</a> (8 notes)
+</li><li><a href="../topics/video.html">Video</a> (7 notes)
+</li><li><a href="../topics/sfs.html">Structure from shading</a> (2 notes)
+</li></ul></div></html>

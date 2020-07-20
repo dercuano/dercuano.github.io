@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html><title>An affine-arithmetic database index for rapid historical securities formula queries ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>An affine-arithmetic database index for rapid historical securities formula queries</h1><div class="metadata">Kragen Javier Sitaker, 2019-09-15
+(15 minutes)</div>
+<p>I started writing a README.md for a project called “affinebase” in
+2017, but then never wrote any code for it; this note outlines what I
+had in mind to implement.</p>
+<p>Suppose you want a database of financial tick data that can
+efficiently evaluate queries for things like “when the price of SPY
+was at least 1% higher than its 15-minute moving average but lower
+than its 4-hour moving average”, or “when the price of GOOG.A was more
+than 26 times the price of GOOG.B”.</p>
+<p>Conventional database indices provide very little help with such
+queries, but an organization based on affine arithmetic occurs to me
+as an efficient structure for such things.</p>
+<p><a href="../notes/interval-trees-over-sequences.html">Query evaluation with interval-annotated trees over sequences</a> considers associating an
+interval-arithmetic interval with substrings of a sequence of records
+as a form of index; this note considers moving from interval
+arithmetic to affine arithmetic.</p>
+<h2>Affine arithmetic</h2>
+<p>Affine arithmetic is a system of “self-validating arithmetic” similar
+to interval arithmetic, but supporting linear cancellation of
+approximation errors.</p>
+<p>In affine arithmetic, instead of evaluating expressions to numbers
+under some assignment of numbers to their free variables, we evaluate
+them to <em>affine forms</em> under some assignment of affine forms to their
+free variables; these affine forms take the form <em>k</em> + Σ<em>ᵢaᵢεᵢ</em> and
+are stored as a vector [<em>k</em>, <em>a</em>₀, <em>a</em>₁, … <em>aₙ</em>].  The <em>εᵢ</em> are
+gremlin variables that are free to introduce error into your results
+by taking any value within some fixed range, usually [-1, 1].
+(The standard term for “gremlin variable” is “error symbol”.)
+Whenever you execute an arithmetic operation that may introduce
+rounding error, you introduce a new <em>εᵢ</em> to account for that rounding
+error, with an <em>aᵢ</em> sized appropriately for the computed size of the
+rounding error.</p>
+<p>In its most basic form, this is a somewhat less conservative form of
+interval arithmetic; in ordinary interval arithmetic, the expression
+<em>x</em> - <em>x</em> evaluates to some interval around zero whose error is twice
+the size of the error of <em>x</em>, but in affine arithmetic the errors
+cancel exactly and you are left with exactly 0, as the SF intended.
+In general, affine arithmetic can precisely cancel the
+linearly-varying parts of numerical errors, but nonlinearly-varying
+parts will be incompletely canceled, so it still provides error bounds
+that are wider than the real error can be.</p>
+<p>The part where this gets interesting is when you assign non-negligible
+<em>aᵢ</em> to the free variables.  Suppose you want to plot the surface <em>x</em>²
++ <em>xy</em> + 2, for example.  With affine arithmetic, you can directly
+evaluate it over a region such as <em>x</em> ∈ [-1, 3], <em>y</em> ∈ [2, 4], by
+assigning <em>x</em> = 1 + 2<em>ε</em>₀, <em>y</em> = 3 + 1<em>ε</em>₁.  Depending on the
+particular evaluation approach, the result will depend not only on
+<em>ε</em>₀ and <em>ε</em>₁, but also two to four more ε variables representing the
+rounding error from the additions and the nonlinearity of the
+multiplications.  If we ignore the rounding errors, this works out to
+8 + 10<em>ε</em>₀ + 1<em>ε</em>₁ + 2<em>ε</em>₂ + 2<em>ε</em>₃.</p>
+<blockquote>
+<p>For use as self-validating arithmetic, which is to say saving you
+the trouble of calculating static bounds on your algorithm’s
+approximation errors, you probably want to run each calculation more
+than once with different floating-point rounding modes by calling
+the C99 function <code>fesetround</code> or something similar: 0 is
+round-toward-0 and 1 is the default round-to-nearest, but the
+relevant ones are 2 for toward-positive-infinity and 3 for
+toward-negative-infinity; with GCC I think you also need to compile
+with <code>-frounding-math</code>.  However, in this note, I’m focusing on the
+non-self-validating-arithmetic uses of affine arithmetic.</p>
+</blockquote>
+<p>Now, the simplest reading of this result 8 + 10<em>ε</em>₀ + 1<em>ε</em>₁ + 2<em>ε</em>₂ +
+2<em>ε</em>₃ is that if <em>x</em> and <em>y</em> are inside the specified ranges, then the
+surface will be between the heights of 8 - 10 - 1 - 2 - 2 = -7 and 8 +
+10 + 1 + 2 + 2 = +23, and this is true.  In fact the surface actually
+does reach +23 at (3, 4), but its lowest point in this range is at
+(-1, 4), where it reaches -1, so the -7 is a bit conservative.  This
+is in fact precisely the same result that ordinary interval arithmetic
+would have given us on the factored form (<em>x</em> + <em>y</em>)<em>x</em> + 2, but
+affine arithmetic gave it to us without doing the factoring step.</p>
+<p>However, a <em>much more interesting</em> reading of this result is to
+re-express it in terms of <em>x</em> and <em>y</em>.  5<em>x</em> = 5 + 10<em>ε</em>₀, so it’s 3 +
+5<em>x</em> + 1<em>ε</em>₁ + 2<em>ε</em>₂ + 2<em>ε</em>₃, which is 0 + 5<em>x</em> + <em>y</em> + 2<em>ε</em>₂ + 2<em>ε</em>₃,
+which is to say, 0 + 5<em>x</em> + <em>y</em> ± 4.  This gives us <em>much tighter</em>
+bounds on the result: instead of ±15 we have ±4.  (They are still
+conservative bounds, because the function never actually gets below
+5<em>x</em> + <em>y</em> - 2¼, which it reaches at (½, 4).)</p>
+<p>So, a very interesting thing we can do here is to start with a large
+interval of our independent variables and recursively subdivide it to
+get a piecewise-linear approximation of our function of choice.  We
+can choose whether to subdivide the interval based on criteria such
+as: the remaining error; for plotting, the geometric angle, in
+radians, between adjoining line segments; or simply whether it’s
+possible for any point within the interval to satisfy an equation or
+an inequality — like the inequalities in the example queries at the
+beginning of this note.</p>
+<p>As noted in <a href="../notes/interval-functions.html">Affine arithmetic has quadratic convergence when interval arithmetic has linear convergence</a> and <a href="../notes/affine-arithmetic-optimization.html">Affine arithmetic optimization</a>, the affine-arithmetic approximation
+has a higher order of convergence than the interval-arithmetic
+approximation — as the size of the interval decreases, the error of
+any regular function diminishes quadratically in the size of the
+interval with affine arithmetic, but only linearly with interval
+arithmetic.</p>
+<p>In this connection it’s worth mentioning “reduced interval arithmetic”
+in which we restrain the proliferation of the <em>εᵢ</em>s by introducing an
+<em>ε<sub>ω</sub></em> not subject to linear cancellation; its coefficient
+represents the errors proceeding from things like small rounding
+errors that we don’t bother to track separately.  This way we can
+still get the tasty quadratic convergence and even the self-validating
+property without paying the high cost of an ever-growing flock of <em>εᵢ</em>
+variables on every operation.</p>
+<h3>Existing work</h3>
+<p>The above is not original to me; there are at least three papers
+describing it, none of which I have managed to finish reading.</p>
+<p>These papers are especially relevant to <a href="../notes/reduced-affine-arithmetic-raytracer.html">Reduced affine arithmetic raytracer</a>, which is why I was reading
+them.</p>
+<p>Jorge Eliécer FLÓREZ DÍAZ wrote his 2008 dissertation, “Improvements
+in the Ray Tracing of Implicit Surfaces based on Interval Arithmetic”,
+on using this approach to accelerate the ray-tracing of animated
+scenes, but using a modal “completion” of ordinary interval arithmetic
+(“modal interval arithmetic”) rather than affine arithmetic.  I read
+someone else’s dissertation in French on doing something similar with
+affine arithmetic, but I can’t remember who it was or what it was
+called.</p>
+<p>Knoll, Hijazi, Kensler, Schott, Hansen, and Hagen wrote a paper “Fast
+Ray Tracing of Arbitrary Implicit Surfaces with Interval and Affine
+Arithmetic” in 2008 describing how to use this approach to accelerate
+raytracing, including in GPU shaders; they trace the approach back to
+Toth in 1985 and also cite, among many others, a 2006 paper by Flórez
+Díaz.</p>
+<h4>Gamito and Maddock</h4>
+<p>There’s also a paper on the subject by Gamito and Maddock from 2004 or
+2005, “Ray Casting Implicit Fractal Surfaces with Reduced Affine
+Arithmetic”; I think this may be the paper that introduced reduced
+affine arithmetic.</p>
+<p>I think it has a couple of errors in it.  On p. 6 equation (13),
+computing the reduced affine arithmetic product of two variables <em>ŵ</em> =
+<em>ûv̂</em> represented as three-tuples (center, parametric coefficient,
+error bound) says <em>w</em>₂ = |<em>u</em>₀<em>v</em>₂ + <em>v</em>₀<em>u</em>₂| + (|<em>u</em>₁| +
+|<em>u</em>₂|)·(|<em>v</em>₁| + |<em>v</em>₂|), but this can incorrectly cancel the error
+bound <em>v</em>₂ of <em>v̂</em> against the error bound <em>u</em>₂ of <em>û</em> if their signs
+happen to be opposite, which would be pure happenstance; that first
+term should be |<em>u</em>₀<em>v</em>₂| + |<em>v</em>₀<em>u</em>₂|, not |<em>u</em>₀<em>v</em>₂ + <em>v</em>₀<em>u</em>₂|.
+(This is assuming that it’s possible for the error-bound’s sign to be
+negative, which would arise from a direct application of the affine
+operations in equation (7) on p. 5.)</p>
+<p>On p. 5 I think equation (8) gives an avoidably pessimistic bound for
+the extra error coefficient of a product <em>w<sub>k</sub></em>.  It says
+<em>w<sub>k</sub></em> = Σ<em>ᵢ</em>|<em>uᵢ</em>| · Σ<em>ᵢ</em>|<em>vᵢ</em>|, which is safe but unduly
+pessimistic in the case where the two <em>i</em> variables coincide.  <em>û</em> =
+<em>u</em>₀ + Σ<em>ᵢuᵢeᵢ</em> for i &gt; 0 (Gamito and Maddock use <em>eᵢ</em> rather than the
+<em>εᵢ</em> used above), and similarly for <em>v</em>, and if we take <em>e</em>₀ = 1 this
+simplifies to <em>û</em> = Σ<em>ᵢuᵢeᵢ</em>.  Then <em>ŵ</em> = Σ<em>ᵢ</em>Σ<em>ⱼuᵢeᵢvⱼeⱼ</em>.  So the
+case <em>i</em> = <em>j</em> &gt; 0 corresponds to a term in the fully expanded sum
+<em>uᵢvᵢeᵢ</em>², and the implicit presumption of that sum is that <em>eᵢ</em>² ∈
+[-1, 1].</p>
+<p>This is not <em>incorrect</em>, but a tighter and also correct bound is that
+<em>eᵢ</em>² ∈ [0, 1]; if you take this into account, you need to add ½<em>uᵢvᵢ</em>
+to the constant term <em>w</em>₀, so rather than being <em>w</em>₀ = <em>u</em>₀<em>v</em>₀, it’s
+<em>w</em>₀ = <em>u</em>₀<em>v</em>₀ + ½Σ<em>ᵢuᵢvᵢ</em> for <em>i</em> &gt; 0; this halved sum is also what
+you would subtract from <em>w<sub>k</sub></em>.  I think.  I haven’t really
+tried it, so I might be overlooking an absolute value or something.</p>
+<p>Similarly, the “interval optimisation” algorithm they give in §4.3 and
+figure 2 on pp. 6–7 is not <em>wrong</em> but it is <em>suboptimal</em> — they had
+the brilliant idea of using the affine form to tighten the interval
+where they’re trying to find the root, which is the whole thing that
+<a href="../notes/affine-arithmetic-newton.html">Fast mathematical optimization with affine arithmetic</a> is about, but then they wastefully
+divide the interval in half even if the affine-arithmetic-based
+tightening was very successful, guaranteeing an additional time
+through the loop and perhaps even an additional branch to recurse
+down.</p>
+<p>Also they misspelled “Lipschitz” as “Lipchitz”.</p>
+<h2>A univariate affine-arithmetic database</h2>
+<p>So, if we have an affine form that summarizes a time-varying quantity,
+such as a stock price, in the form <em>k</em> + <em>a</em>₀<em>t</em> + <em>a</em>₁<em>ε</em>₁, for some
+interval, where <em>ε</em>₁ is a bound on the error of the linear
+approximation over that interval, then we can efficiently compute some
+bounds on the kinds of expressions in the introduction, and
+efficiently reject huge swaths of history at once as not meeting our
+query condition, and efficiently accept other huge swaths of history
+as always meeting it.  For intervals where the condition may possibly
+be met, we can recursively subdivide them into smaller intervals with
+tighter error bounds.</p>
+<p>But where do we get these affine forms?  They already exist in the
+technical analysis of securities prices, where they go by the name of
+“channels” — a “channel” is a linear approximation of a securities
+price over some period of time within some error bounds.  Although
+there is no guarantee of this, it is typically very efficient to
+compute the best channel for a given time period by computing the
+convex hull of the prices over that time period, which takes linear
+time, and then considering the slopes of the line segments of that
+convex hull; the best channel slope will be one of these, and it
+suffices to consider the points on the convex hull.  In theory there
+could be a linearly large number of line segments on both the upper
+and lower convex hull, but in practice the number is much smaller.</p>
+<p>You can subdivide history at arbitrary points and compute the best
+channel for those arbitrary intervals, but you can get much tighter
+channel bounds if you instead look for “natural” points to make the
+divisions.  The points on the convex hull are promising candidates for
+“natural” division points, since the largest local extrema of
+oscillation from the trend line will necessarily be part of the convex
+hull, but I think there’s a linear-time algorithm to find the “most
+natural” division point.</p>
+<p>If you use FP-persistent stack structures to build the convex hull
+using the convex-hull algorithm mentioned in <a href="../notes/bresenham-erosion.html">Some notes on morphology, including improvements on Urbach and Wilkinson’s erosion/dilation algorithm</a>,
+you compute the convex hull not only of the whole interval but also
+every prefix of the interval in a single linear-time, linear-space
+pass.  Doing this once in each direction allows you to evaluate every
+possible division point within the interval without redundantly
+recomputing those convex hulls.</p>
+<p>In this way you can build a tree over time that permits rapid
+branch-and-bound evaluation of ad-hoc historical queries on arbitrary
+computable inequalities.</p>
+<h2>A multivariate affine-arithmetic database using PCA</h2>
+<p>Simply approximating security prices or other time series as linear
+functions of time plus guaranteed error bounds does allow you to
+compute things like ratios and differences between them efficiently
+with guaranteed error bounds.  However, it’s very common — not to say
+nearly universal — for securities prices to have correlations,
+negative or positive, that go beyond a simple linear trend over some
+time period, and if you can take these correlations into account, you
+may be able to get much tighter error bounds.</p>
+<p>One possible way to do this is to run a principal components analysis
+over historical prices, and then store the time series of several
+principal components in your database alongside the actual securities
+prices.  Then you can summarize each interval in the tree of a
+security as a linear function not merely of time but also of these
+principal components.  This should permit much tighter bounds on the
+results of the arbitrary expressions over long time intervals, thus
+permitting much faster branch-and-bound evaluations.</p>
+<h2>Non-market applications</h2>
+<p>This technique, of course, is applicable to any time-series
+quantitative data, not just securities prices — market prices of
+commodities, temperatures and other climate data, system
+administration metrics such as network traffic and error rates,
+telemetry data from satellites and space probes, audio signals, image
+data (with two “time” dimensions), and so on.</p>
+<script src="../liabilities/affine.js">
+</script><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li><li><a href="../topics/databases.html">Databases</a> (20 notes)
+</li><li><a href="../topics/algebra.html">Algebra</a> (11 notes)
+</li><li><a href="../topics/trading.html">Trading</a> (4 notes)
+</li></ul></div></html>

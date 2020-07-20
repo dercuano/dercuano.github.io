@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><title>Cloth structure from shading ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Cloth structure from shading</h1><div class="metadata">Kragen Javier Sitaker, 2019-09-01
+(2 minutes)</div><p>The structure-from-shading problem is the problem of knowing the shape
+of a 3-D object from seeing how light falls on it; it suffers from a
+number of difficulties such as having to assume that the object is all
+the same color and not being able to tell when a Lambertian surface
+rotates around the vector of the [dominant] light beam.</p>
+<p>But if the object is covered in or made of woven or nonwoven cloth, as
+the humans often are, and you have a high-enough-resolution image to
+see the individual threads of the cloth (or meltpoints, in the case of
+nonwovens like <em>friselina</em>), you have several great advantages.</p>
+<p>First, the threads or meltpoints give you a dependable, repeating
+three-dimensional microtexture, which gives you a sample of
+illumination of different surface normals in the neighborhood of the
+overall surface normal.</p>
+<p>Second, thread or meltpoint-line direction discontinuities often
+indicate surface discontinuities.  (Sometimes they’re just seams,
+though.)</p>
+<p>Third, the threads or lines of meltpoints are typically at right
+angles, and this gives you an independent clue about how inclined each
+surface patch is to the camera.</p>
+<p>Fourth, the threads or meltpoints are typically evenly spaced over the
+entire surface, and this allows estimation of relative Z-coordinates
+by perspective.</p>
+<p>Fifth, although fabric is somewhat flexible, the threads or meltpoints
+generally run near ecliptics over the surface if the fabric is to not
+wrinkle.  Nonwoven fabric is much less flexible.</p>
+<p>Some fabrics, such as plaids, stripeds, houndstooths, and certain
+prints, are amenable to algorithms based on some of these properties
+even if the image resolution is not good enough to see individual
+threads.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/3d-modeling.html">3-D modeling</a> (9 notes)
+</li><li><a href="../topics/textiles.html">Textiles</a> (4 notes)
+</li><li><a href="../topics/sfs.html">Structure from shading</a> (2 notes)
+</li></ul></div></html>

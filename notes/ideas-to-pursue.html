@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html><title>Ideas to pursue ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Ideas to pursue</h1><div class="metadata">Kragen Javier Sitaker, 2018-05-05 (updated 2018-08-16)
+(6 minutes)</div><p>As usual, I’m full of a lot of different ideas I’d like to investigate
+more deeply and develop into useful things.  Among these are:</p>
+<ul>
+<li>Manufacturing robot: I want some kind of precise positioning system
+  that I can use to deposit or remove material.  The shortest path to
+  this is likely inkjet printer carriages, but I need to figure out
+  how to physically hook electronics up to their linear encoders, and
+  then I probably need to rig up some kind of PID control to drive
+  them with.</li>
+<li>The bed platform: I need to build a thing in my bedroom to turn it
+  into more of a bedroom and be able to move in.  This involves buying
+  or salvaging more steel studs, hooking them together, and putting
+  some shit on top, and then at least some kind of cloth around the
+  edges.</li>
+<li>Extending the calculator: I have a somewhat awesome interactive
+  calculator, but it still needs a lot of work.  It would benefit a
+  lot from localStorage, decimal points, and fixing editing so that I
+  can add new numbers next to existing ones, and also from a
+  multitouch UI.</li>
+<li>Multitouch UI: I have a promising prototype that isn’t yet good
+  enough to do anything useful.</li>
+<li>Ice vest: something to enable me to comfortably weather the summer
+  in Buenos Aires.</li>
+<li>Dependency-driven recalculation: crossing <code>make</code> with Apache Spark.</li>
+<li>Graph notation: a general way to represent digraphs as relatively
+  short sequences of symbols.</li>
+<li>Magic Kazoo: a synthesizer you can hold in your mouth and play like
+  a kazoo</li>
+<li>Constraint-based quantitative modeling: a system for building
+  quantitative models that can include things like three-dimensional
+  shapes.</li>
+<li>Ghettobotics: bootstrapping a bitchin electronics lab from garbage.</li>
+<li>Quasicard: a generative form of hypertext that supports exploratory
+  data analysis</li>
+<li>Stuff with optimization: a whole list of things that I should be
+  able to attack with mathematical optimization, including:<ul>
+<li>Dithering.</li>
+<li>Image approximation under other constraints, such as mosaic
+  tiles or gradient swatches, using a psychovisual model.</li>
+<li>Or, for example, with an XY robot, an ink model, and a
+  psychovisual model.</li>
+<li>Melody transcription.</li>
+<li>Magic Sinewave synthesis (with a given reactive filter and
+  switching losses, say).</li>
+<li>Sparse approximation of convolution kernels (generalizations of
+  the Hogenauer filter).</li>
+<li>Kinematic control.</li>
+<li>Topological optimization for panel cutting.</li>
+<li>FEM in general.</li>
+<li>Text layout, as TeX’s badness-minimization approach.  But
+  e.g. for JSON.</li>
+<li>Toolpath optimization?</li>
+<li>Analog filter design.</li>
+<li>Relatedly, IIR filter design.</li>
+<li>Structure from motion, photogrammetry, and structure from shading.</li>
+<li>Tool choice from mesh model and tolerances — using more precise
+  tools where tighter tolerances are needed.</li>
+<li>Circuit design from available components (measured e.g. with an
+  M328)</li>
+<li>Execution planning in e.g. a query planner, where there are
+  multiple possible ways to compute the same result.</li>
+<li>Index design for a database, which is the same thing taken up a
+  level of abstraction — which indices would minimize query cost?</li>
+<li>Weld placement on weldments to optimize their strength</li>
+<li>Automated bricolage from gluing together found objects</li>
+<li>Mesh complexity reduction with bounded error</li>
+<li>Curve approximation with minimal numbers of control points</li>
+<li>List decoding of noisy signals</li>
+<li>Signal approximation (of e.g. audio signals) from given
+  primitive signals and combining operators and a closeness metric
+  (e.g. a psychoacoustic model).  One aspect of this is
+  audiomontage, where you combine prerecorded sounds to produce a
+  desired sound, as in notjustmoreidlechatter.</li>
+<li>Speech recognition, given a speech synthesis program and a
+  psychoacoustic model.</li>
+<li>Generating knitting patterns from triangle-mesh 3-D models</li>
+<li>Generating laser-cutting patterns from mesh models</li>
+<li>Cost optimization of laser cutting under various constraints,
+  e.g. bounded error to a mesh model, or visual similarity using a
+  psychovisual model.</li>
+<li>Cache allocation optimization</li>
+<li>Planning a travel path through a city to minimize cost,
+  discomfort, worst-case or average-case travel time, or some
+  combination</li>
+<li>Image coregistration</li>
+<li>Tensegrity design given constraints (e.g. maximum rigidity for
+  comfort, minimum rigidity, minimum strength, impact energy,
+  strength under given loads, support points)</li>
+<li>Graded-index optical systems with no surface scattering</li>
+<li>Materials property estimation from experimental results</li>
+<li>Circuit or electronic component estimation from experimental
+  results</li>
+<li>Design of linkages or composite materials to produce a given
+  force-displacement curve or force-displacement-time curve</li>
+<li>Inverse filtering to compensate precisely for known output
+  transducer imperfections, including nonlinearities</li>
+<li>Also, of course, for input transducer imperfections</li>
+<li>Optimizing a predictor of the next sample used for compression
+  (including lossless compression) for a given image or sound.</li>
+<li>Estimating a convolution kernel from two simultaneous signals,
+  such as a stereo recording of someone talking in a church.
+  Basically this is just inverse convolution.</li>
+<li>Beamforming</li>
+<li>Toolpath planning not just from a 3-D model but also, for
+  example, to approximate a given grayscale image by, for example,
+  carving plaster.</li>
+<li>Attributing motivations to human choices, e.g. social network
+  analysis from Facebook “like” data</li>
+<li>IQlight design from mesh</li>
+<li>Robot path planning</li>
+<li>Robot attitude and position information from sensor
+  data — actually SLAM as a whole</li>
+<li>Most-probable-fault diagnosis from a fault tree and observations</li>
+<li>Inferring a fault tree from observations</li>
+<li>Experiment design for fault diagnosis given a fault tree and
+  partial information</li>
+<li>Learning a model of a controllable system (e.g. a robot arm) in
+  order to control it and know where the controllable zones are</li>
+<li>Designing a procedure for a controllable system to optimize the
+  important tolerances instead of the less important ones; this
+  broadly includes things like planning to cast surfaces that
+  don’t need precision followed by grinding surfaces that do, but
+  also planning to position workpieces such that the things that
+  need precision are in the zones where your actuator and feedback
+  are most precise</li>
+<li>Constraint satisfaction for 3-D modeling</li>
+</ul>
+</li>
+<li>qyap</li>
+<li>a small, safe IRC client</li>
+<li>a daisy-chaining bus for simple programmable electronics</li>
+</ul><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/dsp.html">Digital signal processing (DSP)</a> (60 notes)
+</li><li><a href="../topics/manufacturing.html">Manufacturing</a> (50 notes)
+</li><li><a href="../topics/audio.html">Audio</a> (40 notes)
+</li><li><a href="../topics/optimization.html">Mathematical optimization</a> (29 notes)
+</li><li><a href="../topics/caching.html">Caching</a> (25 notes)
+</li><li><a href="../topics/incremental-computation.html">Incremental computation</a> (24 notes)
+</li><li><a href="../topics/hypertext.html">Hypertext</a> (13 notes)
+</li><li><a href="../topics/calculators.html">Calculators</a> (11 notes)
+</li><li><a href="../topics/robots.html">Robots</a> (9 notes)
+</li><li><a href="../topics/constraints.html">Constraint satisfaction</a> (9 notes)
+</li><li><a href="../topics/image-approximation.html">Image approximation</a> (5 notes)
+</li><li><a href="../topics/graphs.html">Graphs</a> (5 notes)
+</li><li><a href="../topics/layout.html">Layout</a> (4 notes)
+</li></ul></div></html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html><title>Cheap textures ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Cheap textures</h1><div class="metadata">Kragen Javier Sitaker, 2018-10-28 (updated 2019-05-05)
+(5 minutes)</div><p>So I’ve been thinking about how to render low-computational-cost
+textures in 2D, for a few different reasons.</p>
+<h2>Objectives</h2>
+<ul>
+<li>
+<p>Ultra-low-power e-paper computing systems; the objective here is for
+  the energy cost of generating the texture data to be comparable to
+  the energy cost of updating the e-paper to display it.  As outlined
+  in <a href="../notes/keyboard-powered-computers.html">Keyboard-powered computers</a>, updating an e-paper display
+  costs on the order of 200 nJ per pixel update, while common 32-bit
+  low-power processors use on the order of 300 pJ per instruction.
+  This means we can afford something like 700 instructions per pixel,
+  if we’re content to have the battery life be half of what it could
+  be.  But e.g. reducing below 175 instructions per pixel only
+  increases your battery life by 25%.</p>
+</li>
+<li>
+<p>Live video generation in software from low-memory computers; the
+  objective here is to be able to display more interesting things on
+  the screen than you have memory space for a full framebuffer.  As
+  mentioned in <a href="../notes/stm32.html">Notes on the STM32 microcontroller family</a>, NTSC composite video has space for about
+  200 kilopixels in living color, but common 32-bit microcontrollers
+  like the STM32 line have only 4–256 KiB of RAM, despite running at
+  up to 200 MIPS.  To the extent that the display contents can be
+  encoded in RAM with many pixels per byte, then rendered in software
+  to a scanline “framebuffer” or a “framebuffer” containing a few
+  scanlines, they can be far richer within these limitations.  200
+  kilopixels at 30Hz is 6 megapixels per second.  At 96 MIPS, that's a
+  budget of 16 instructions per pixel, or 32 instructions per pixel if
+  you’re satisfied with a 200×500 display.</p>
+</li>
+<li>
+<p>Providing more powerful graphical primitives for GUI systems.  Old
+  GUIs, up to around 1998, were so constrained by the slow computers
+  they ran on that they had to update the framebuffer incrementally,
+  because there wasn’t enough time to redraw the entire screen in
+  between screen updates.  Modern GUIs’ programming model and
+  appearance mostly mindlessly apes the GUIs of that epoch, although
+  the IMGUI paradigm, gradients, filters, and transparency are making
+  their way in; Self’s cel-animation-inspired effects have made their
+  way into modern GUIs as animated transitions, notably in window
+  managers and jQuery animations; CSS is popularizing arbitrary
+  transform matrices; and Google’s Material Design is leading a move
+  to physically-based rendering in user interfaces.  But there's a
+  much wider range of possibilities available.  Even the CPU of the
+  laptop I’m typing this on averages over 6 64-bit or 128-bit
+  instructions per clock cycle at 1.6 GHz, or 10,000 MIPS, and its LCD
+  screen is only 1920×1080 at 60Hz, or 124 megapixels per second.
+  This is a computational budget of about 80 CPU instructions per
+  pixel.  Moreover, its integrated GPU (see <a href="../notes/asus-gpu.html">Notes on the Intel N3700 i915 GPU in this ASUS E403S laptop</a>) is
+  capable of doing maybe 50 billion single-precision
+  multiply-accumulates per second (invoked from 12.5 billion
+  instructions), or twice that many in half-precision, and supports
+  OpenCL; if this is correct, this would be a computational budget of
+  about 400 multiply-accumulates per pixel (invoked from 100 4×SIMD
+  instructions).</p>
+</li>
+<li>
+<p>Reducing GUI latency and tearing.  A 60Hz screen redraw is already
+  16.7 ms, which <a href="https://danluu.com/input-lag/">Dan Luu has convincingly shown is already significant
+  in user experience</a>.  Double-buffering adds an additional 16.7 ms
+  of latency, and doing it out of sync with the vertical refresh adds
+  an additional random latency that ranges from 0 to 16.7 ms.  Typical
+  keystroke-to-screen latencies on modern computers are in the range
+  of 100 ms, and decreasing that by 25% would be a significant
+  improvement.  The hardware constraints here are the same as in the
+  previous item: 80 CPU instructions per pixel or 400 GPU operations
+  per pixel.</p>
+</li>
+</ul>
+<p>So, all of these different ways that you can use low-computational-cost
+texture generation have different computational budgets (175
+instructions per pixel for e-paper, 16 for bitbanging NTSC, 80
+instructions and 400 multiply-accumulates for the laptop scenarios),
+but they’re all kind of in the same ballpark.  Moreover, they’re in a
+completely different world from the Macintosh with its
+6-MHz 1-Dhrystone-MIPS 68000 and
+its 9" 512×342 CRT, which I am assuming refreshed at around 60 Hz,
+giving it a dot clock a bit over 10 MHz — 10 pixels per instruction.
+They are, respectively, 1750 times faster, 160 times faster, and 800
+times faster (not counting the GPU, which is arguably something like
+4000 times faster), relative to the notional “dot clock”.</p>
+<h2>Techniques</h2>
+<ul>
+<li>Solid color filling</li>
+<li>Linear gradients</li>
+<li>Polygon filling</li>
+<li>Alternating pixels (vertical, horizontal, or checkerboard)</li>
+<li>LFSR uniform white noise</li>
+<li>Adding images</li>
+<li>Tiling</li>
+<li>Mirrored tiling</li>
+<li>Character generation</li>
+<li>Strength-reduction</li>
+<li>Bit-sliced cellular automata</li>
+<li>Sierpinski textures</li>
+<li>Bresenham’s algorithms</li>
+<li>Splines</li>
+<li>1-D and 2-D palette mapping</li>
+<li>Zoneplates</li>
+<li>Moiré</li>
+<li>Thresholding/signum</li>
+<li>Texture mapping</li>
+<li>Animation<ul>
+<li>Transitions</li>
+<li>Temporal dithering</li>
+<li>Dynamical systems</li>
+</ul>
+</li>
+<li>Domain displacement<ul>
+<li>Subpixel jittering</li>
+</ul>
+</li>
+<li>Filtering</li>
+<li>Perlin noise</li>
+</ul>
+<h2>To read</h2>
+<ul>
+<li><a href="http://www.iquilezles.org/www/articles/simplewater/simplewater.htm">http://www.iquilezles.org/www/articles/simplewater/simplewater.htm</a></li>
+<li><a href="http://demo-effects.sourceforge.net/">http://demo-effects.sourceforge.net/</a></li>
+<li><a href="https://github.com/ocornut/imgui">https://github.com/ocornut/imgui</a></li>
+<li><a href="http://www.lofibucket.com/articles/64k_intro.html">http://www.lofibucket.com/articles/64k_intro.html</a></li>
+<li><a href="http://www.iquilezles.org/www/articles/morenoise/morenoise.htm">http://www.iquilezles.org/www/articles/morenoise/morenoise.htm</a></li>
+<li><a href="http://jcgt.org/published/0004/02/01/">http://jcgt.org/published/0004/02/01/</a></li>
+<li><a href="https://www.shadertoy.com/view/4ttSWf">https://www.shadertoy.com/view/4ttSWf</a></li>
+<li><a href="http://www.iquilezles.org/www/articles/rmshadows/rmshadows.htm">http://www.iquilezles.org/www/articles/rmshadows/rmshadows.htm</a></li>
+<li><a href="http://erleuchtet.org/~cupe/permanent/enhanced_sphere_tracing.pdf">http://erleuchtet.org/~cupe/permanent/enhanced_sphere_tracing.pdf</a></li>
+<li><a href="https://www.slideshare.net/DICEStudio/five-rendering-ideas-from-battlefield-3-need-for-speed-the-run">https://www.slideshare.net/DICEStudio/five-rendering-ideas-from-battlefield-3-need-for-speed-the-run</a></li>
+<li><a href="http://web.archive.org/web/20180306233623/https://prideout.net/blog/?p=63">http://web.archive.org/web/20180306233623/https://prideout.net/blog/?p=63</a></li>
+<li><a href="http://www.microscopics.co.uk/blog/2010/paulstretch-an-interview-with-paul-nasca/">http://www.microscopics.co.uk/blog/2010/paulstretch-an-interview-with-paul-nasca/</a></li>
+<li><a href="https://web.archive.org/web/20160325174539/http://freespace.virgin.net/hugo.elias/graphics/x_water.htm">https://web.archive.org/web/20160325174539/http://freespace.virgin.net/hugo.elias/graphics/x_water.htm</a></li>
+<li><a href="https://github.com/intel/opencl-intercept-layer/blob/master/docs/kernel_isa.md">https://github.com/intel/opencl-intercept-layer/blob/master/docs/kernel_isa.md</a></li>
+<li><a href="https://nlguillemot.wordpress.com/2017/01/30/intel-gpu-assembly-with-pix-beta/">https://nlguillemot.wordpress.com/2017/01/30/intel-gpu-assembly-with-pix-beta/</a></li>
+<li><a href="https://www.x.org/docs/intel/CHV/intel-gfx-prm-osrc-chv-bsw-vol03-gpu-overview.pdf">https://www.x.org/docs/intel/CHV/intel-gfx-prm-osrc-chv-bsw-vol03-gpu-overview.pdf</a></li>
+<li><a href="https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-hsw-3d-media-gpgpu-engine_0_1.pdf">https://01.org/sites/default/files/documentation/intel-gfx-prm-osrc-hsw-3d-media-gpgpu-engine_0_1.pdf</a></li>
+<li><a href="http://renderingpipeline.com/graphics-literature/low-level-gpu-documentation/">http://renderingpipeline.com/graphics-literature/low-level-gpu-documentation/</a></li>
+<li><a href="https://doc.lagout.org/electronics/Intel-Graphics-Architecture-ISA-and-microarchitecture.pdf">https://doc.lagout.org/electronics/Intel-Graphics-Architecture-ISA-and-microarchitecture.pdf</a></li>
+<li><a href="https://01.org/linuxgraphics/downloads/stack">https://01.org/linuxgraphics/downloads/stack</a></li>
+<li><a href="https://01.org/linuxgraphics/downloads/2018q1-intel-graphics-stack-recipe">https://01.org/linuxgraphics/downloads/2018q1-intel-graphics-stack-recipe</a></li>
+<li><a href="https://linuxhint.com/gpu-programming/">https://linuxhint.com/gpu-programming/</a></li>
+<li><a href="https://software.intel.com/en-us/articles/introduction-to-gen-assembly">https://software.intel.com/en-us/articles/introduction-to-gen-assembly</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Simplex_noise">https://en.wikipedia.org/wiki/Simplex_noise</a></li>
+<li><a href="http://staffwww.itn.liu.se/~stegu/simplexnoise/simplexnoise.pdf">http://staffwww.itn.liu.se/~stegu/simplexnoise/simplexnoise.pdf</a></li>
+<li><flafla2.github.io/2014/08/09/perlinnoise.html></li>
+<li><a href="https://mzucker.github.io/html/perlin-noise-math-faq.html">https://mzucker.github.io/html/perlin-noise-math-faq.html</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Perlin_noise">https://en.wikipedia.org/wiki/Perlin_noise</a></li>
+<li><a href="https://thebookofshaders.com/11/">https://thebookofshaders.com/11/</a></li>
+<li><a href="http://web.archive.org/web/20160304052449/http://www.noisemachine.com/talk1/">http://web.archive.org/web/20160304052449/http://www.noisemachine.com/talk1/</a></li>
+</ul><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/energy.html">Energy</a> (63 notes)
+</li><li><a href="../topics/latency.html">Latency</a> (19 notes)
+</li></ul></div></html>

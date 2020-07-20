@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html><title>Simplifying computing systems by having fewer kinds of graphics ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Simplifying computing systems by having fewer kinds of graphics</h1><div class="metadata">Kragen Javier Sitaker, 2015-10-13
+(10 minutes)</div><p>One way you could simplify computing systems is by having fewer
+redundant kinds of graphics.  Typical computing systems have many
+different systems for windowing, drawing text, specifying fonts,
+making translucent windows, representing vector graphics, drawing and
+representing 3D graphics, zoomable graphics like maps, and doing text
+layout, among other things.  For example, you might have VT-100
+emulation, Xlib, PDF, Quartz, SVG, <code>&lt;canvas&gt;</code>, HTML with the CSS box
+model, PostScript, OpenGL, POVRay, H.264, MPEG-4, PNG, GIF, and JPEG,
+all on the same machine.  Each typically has different tradeoffs
+related to performance, flexibility, and visual quality, but most of
+them just suck on all axes.</p>
+<p>What if we had a graphics system that was both sufficiently expressive
+to cover nearly all of these applications, but also sufficiently
+performant to run in real time, while having a sufficiently simple
+implementation as to be understandable by a single person?  Dan
+Amelang’s Gezira and Nile are an influential effort in this direction
+(for the aspect of graphics that involves rendering to pixels,
+anyway), but they’re resolutely two-dimensional.</p>
+<h2>Immediate-mode versus structured-mode</h2>
+<p>In my view, immediate-mode graphics APIs like <code>&lt;canvas&gt;</code> and
+PostScript have more predictable performance and substantially simpler
+code than structured-mode graphics systems like SVG.</p>
+<h2>File formats</h2>
+<p>File formats and graphics APIs are intimately related.  At the
+simplest level, you can treat a file format as a “graphics API” in the
+sense that you can draw stuff by piping a stream of bytes to a decoder
+for that format; but the relationship goes the other direction too.</p>
+<p>Of course, structured-mode graphics systems have this nailed down: all
+they have to do is serialize the in-memory object graph using a
+generic serialization system, and they’re done.  Direct-mode APIs are
+more complicated.</p>
+<p>A “recording” of a sequence of direct-mode drawing operations can be
+“played back” by reinvoking the same operations in a new context, so a
+drawing API is in some sense capable of being serialized as a file
+format.  This is the idea behind, for example, the WMF “Windows
+Metafile” vector format, which is just a serialized sequence of
+Windows GDI drawing operations.  However, file formats and drawing
+APIs have some divergent needs.</p>
+<p>First, graphics file formats typically benefit from having some kind
+of non-sequential access, for example for drawing particular areas,
+particular layers, or particular pages.  Typical ways of selecting the
+graphics of interest doing this include bounding boxes, quadtrees, k-d
+trees, BSP-trees, and bitmaps of grids.</p>
+<p>Second, programs using drawing APIs often want to make decisions about
+what to draw based on conditions that hold in a particular case.  For
+example, level-of-detail rendering is the name for a family of
+techniques that render images in more detail when you are zoomed in to
+see them, consuming more time, including things as simple as
+approximating Bézier curves with a larger number of straight lines;
+and of course programs often use bounding boxes to avoid spending time
+drawing objects that are offscreen or invisible because of some other
+clipping or occlusion.</p>
+<p>You could imagine running such a program under some kind of
+backtracking replay system that inspects it to see what environmental
+conditions it’s testing, snapshotting it at each test and later
+re-executing the conditionally-skipped parts, in order to derive the
+first of these things from the second.  But that’s not going to be
+universally applicable and anyway it’s kind of rocket science.</p>
+<p>A less-transparent, lower-tech approach would involve executing
+level-of-detail-conditional or bounding-box-conditional code in a
+fashion like how IMGUI libraries handle the logic for menus and
+windows that aren’t currently being displayed:</p>
+<pre><code>if (bbox_visible(x0, y0, x1, y1)) {
+    render_foo();
+    render_bar();
+    for (int i = 0; i &lt; baz_count; i++) {
+        render-baz(bazzes[i]);
+    }
+    end_bbox();
+}
+</code></pre>
+<p>With this approach, interactive drawing can avoid rendering things
+inside the given bounding box if it is outside the display bounds,
+simply by returning false from <code>bbox_visible</code>, and metafile rendering
+can always return true from <code>bbox_visible</code>, but nest the objects thus
+constructed inside a bbox.  Optionally, metafile rendering code could
+return false when you're inside a sufficiently small bbox, in order to
+support programs that want to do infinite level-of-detail rendering.</p>
+<p>(My entire premise here is that we should forget about 2D graphics and
+just do 3D graphics, leaving 2D graphics as a special case where
+you’re using an orthographic projection or something.  So really these
+would be bounding volumes, not 2-D bounding boxes.)</p>
+<p>Third, both direct-mode and structured-mode drawing systems are
+capable of returning general information to the program that’s doing
+the drawing, not just pointwise questions like “is this layer visible”
+or “is this bounding volume visible”.  This is hazardous to file</p>
+<h2>Tiny POVRay code</h2>
+<p>POVRay is among the most flexible of these graphics systems.  For
+example, <a href="https://mscharrer.net/povray/rays/">https://mscharrer.net/povray/rays/</a> is an animation of manta
+rays swimming in a hazy ocean, made from these 464 fairly obfuscated
+bytes of POV-Ray code, written by Jeff Reifel in 2008:</p>
+<pre><code>#local
+C=clock*pi;#macro
+B(N,F)sphere{0F/7
+1scale
+1-pow(I.5)translate-I*F*x
+rotate
+y*N*90rotate-N*x*pow(5I)*10*sin(I*2-C*8+i)scale.2+x*.8translate-x}#end#local
+i=C;#while(i&lt;2*pi+C)#local
+I=0;blob{#while(I&lt;1)B(1,7)B(-1,7)B(0,3)#local
+I=I+.01;#end
+rotate&lt;-90cos(i*3)*-45i*pi*36&gt;translate&lt;sin(i)+2*sin(2*i)5+cos(i)-2*cos(2*i)3*sin(3*i)+7&gt;*2rotate
+x*37pigment{slope
+y}}#local
+i=i+pi/8;#end
+light_source{&lt;0,60,99&gt;1spotlight}media{intervals
+6scattering{2rgb&lt;.1.2,1&gt;/99}}
+</code></pre>
+<p>However, rendering the 300-frame looped animation on that page
+involved casting 685 million rays and took fifty thousand CPU seconds,
+two or three minutes per frame.  That’s only about 2 million rays per
+frame or 14000 rays per CPU-second.</p>
+<p>What if your drawing primitives were sufficiently powerful to allow
+you to get graphical effects in such a tiny amount of code?  It’d be a
+little bigger without the minification, but not that much.  My POVRay
+is pretty rusty, but I think it is supposed to read as follows:</p>
+<pre><code>#local C=clock*pi;
+
+#macro B(N,F)
+    sphere {
+        0F/7
+        1
+        scale 1 - pow(I, .5)
+            translate -I*F*x
+                rotate y*N*90
+                    rotate -N * x * pow(5I) * 10 * sin(I*2 - C*8 + i)
+                        scale .2+x*.8
+                            translate -x
+    }
+#end
+
+#local i=C;
+
+#while (i &lt; 2*pi+C)
+    #local I=0;
+    blob { 
+        #while (I &lt; 1)
+            B(1, 7)
+            B(-1, 7)
+            B(0, 3)
+            #local I=I+.01;
+        #end
+
+        rotate &lt;-90, cos(i*3)*-45, i*pi*36&gt;
+            translate &lt;
+                       sin(i) + 2*sin(2*i),
+                       5 + cos(i) -2*cos(2*i),
+                       3*sin(3*i) + 7
+                      &gt; * 2
+                rotate x*37
+                    pigment { slope y }
+    }
+    #local i=i+pi/8;
+#end
+light_source { &lt;0, 60, 99&gt; 1 spotlight }
+media { intervals 6 scattering { 2 rgb&lt;.1, .2, 1&gt;/99 } }
+</code></pre>
+<p>That’s still only about 35 lines of code.  I mean, who knows how long
+he took tweaking it.</p>
+<p>One promising approach to things like this is to use some kind of
+interval arithmetic or Monte Carlo rendering for level-of-detail
+rendering: render as much as you can before the frame deadline and
+display the result, and add more detail as long as the scene remains
+static.  This is what Blender does, for example, with rotations of
+large meshes.</p>
+<h2>Computing performance</h2>
+<p>One of the biggest levers we have available now to simplify things is
+computing power to do things we couldn’t do in the past, just because
+it was too expensive.  What’s the smallest amount of computing
+horsepower we can expect?</p>
+<p>A Raspberry Pi 2 costs US$40 right now and <a href="https://www.reddit.com/r/raspberry_pi/comments/2wfadr/clustering_with_raspberry_pi_2/">can do about 250
+megaflops</a>
+on the CPU and 24 gigaflops on the GPUs, supposedly; a 64-Pi Version 1
+Model B cluster <a href="https://en.wikipedia.org/wiki/Raspberry_Pi">hit 1.1 GFLOPS on
+LINPACK</a>, or about 17
+megaflops per Pi, and version 2 is supposedly 4 to 6 times as fast in
+aggregate, thus 70 to 100 megaflops.  <a href="http://hackaday.com/2015/02/05/benchmarking-the-raspberry-pi-2/">Hackaday got 93
+double-precision megaflops per core, and 1186 VAX MIPS, on the Pi
+2</a>.
+Also, it was able to shade 900 texture-mapped triangles <a href="http://www.roylongbottom.org.uk/Raspberry%20Pi%20Benchmarks.htm#anchor18">at 40 fps,
+although previous tests erroneously reported twice
+that</a>
+at about a megapixel of resolution.  That’s only 36000 triangles per
+second.</p>
+<p>Supposing that we can get 3 gigaflops out of a Pi 2 (geometric average
+of the 400 megaflops from the Hackaday results and the 24 supposed
+gigaflops from the GPUs) and we want 60 frames per second at 1
+megapixel, we can spend up to about 50 floating-point operations per
+displayed pixel.  Maybe I’m naïve, but that seems like it ought to be
+enough to do pretty decent antialiased rendering of some textures.</p>
+<h2>Derivative and interval approximations of imagery</h2>
+<p>Suppose you calculate a sparse approximation of the gradient of the
+screen image (the Jacobian, I guess) relative to the quantities in a
+scene model.  Then, when you update the scene model slightly, you can
+multiply the update through your sparse gradient matrix to get a
+linear approximation of the change in the rendered image.</p>
+<p>Calculating a gradient of the screen image relative to the scene model
+sounds like rocket science, but apparently automatic differentiation
+is now a well-established technique that can be applied to FORTRAN
+scientific codes of substantial size.  In forward mode, it implies a
+constant-factor slowdown.</p>
+<p>Alternatively, instead of doing the rendering with points and
+derivatives, you could do it with interval arithmetic, which allows
+you to determine conservatively how big of a change in the input is
+needed to create any change at all in the rendered scene.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/pricing.html">Pricing</a> (89 notes)
+</li><li><a href="../topics/small-is-beautiful.html">Small is beautiful</a> (40 notes)
+</li><li><a href="../topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li><li><a href="../topics/bubbleos.html">BubbleOS</a> (17 notes)
+</li><li><a href="../topics/3d-modeling.html">3-D modeling</a> (9 notes)
+</li><li><a href="../topics/imgui.html">Immediate-mode GUIs</a> (8 notes)
+</li><li><a href="../topics/gradients.html">Gradients</a> (8 notes)
+</li><li><a href="../topics/anytime-algorithms.html">Anytime algorithms</a> (7 notes)
+</li><li><a href="../topics/image-approximation.html">Image approximation</a> (5 notes)
+</li><li>Ray tracing</li><li>POVRay</li><li>3d</li></ul></div></html>

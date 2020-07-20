@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html><title>High academic achievement almost certainly depends more on tutoring than group averages by race or sex ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>High academic achievement almost certainly depends more on tutoring than group averages by race or sex</h1><div class="metadata">Kragen Javier Sitaker, 2016-09-08
+(3 minutes)</div><p>Reading
+<a href="http://www.scientificamerican.com/article/how-to-raise-a-genius-lessons-from-a-45-year-study-of-supersmart-children/">http://www.scientificamerican.com/article/how-to-raise-a-genius-lessons-from-a-45-year-study-of-supersmart-children/</a>
+and it talks about how the top 1% in intelligence are responsible for
+a lot of our science and culture.  Some controversial previous
+discussion has focused on how differences in variance and means
+between different groups might affect questions like this; Larry
+Summers got fired over such discussion, for example.</p>
+<p>The Wikipedia article
+<a href="https://en.wikipedia.org/wiki/Sex_differences_in_intelligence">https://en.wikipedia.org/wiki/Sex_differences_in_intelligence</a>
+summarizes the situation.</p>
+<p>The top 1% are 2.33 standard deviations to the right of the mean in a
+Gaussian distribution, which is 135 IQ in the overall population:</p>
+<pre><code>&gt; qnorm(.99)
+[1] 2.326348
+&gt; qnorm(.99, mean=100, sd=15)
+[1] 134.8952
+&gt; pnorm(135, mean=100, sd=15)
+[1] 0.9901847
+</code></pre>
+<p>What if you have a subpopulation with a 10% smaller variance?  It
+turns out to reduce the number of people in that subpopulation in the
+top 1% by more than a factor of 2:</p>
+<pre><code>&gt; pnorm(135, mean=100, sd=15*.9)
+[1] 0.9952372
+</code></pre>
+<p>What if instead you have a subpopulation whose mean is shifted down by
+one standard deviation, without changing the variance — an effect size
+of 1?  This reduces the number of people in that subpopulation in the
+top 1% by a factor of 20:</p>
+<pre><code>&gt; pnorm(135, mean=85, sd=15)
+[1] 0.9995709
+</code></pre>
+<p>This is true even though the probability is quite reasonable that an
+event from this group will be higher than an event drawn from the
+entire population.</p>
+<p>The situation becomes more extreme as you go to more extreme
+quantiles.  Consider the top 0.01%:</p>
+<pre><code>&gt; qnorm(.9999)
+[1] 3.719016
+&gt; qnorm(.9999, mean=100, sd=15)
+[1] 155.7852
+&gt; pnorm(156, mean=100, sd=15)
+[1] 0.9999055
+&gt; pnorm(156, mean=100, sd=15*.9)
+[1] 0.9999832
+&gt; pnorm(156, mean=85, sd=15)
+[1] 0.9999989
+</code></pre>
+<p>That is, at IQ 156 and above, where we find 0.01% of the population, a
+hypothetical population with a 10% lower standard deviation will be
+underrepresented by almost 6:1, and a hypothetical population with a
+1-SD-lower mean will be underrepresented by more than 90:1; getting
+the same result by tweaking the variance requires a 21% smaller
+standard deviation, 11.9 IQ points.</p>
+<p>A hypothetical group with a 1-SD-lower mean but also a 21% <em>larger</em>
+standard deviation (of 19 IQ points) matches and slightly exceeds the
+overall population at this level:</p>
+<pre><code>&gt; pnorm(156, mean=85, sd=15/.79)
+[1] 0.9999077
+</code></pre>
+<p>In this context it is worth pointing out that tutoring improves
+student performance by two standard deviations (Anania (1982, 1983)
+and Burke (1984)):
+<a href="http://changelog.ca/quote/2012/09/23/tutoring_two_sigma">http://changelog.ca/quote/2012/09/23/tutoring_two_sigma</a>.</p>
+<p>So what if we have a hypothetical group with an unchanged variance but
+a mean two standard deviations higher?</p>
+<pre><code>&gt; pnorm(156, mean=130, sd=15)
+[1] 0.9584818
+</code></pre>
+<p>If student performance is equivalent to IQ, 4.2% of them will exceed
+the performance of 99.99% of the rest of the population.  This is a
+larger difference than has ever been suggested for (mean or variance)
+intelligence differences due to race or sex.</p>
+<p>(In the paper described, tutoring also substantially reduced the
+variance of achievement scores, but this is probably because the
+achievement scores had a ceiling; all three of the distribution curves
+from the experimental data intersect at the X-axis on the right, and
+the “tutorial” group’s distribution is noticeably skewed to the left.)</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/politics.html">Politics</a> (39 notes)
+</li><li><a href="../topics/facepalm.html">Facepalm</a> (24 notes)
+</li></ul></div></html>

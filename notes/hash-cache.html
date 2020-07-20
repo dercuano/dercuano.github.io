@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html><title>Amnesic hash tables for stochastically LRU memoization ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Amnesic hash tables for stochastically LRU memoization</h1><div class="metadata">Kragen Javier Sitaker, 2017-04-03
+(1 minute)</div><p>A policy rarely used for handling collisions in hash tables: discard
+the old colliding entry!  This is appropriate for using a hash table
+as a cache, e.g. for memoization.  Or push the oldest, or one of the
+older, entries out of a small bucket, of four or eight items, like a
+4-way or 8-way set-associative CPU cache.</p>
+<p>If you hash the key twice, so that it hashes into two separate
+buckets — rather like cuckoo hashing — then the chance of survival
+goes up significantly.  You check both buckets before declaring that
+it’s not found.  In this case, you should probably rewrite the entry
+into both buckets when read-accessing it, so that more-often-read
+entries will be erased with lower probability.  This is an alternative
+to using 4-way or 8-way set-associative caches; I suspect it will turn
+out to be more efficient.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/caching.html">Caching</a> (25 notes)
+</li></ul></div></html>

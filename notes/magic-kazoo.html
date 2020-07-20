@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html><title>The Magic Kazoo: a synthesizer you stick in your mouth ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>The Magic Kazoo: a synthesizer you stick in your mouth</h1><div class="metadata">Kragen Javier Sitaker, 2017-04-04 (updated 2019-05-12)
+(6 minutes)</div><p>I thought I must have written about this in detail elsewhere, but I
+can’t find it.</p>
+<p>I propose the Magic Kazoo, an electronic musical instrument.  You use
+it by putting it in your mouth and singing into it; the pitch, volume,
+airflow, and tonal quality of your voice, together with buttons on it,
+control a synthesizer running on one or more microcontrollers to
+produce music emitted from a built-in speaker.  With live looping, you
+are a one-man band.</p>
+<h2>Real-time audio synthesis is no longer power-hungry</h2>
+<p>Modern microcontrollers — even MSP430s and AVRs, but especially the
+ARM Cortex-M series — are powerful enough to do real-time audio
+synthesis easily, even running on tiny batteries.  We should expect
+the vast majority of the power consumed by the Magic Kazoo to be the
+power dissipated in its speaker.</p>
+<h2>Pitch detection can be super simple; amplitude detection may be harder</h2>
+<p>Your voice recorded on a microphone that is actually inside your mouth
+is enough to saturate just about any normal microphone, and it’s
+reasonably sinusoidal, so you can get the frequency just by counting
+zero-crossings.  You can’t get the amplitude in the usual way, because
+it’s totally saturated and does a pretty good impression of a square
+wave.  You may still have 200–500μs or so in between saturated
+positive and saturated negative, though, and the slope in that 500μs
+(or equivalently its length) kind of tells you what the amplitude of
+the whole sine wave would be if you could record it.</p>
+<p>Given that, you can detect sound onsets with amplitude,
+measure the frequency with time between zero crossings, round to the
+nearest halfstep, and control a softsynth.  Maybe you can use the
+inferred volume contour of the sound to give you further control over
+the sound.</p>
+<h2>Even ceramic capacitors might be adequate microphones in such extreme circumstances</h2>
+<p>(The power of the sound is such that you might be able to use things
+that you wouldn’t normally use as microphones.  Like
+<a href="https://e2e.ti.com/blogs_/b/precisionhub/archive/2014/12/19/stress-induced-outbursts-microphonics-in-ceramic-capacitors-part-1">high-barium-titanate ceramic capacitors</a>, which are a lot cheaper,
+and which <a href="http://electronics.stackexchange.com/questions/128892/quantifying-the-piezoelectric-effect-of-ceramic-capacitors">can sometimes generate over 100mV</a> piezoelectrically, or
+even <a href="https://www.youtube.com/watch?v=KFCRB4d991E">over two volts when Dave Jones bangs them on wood like
+drumsticks</a>.)</p>
+<h2>Interfaces to the outside world</h2>
+<p>Aside from the speaker, it has a headphone jack.</p>
+<h3>Should air pass through it?</h3>
+<p>Since you can breathe through your nose,
+it doesn’t need to have air pass through it, and if you
+take that option, you can make music for yourself or a headphone
+listener by humming quietly.  This does remove the possibility of
+controlling a dimension of the music with airflow, though.</p>
+<h3>Sliders, knobs, and buttons</h3>
+<p>In addition to the continuously-variable frequency and amplitude
+inputs from your voice, the possible continuously-variable spirometry
+input, and the possibility of maybe detecting other aspects of your
+vocal-cavity resonances, the Magic Kazoo probably needs some further
+controls.  The variety of things you <em>might</em> want to control are
+endless: adjusting the volume, selecting from thousands of existing
+instrument sounds, recording a pattern to loop later, enabling or
+disabling existing patterns, starting or stopping a canned beat-box
+rhythm, adjusting tempo, and any of the endless variety of effects
+pedals out there; and if you’re using it to construct your own virtual
+instruments, you could start with adjusting attack, decay, sustain,
+and release, recording samples, autotuning them, and then selecting
+what part of the sample gets used, generating sounds from systems like
+Karplus-Strong and FM synthesis, and so on.</p>
+<p>There is, however, a very limited amount of space available on a
+kazoo-sized thing for the full set of controls you might want on a
+digital audio workstation, and even less screen space for feedback.  I
+have this little 8-color ballpoint pen here that’s about the right
+size; as mentioned in <a href="../notes/phase-change-soldering-iron.html">A phase-change soldering iron</a>, it’s 17 mm
+in diameter and 130 mm long.  The eight colors are selected by eight
+sliders somewhat like the digit inputs on a Curta calculator, which
+slide about 25 mm; things that are more closely spaced than that
+probably aren’t too practical, and even those might be pushing it — I
+can’t move two adjacent sliders at once because my fingers are too
+big.  So controls need to be at least 13 mm apart to be simultaneously
+operable.</p>
+<p>For such a device, there are strong incentives in favor of capacitive
+touch sensing instead of physical buttons: moving parts break,
+especially on instruments played by children; physical buttons tend to
+let water in, which is a problem for an instrument normally partly
+immersed in saliva; the higher parts count and extra assembly steps
+for physical buttons raise the cost; and physical buttons are
+generally limited to detecting contact or non-contact, with no analog
+levels, until you go to potentiometers (which really exacerbate the
+other three factors).  But normal touch sensing is kind of a no-go for
+a musical instrument, because it generally requires looking at the
+thing and responding to what you see, which adds far too much
+cognitive latency.  It’s <em>really</em> important to be able to find
+controls with your fingers before you activate them.</p>
+<p>A possible solution is to expose the touch surfaces through holes in a
+touchable template, which allows you to find the “button” or “slider”
+hole you want by feel alone, then use a bit more pressure to squeeze
+your finger skin through the hole so it touches the surface.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/electronics.html">Electronics</a> (138 notes)
+</li><li><a href="../topics/dsp.html">Digital signal processing (DSP)</a> (60 notes)
+</li><li><a href="../topics/audio.html">Audio</a> (40 notes)
+</li><li><a href="../topics/microcontrollers.html">Microcontrollers</a> (29 notes)
+</li><li><a href="../topics/music.html">Music</a> (18 notes)
+</li></ul></div></html>

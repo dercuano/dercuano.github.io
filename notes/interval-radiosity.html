@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html><title>Interval radiosity ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Interval radiosity</h1><div class="metadata">Kragen Javier Sitaker, 2016-07-27
+(1 minute)</div><p>You can think of radiosity rendering as something like seeking the
+first eigenvalue of a transformation matrix; each vector element
+identifies the luminous flux at a particular point in space oriented
+in a particular direction.  The transformation matrix identifies the
+transformation function of this six-dimensional light field as it
+propagates through space and bounces off objects, along with whatever
+sources of illumination are needed.  This vector must necessarily be
+of very high dimensionality in order to provide a reasonable
+approximation, but it may be possible to do a reasonable job by
+subdividing space and directionality recursively using interval
+arithmetic until you reach an adequate approximation.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li></ul></div></html>

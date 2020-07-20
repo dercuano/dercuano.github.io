@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><title>A REST interface to a software transactional memory ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>A REST interface to a software transactional memory</h1><div class="metadata">Kragen Javier Sitaker, 2017-06-21
+(2 minutes)</div><p>Suppose you design a REST system in which every GET or PUT includes a
+transaction ID, which is a URL, assigned by some kind of transaction
+serialization service.  Any piece of code that wants to make changes
+to resources must allocate a transaction ID from the transaction
+serialization service.</p>
+<p>Some resources are merely files, while others are synthetic, with
+their representations produced on demand from other resources.  When
+you GET the URL of a file, the file notes your transaction ID, and if
+it changes in the future while your transaction is still active, it
+will post a change notification to your transaction ID.  When you PUT
+a file, the new state is at first only visible to GETs with your
+transaction ID.</p>
+<p>When a transaction is completed, you tell the transaction service to
+commit your transaction.  It first verifies that none of the files you
+GETted have had changes committed to them by a previously committed
+transaction; if this is true, it tells all the files you PUTted to
+commit your change.</p>
+<p>(It’s unclear to me whether the transaction service has to do all of
+this dependency tracking or whether the file servers can do some of
+it.)</p>
+<p>If, instead, one or more of the files have changed, then the
+transaction service refuses to commit your transaction, instead
+rolling it back.  Then you can retry the whole transaction from the
+beginning, or give up and report failure.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/sa.html">Systems architecture</a> (48 notes)
+</li><li><a href="../topics/transactions.html">Transactions</a> (14 notes)
+</li><li><a href="../topics/rest.html">REpresentational State Transfer</a> (8 notes)
+</li><li><a href="../topics/networking.html">Networking</a> (7 notes)
+</li></ul></div></html>

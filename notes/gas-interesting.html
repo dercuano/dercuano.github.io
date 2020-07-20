@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html><title>Interesting features of the GNU assembler Gas ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Interesting features of the GNU assembler Gas</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(2 minutes)</div><p>Interesting features of gas:</p>
+<ul>
+<li>multiple subsections: <code>.data 0</code>, <code>.data 1</code>, etc.  You can switch around
+  between them during assembly, and then they get concatenated when
+  assembly is done.  There’s some ambiguity in the manual about how
+  this interacts with the “.” symbol.</li>
+<li>The “.” symbol, which is like Intel’s $, and which can be reassigned
+  to move around and assemble things in funny places.  I haven’t yet
+  tried using it to assemble code someplace we’ve already been
+  (e.g. for a counted string).  The documentation for <code>.org</code> says this
+  won't work.</li>
+<li><code>.fill</code> would be useful for filling an area with a pattern (despite
+  its bizarre semantics.)</li>
+<li>there is of course a full conditional compilation system.</li>
+<li>there is of course a full macro facility, with default arguments,
+  named arguments, recursive macros, string interpolation, the ability
+  to redefine existing symbols, and optionally local variables.</li>
+<li><code>.incbin</code> lets you suck in an external file, or part of an external
+  file, as data.</li>
+<li>It uses Knuth's <code>1f</code>, <code>1b</code>, <code>2f</code>, <code>2b</code> local labels.  These work remarkably
+  well for something so archaic-looking.</li>
+<li>The <code>-a</code> option generates an assembly listing.  There's a bunch of
+  formatting stuff for the listings: <code>.eject</code>, <code>.title</code>, <code>.sbttl</code>,
+  <code>.nolist</code>, <code>.list</code>, <code>.psize</code>.</li>
+<li>It supports bignum math and emitting 8- and 16-byte integers from
+  them.</li>
+<li>There’s a “section stack” so you can assemble into a different
+  section for a while, then pop back to where you were, or even swap
+  back and forth between two sections without knowing which ones they
+  are.  Unfortunately, at the moment, the section stack is only partly
+  implemented as documented.</li>
+<li><code>.print</code> prints stuff out.</li>
+<li>ELF apparently has a bunch of section flags: “allocatable”,
+  writable, executable, "mergeable", and a few more</li>
+<li>there’s sort of support for defining struct fields with <code>.struct</code></li>
+<li><code>.intel_syntax</code> supports Intel assembler syntax.</li>
+</ul><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/asm.html">Assembly language</a> (25 notes)
+</li></ul></div></html>

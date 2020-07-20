@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html><title>mechanical computation: with Merkle gates, height fields, and thread ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>mechanical computation: with Merkle gates, height fields, and thread</h1><div class="metadata">Kragen Javier Sitaker, 2010-06-28
+(36 minutes)</div><p>(Originally published
+<a href="https://www.mail-archive.com/kragen-tol@canonical.org/msg00249.html">2010-06-28</a>.)</p>
+<p>So one of the reasons I’m excited about automated fabrication
+(e.g. Fab@Home, tabletop CNC mills, RepRap, inkjet-printing of
+circuits, fused deposition modeling) is that I expect it will make it
+possible to build computers from raw materials with minimal capital.
+It will be some time before those computers are as cheap or as fast as
+mass-produced microcontrollers, so they will start out as curiosities.
+But how far away is the prospect of automatically building a working
+computer from raw materials with minimal capital?  I think it’s
+already possible.</p>
+<p>This post considers three kinds of mechanical computers: one using
+Merkle’s <a href="http://www.zyvex.com/nanotech/mechano.html" title="Two Types of Mechanical Reversible Logic, by Ralph Merkle">buckling logic</a>, one using mechanical
+height fields, and one using pulling of threads.</p>
+<p>Organic semiconductors, nonlinear acoustic devices, fluidic logic, or
+something more exotic, might turn out to be the form that computers
+made by 3-D printers eventually take; but I’m pretty sure Merkle’s
+approach is workable.  So I’m going to consider that first. And I want
+to describe some ideas of my own.</p>
+<p>Unfortunately, I don’t know shit about mechanical engineering.  If any
+actual mechanical engineer is annoyed at my ignorant speculations when
+they read this, I’d be delighted to hear about all the things I’m
+getting wrong.</p>
+<h2>How many logic gates? Around 64000.</h2>
+<p>There have been a number of capable small CPUs over the years that
+contain on the order of 4000-8000 transistors, including the 6502 used
+in the Apple ][, the NES, and the Atari 2600 (4000 transistors, 8-bit
+ALU), Chuck Moore’s MuP21 (6000 transistors, 21-bit ALU, including
+video coprocessor), Voyager 2’s RCA 1802 (5000 transistors), CP/M
+machines’ 8085 (6500 transistors) (the 8080 was smaller but needed
+more support circuitry), the Apollo Guidance Computer (4100 3-input
+RTL NOR gates, which I think is about 8200 transistors) and so on.
+The IBM 1401 was supposedly more complex:
+<a href="http://ed-thelen.org/comp-hist/BRL64-i.html">http://ed-thelen.org/comp-hist/BRL64-i.html</a> says a minimal 1401
+system had 6213 diodes and 4315 transistors.  It ran at 86 957 Hz.
+(How big was the PDP-7 Unics was written on?)</p>
+<p>To run an interpreted programming language, you probably need at least
+32000 bits of memory, and twice that is better.</p>
+<p>So 64000 “logic elements”, each of which can be either a bit of memory
+or a gate, should more than suffice.  64000 is the cube of 40, so a
+40x40x40 cube of logic elements would be sufficient if you didn’t need
+any space for signal routing.  In two-dimensional chips, I’ve heard
+it’s typical to spend 90% of the area on routing; things are much
+closer together in three dimensions (64000 elements is about 250×250
+in 2D, so that far-apart things in a device of that size need more
+than six times as much wire to connect them), so 10x routing overhead
+is quite a pessimistic assumption for 3-D; but if we accept it, then
+we need an 86×86×86 cube.</p>
+<p>It might be possible to reduce this substantially if the memory is
+some kind of bulk medium instead of one or more parts per
+bit. Historically-used bulk media have included mercury acoustic delay
+lines; magnetostrictive torsion acoustic delay lines in wire; magnetic
+films on tapes, drums, and discs; impressions in the surface of
+thixotropic substances such as wax or wet clay; ink or pencil lead on
+papyrus or paper; knots tied in khipu cords; and electric charges on
+the surface of cathode-ray tubes.</p>
+<h2>How many voxels per logic gate? Around 1200 for Merkle gates.</h2>
+<p>How big does each element need to be?  Presumably if we’re fabricating
+it with the CandyFab 2000, it needs to be pretty gigantic.  (Sugar
+wouldn’t bend enough, but maybe you could make it out of polyethylene
+pellets with the CandyFab.)  But if you are depositing tiny beads of
+molten ABS plastic with 2-mil precision, you could make it a lot
+smaller. You could probably get a working Merkle buckling-spring cell
+in something like 16x6x12 voxels:</p>
+<pre><code>          Top View                  Side View              Side View
+section 1  sec 2        1           section 1              section 2   voxels
+        |      |        |                                              1
+    ++++++++++ |  ++++++++++          ++++                             2
+    ++++++++++ |  ++++++++++            ++++                           3
+**  ++++++++++ |  ++++++++++  **          ++++                         4
+******++++++++ |  ++++++++******            ++++                       5
+  ****************************            ********         ********    6
+      ********************                ********         ********    7
+        |   ++++++++    |                                    ++++      8
+        |   ++++++++    |                                  ++++        9
+        |   ++++++++    |                                ++++          A
+        |   ++++++++    |                              ++++            B
+voxels: 5 6 7 8 9 A B C D E F 10      1 2 3 4 5 6
+</code></pre>
+<p>If that were really the size you needed, at 2 mils per voxel, it would
+be 32 × 12 × 24 mils, or about 0.8 mm × 0.3 mm × 0.6 mm, which
+altogether adds up to just over an eighth of a cubic millimeter ---
+0.52 mm cubed.</p>
+<p>You could probably do something a lot more ingenious and get an order
+of magnitude or two improvement.</p>
+<p>Which means that the total 86×86×86 cube, 6 billion voxels, would be
+45 mm on a side, if you have a 3-D printer that can construct a
+complex object with arbitrary 2-mil voxels.</p>
+<p>One big advantage of the Merkle-gate design is that it doesn’t require
+any contact between separate elements, sliding or otherwise, so
+surface finish may be less crucial than for some other kinds of
+machines.</p>
+<h2>Height-field computing: mechanical LUTs to reduce the number of elements</h2>
+<p>The elements in modern FPGAs (“field-programmable <em>gate</em> arrays”)
+mostly consist of lookup tables (“LUTs”) rather than actual gates in
+the array.  The idea is that basically you use your N bits of input to
+index into a little EEPROM and get a bit of output, which allows you
+to emulate any possible combinational circuit, and then you have
+“routing resources” — basically crossbar multiplexers — to connect
+those outputs to the inputs of other cells.</p>
+<p>For automated fabrication to help much with building mechanical
+computers, compared to just carving them out of wood or steel or
+whatever with non-automated machine tools, it’s going to have to
+reduce the number of separate pieces that you have to assemble
+manually when you’re done. Some kinds of 3-D printing can print
+already-assembled parts that mesh together nicely and aren’t stuck
+together; others can’t. Those that can’t will probably require manual
+assembly for a while yet. (Although, hey, pick-and-place machines
+could be used for that, right?)</p>
+<h3>Height fields as a mechanical realization of LUTs</h3>
+<p>LUTs have a fairly straightforward low-parts-count mechanical
+realization.  If you have a needle-like probe positioned over a solid
+height field, then when you lower the probe onto the height field, the
+height at which it stops will be an arbitrary function of its X and Y
+coordinates: the height of the surface at that point.  This “lowering”
+step is similar to the step of squeezing the gate of a
+Merkle buckling-spring gate,
+or pushing a Drexlerian rod-logic rod
+to see where it stops.</p>
+<p>If you encoded one bit in X and one bit in Y, you can get an arbitrary
+two-input boolean function in Z; but Z’s range isn’t limited to
+booleans.  Likewise, you could encode multiple bits in each of X and
+Y; you’re limited largely by the aspect ratio of holes you can carve
+into your height field. In fact, to compensate for minor errors in X
+and Y, there should be at least a dimple in the surface at the desired
+position.</p>
+<p>But if you carry this out just like that, you may end up with tall,
+thin towers on your height field, which will be prone to bending or
+breaking. Instead, you could just drill a matrix of holes of different
+depths. How small could you make these holes?</p>
+<p>Jewelers’ twist drill bits, which cut cylindrical holes, normally come
+in sizes 1 through 80 in the US.  According to Wikipedia, size 80 is
+0.343 mm in diameter, or 0.0135", about a 74th of an inch.  So you
+could probably drill a 32x32 matrix of these holes into a one-inch
+block of, say, aluminum, brass, or soapstone.  Then you’d only need
+the positioning of the probe to be accurate to within about 0.007" to
+make sure that it went into a hole; if your machine drilling the
+depths, like certain inexpensive home knockoff CNC drill presses, were
+only accurate to 0.002", you could use a 3× mechanical advantage
+between the probe and whatever input it was driving so that you would
+need a 1" x 1" x 0.5" cube of metal for this 32x32 array of holes.</p>
+<p>(It’s probably best to translate the block itself in at least one of
+the three dimensions, rather than translating the probe in all three,
+in order to diminish the accumulated positional error.)</p>
+<p>I’m not sure how many drill bits this procedure would use up, and how
+much it would cost.  <a href="http://www.mmsonline.com/articles/the-real-cost-of-runout" title="The Real Cost of Runout">“The Real Cost of Runout”</a> talks
+about reducing the cost of drilling 3mm-diameter holes from 80 cents
+to 27 cents per hole by reducing runout on the drill press, or from 23
+cents to 10 cents per hole when using high-speed steel instead of
+tungsten carbide — and these numbers are just for the cost of the
+drill bits!  But 1024 holes at 10 cents per hole is still US$102.40.
+I hope smaller holes cost less?</p>
+<p>Smaller drills exist; <a href="http://www.ukam.com/diamond_core_drills.html">http://www.ukam.com/diamond_core_drills.html</a>
+says they have diamond drills “from .001" to 48" (.0254mm to 1219mm)
+diameter.”  Being able to drill holes of .001" diameter would mean
+being able to drill a 32×32 array of holes in 0.064" × 0.064".  On
+<a href="http://www.ukam.com/micro_core_drills.htm">http://www.ukam.com/micro_core_drills.htm</a> they actually only list
+drills down to 0.006", which they recommend using at 150 000 RPM, feed
+rate 0.010" per minute.</p>
+<p>In some ways, this kind of drilling operation is less demanding than ordinary
+drilling operations: surface finish, hole straightness, and even hole
+positioning can tolerate quite a lot of slop. (If you countersink the holes,
+they can be off by quite a bit as long as it doesn't break the probe.) But
+microdrilling --- drilling holes of under 0.5mm --- apparently poses special
+problems in chip removal and cooling.</p>
+<p>Other manufacturing processes might make more sense than drilling. For example,
+you could conceptually cut the chunk into 33 pieces along 32 lines of holes,
+cast the 33 pieces using lost-wax casting, and then clamp them together. Or you
+could make a mold with 1024 adjustable-height rods stuck in through holes in
+the cope, and cast in that. (Maybe in plastic.) Etc.</p>
+<h3>What a LUT is good for</h3>
+<p>So that’s a LUT with 10 bits of input — one of 32 possible positions
+in two independent axes, positioning the needle probe over the array
+of holes — and 5 bits of output — one of 32 possible depths for the
+needle — realized in about a cubic inch. That’s also about 5120 bits,
+or 640 8-bit bytes.  That’s enough to realize an arbitrary 32-state
+state machine with 5 bits of input at each step, or to perform 4-bit
+binary addition or subtraction with carry-in and carry-out and an
+extra input bit left over (say, to select between addition and
+subtraction), or to perform a selectable one of four arbitrary 5-bit
+combinational functions on two 4-bit inputs --- say, addition with
+carry out, AND, XOR, and something else.</p>
+<p>If you split the same 1024 holes into two LUTs with ganged input —
+that is, two probes — then you get 9 bits of input and 10 bits of
+output.  A 4x5-bit multiply needs only 9 bits of output.  You could do
+a 4x4-bit multiply in half the area and half the depth.</p>
+<p>All of these applications still work just as well if any or all of the
+quantities are encoded in some weird way such as a Gray code or an
+excess-N code.</p>
+<p>At some point you have to encode the 32 slightly different linear
+displacements into five distinct bits.  You can do this with a
+32x5-hole LUT, with five probes sticking into it, and only two
+distinct hole depths.</p>
+<p>Decoding five bits encoded in five separate displacements into 32
+levels of displacement in a small number of moving parts is maybe more
+difficult.</p>
+<p>The <a href="http://opencores.org/project,zpu,overview">ZPU project</a> on OpenCores is a 32-bit CPU; realized in a
+Xilinx FPGA of LUTs, it uses “442 LUT @ 95 MHz after P&amp;R w/32 bit
+datapath Xilinx XC3S400”.  I don’t remember offhand how big the
+XC3S400 LUTs are, but they have only single-bit outputs.</p>
+<h3>Memory</h3>
+<p>A shaft that can slide freely is merely transmitting positional
+information from one place to another. A shaft that has a clamp closed
+on it can remember its position from before the clamp was closed until
+the clamp reopens. If the clamp and shaft surfaces are not flat, the
+shaft can be retained in any of its valid positions (reshaping the
+signal) with very little force and comparatively imprecise surfaces.</p>
+<p>This allows you to store, say, 40 bits with nine moving parts: eight
+shafts (each encoding 5 bits) and one clamp for all of them.</p>
+<h4>Shift registers in LUTs</h4>
+<p>You can make an 8-bit shift register out of two 4×4 → 4 bit LUTs and
+two 4-bit memory units (known as registers) if you are willing for it
+to always shift; each LUT given (a, b) computes (a &lt;&lt; 1 &amp; 15 | (b &amp; 8)</p>
+<blockquote>
+<blockquote>
+<p>3), which is written to its memory unit for the next cycle.</p>
+</blockquote>
+</blockquote>
+<p>The communication from the low nibble LUT to the high nibble must be
+intermediated through the memory; this allows both LUTs to transition
+at the same time and means that the bit being shifted into the high
+nibble is the old MSB of the low nibble, not the new one.  Using 
+(b &amp; 8) &gt;&gt; 3 means you don’t need to decode the LUT output.</p>
+<p>The contents of the LUT (two four-bit inputs producing one four-bit
+output) looks like this:</p>
+<pre><code>array([[ 0,  2,  4,  6,  8, 10, 12, 14,  0,  2,  4,  6,  8, 10, 12, 14],
+       [ 0,  2,  4,  6,  8, 10, 12, 14,  0,  2,  4,  6,  8, 10, 12, 14],
+       [ 0,  2,  4,  6,  8, 10, 12, 14,  0,  2,  4,  6,  8, 10, 12, 14],
+       [ 0,  2,  4,  6,  8, 10, 12, 14,  0,  2,  4,  6,  8, 10, 12, 14],
+       [ 0,  2,  4,  6,  8, 10, 12, 14,  0,  2,  4,  6,  8, 10, 12, 14],
+       [ 0,  2,  4,  6,  8, 10, 12, 14,  0,  2,  4,  6,  8, 10, 12, 14],
+       [ 0,  2,  4,  6,  8, 10, 12, 14,  0,  2,  4,  6,  8, 10, 12, 14],
+       [ 0,  2,  4,  6,  8, 10, 12, 14,  0,  2,  4,  6,  8, 10, 12, 14],
+       [ 1,  3,  5,  7,  9, 11, 13, 15,  1,  3,  5,  7,  9, 11, 13, 15],
+       [ 1,  3,  5,  7,  9, 11, 13, 15,  1,  3,  5,  7,  9, 11, 13, 15],
+       [ 1,  3,  5,  7,  9, 11, 13, 15,  1,  3,  5,  7,  9, 11, 13, 15],
+       [ 1,  3,  5,  7,  9, 11, 13, 15,  1,  3,  5,  7,  9, 11, 13, 15],
+       [ 1,  3,  5,  7,  9, 11, 13, 15,  1,  3,  5,  7,  9, 11, 13, 15],
+       [ 1,  3,  5,  7,  9, 11, 13, 15,  1,  3,  5,  7,  9, 11, 13, 15],
+       [ 1,  3,  5,  7,  9, 11, 13, 15,  1,  3,  5,  7,  9, 11, 13, 15],
+       [ 1,  3,  5,  7,  9, 11, 13, 15,  1,  3,  5,  7,  9, 11, 13, 15]])
+</code></pre>
+<p>Clearly you can reduce this to a 4×1 → 4 bit LUT if you have a way to
+extract just one bit from the b input.  For example, you could use a 4
+→ 1 bit LUT: 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1.  You could perhaps
+integrate this into the memory from which it’s being read, as an
+additional row of holes with a probe over it.</p>
+<p>If you have a way to do that, you have space to include an opcode that
+tells the register what to do.  For example, shift left, remain
+steady, shift right, or reset to 0.  If you have a way to combine this
+opcode, the MSB of the less-significant nibble, and the LSB of the
+more-significant nibble into a single 4-bit input
+<code>b = LSB | MSB &lt;&lt; 1 | opcode &lt;&lt; 2</code>, your table can look like this
+instead.</p>
+<pre><code>&gt;&gt;&gt; def shift(a, b):
+...     lsb, msb, opcode = b &amp; 1, (b &amp; 2) &gt;&gt; 1, b &gt;&gt; 2
+...     shift_left, nop, shift_right, reset = range(4)
+...     if opcode == shift_left:    return a &lt;&lt; 1 &amp; 15 | msb
+...     elif opcode == nop:         return a
+...     elif opcode == shift_right: return lsb &lt;&lt; 3 | a &gt;&gt; 1
+...     elif opcode == reset:       return 0
+...
+&gt;&gt;&gt; Numeric.array([[shift(a, b) for a in range(16)] for b in range(16)])
+array([[ 0,  2,  4,  6,  8, 10, 12, 14,  0,  2,  4,  6,  8, 10, 12, 14],
+       [ 0,  2,  4,  6,  8, 10, 12, 14,  0,  2,  4,  6,  8, 10, 12, 14],
+       [ 1,  3,  5,  7,  9, 11, 13, 15,  1,  3,  5,  7,  9, 11, 13, 15],
+       [ 1,  3,  5,  7,  9, 11, 13, 15,  1,  3,  5,  7,  9, 11, 13, 15],
+       [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15],
+       [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15],
+       [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15],
+       [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15],
+       [ 0,  0,  1,  1,  2,  2,  3,  3,  4,  4,  5,  5,  6,  6,  7,  7],
+       [ 8,  8,  9,  9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
+       [ 0,  0,  1,  1,  2,  2,  3,  3,  4,  4,  5,  5,  6,  6,  7,  7],
+       [ 8,  8,  9,  9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0],
+       [ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0]])
+</code></pre>
+<p>All of the above generalizes to N-bit shift registers; you just need a
+LUT and a register for every four bits.</p>
+<h4>Addition</h4>
+<p>Parallel addition (the usual digital kind) with inputs and outputs as
+the usual kind of binary numbers (not carry-save addition) can’t be
+done totally in parallel; the carry from the least-significant bits
+must be ready before the most-significant bits can produce their final
+result.</p>
+<p>But still, with 4×3 → 4 LUTs we can do three bits at a time.  We bring
+in the carry along with one of the inputs; the LUT looks like this:</p>
+<pre><code>&gt;&gt;&gt; def add(a, b):
+...     carry_in, inb = (b &amp; 8) &gt;&gt; 3, b &amp; 7
+...     return a + inb + carry_in
+...
+&gt;&gt;&gt; Numeric.array([[add(a, b) for a in range(8)] for b in range(16)])
+array([[ 0,  1,  2,  3,  4,  5,  6,  7],
+       [ 1,  2,  3,  4,  5,  6,  7,  8],
+       [ 2,  3,  4,  5,  6,  7,  8,  9],
+       [ 3,  4,  5,  6,  7,  8,  9, 10],
+       [ 4,  5,  6,  7,  8,  9, 10, 11],
+       [ 5,  6,  7,  8,  9, 10, 11, 12],
+       [ 6,  7,  8,  9, 10, 11, 12, 13],
+       [ 7,  8,  9, 10, 11, 12, 13, 14],
+       [ 1,  2,  3,  4,  5,  6,  7,  8],
+       [ 2,  3,  4,  5,  6,  7,  8,  9],
+       [ 3,  4,  5,  6,  7,  8,  9, 10],
+       [ 4,  5,  6,  7,  8,  9, 10, 11],
+       [ 5,  6,  7,  8,  9, 10, 11, 12],
+       [ 6,  7,  8,  9, 10, 11, 12, 13],
+       [ 7,  8,  9, 10, 11, 12, 13, 14],
+       [ 8,  9, 10, 11, 12, 13, 14, 15]])
+</code></pre>
+<p>This gives you, for example, 9-bit addition in three levels of LUT,
+plus whatever it takes to shuffle the bits around appropriately.</p>
+<h4>Bit shuffling</h4>
+<p>In several of the previous items I have assumed a way to combine bits
+from disparate sources into a single positional input, or to drop
+bits.  This problem also occurs on input.  I hope there’s a better way
+to do this, but one workable way is to use a LUT.  I’ve pointed out
+earlier that a 4×0 → 1 bit LUT can select a single bit, but you can do
+things more generally.  For example, in the shift-register case, where
+we want to combine a neighbor MSB possibly being shifted left, an LSB
+possibly being shifted right, and a two-bit opcode, we can use two
+small LUTs:</p>
+<pre><code>&gt;&gt;&gt; Numeric.array([[(opcode &lt;&lt; 1 | msb) for opcode in range(8)] for msb in range(2)])
+array([[ 0,  2,  4,  6,  8, 10, 12, 14],
+       [ 1,  3,  5,  7,  9, 11, 13, 15]])
+&gt;&gt;&gt; Numeric.array([[(opcodemsb &lt;&lt; 1 | lsb) for opcodemsb in range(16)] for lsb in range(2)])
+array([[ 0,  2,  4,  6,  8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30],
+       [ 1,  3,  5,  7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31]])
+</code></pre>
+<p>If we have to simultaneously extract the msb and lsb from the nibbles
+they’re embedded in, it is best to do this differently:</p>
+<pre><code>&gt;&gt;&gt; Numeric.array([[(leftneighbor &amp; 1 | (rightneighbor &amp; 8) &gt;&gt; 2) 
+...  for leftneighbor in range(16)] for rightneighbor in range(16)])
+array([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+       [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+       [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+       [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+       [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+       [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+       [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+       [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+       [2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3],
+       [2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3],
+       [2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3],
+       [2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3],
+       [2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3],
+       [2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3],
+       [2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3],
+       [2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3]])
+&gt;&gt;&gt; Numeric.array([[(opcode &lt;&lt; 2 | msblsb) for opcode in range(4)] for msblsb in range(4)])
+array([[ 0,  4,  8, 12],
+       [ 1,  5,  9, 13],
+       [ 2,  6, 10, 14],
+       [ 3,  7, 11, 15]])
+</code></pre>
+<p>It would require many fewer LUT entries to extract those bits in a
+separate step.</p>
+<h3>Circles instead of lines: rotational motion is simpler</h3>
+<p>Mechanically, moving things linearly is a little trickier than moving
+them in circles — there tends to be more slop.  If you transpose this
+“height field” LUT into cylindrical coordinates, you get a camshaft.
+The normal sliding cam follower design imposes limits on the “slew
+rate” of the output function, but if you lift the “cam follower” while
+rotating the shaft and then use the same forest of holes and “lowering
+step” as with the flat X-Y approach.</p>
+<p>Cylindrical coordinates still leave two coordinates translational,
+though.  You can cheat a little bit by doing the axial positioning
+along a large-radius arc that almost parallels the axis of the
+camshaft, to within the diameter of the camshaft, rather than in a
+strictly translational fashion.</p>
+<p>A third coordinate system that might be useful approximates two
+translational dimensions with angles around two axes that are some
+distance apart; for example, any two discs that overlap, while
+rotating around their own centers.  This allows one dimension to “wrap
+around”, as with the camshaft approach.</p>
+<h2>Digital logic with thread</h2>
+<p>Thread is very nonlinear in some ways, and it’s easy to build thread
+systems with very nonlinear force-displacement curves. Thread also has
+the advantage that, because the material is not stressed in
+compression, its effective stiffness-to-weight ratio is enormous, so
+it can transmit signals quickly, and the energy needed to move it is
+slight.</p>
+<p>As far as I can tell, the force-displacement curve of a system made of
+elastic thread tied between a bunch of fixed points is monotonic; that
+is, if you pull on a loose bit of the thread, the force with which the
+thread pulls back on you always goes up as you pull it further from
+its natural position. (There may be some trick with knots that
+violates this.) This imposes limits on pure thread systems, although
+you can still get amplification through braking.</p>
+<h3>Thread springs</h3>
+<p>A steel guitar string can easily be pulled a substantial fraction of
+an inch out of place, because although steel is very stiff, the d[cos
+x] / dx = 0 when x=0, so even very small elongations of the string
+allow substantial movement. (And the force-displacement curve is very
+nonlinear.)</p>
+<p>This effect can be chained: if you have a thread configuration shaped
+like a capital H, you can pull up or down on the middle of the H’s
+crossbar fairly easily, because it only has to pull slightly on the
+sides of the H in order to move. So you get a lot of mechanical
+advantage, we could say.</p>
+<p>So this kind of spring force can allow for reciprocating movement in
+response to a reciprocating input force pulling on some “power supply”
+thread.</p>
+<h3>Thread power amplification through braking</h3>
+<p>For fanout, we need the ability for one logical gate output to,
+eventually, control an arbitrarily large number of logical
+outputs. This can’t be achieved just by having strings pull on each
+other in configurations like that described above; the amount of force
+needed would go up with the number of output stages, which prevents
+useful computation.</p>
+<p>But braking can provide amplification. Imagine that you have a thread
+running along the surface of a cylinder; it can slide freely, as far
+as it as long as no force presses it against the cylinder. If another
+thread is wrapped loosely several times around the cylinder and the
+sliding thread, the sliding thread can still slide; but if the wrapped
+thread is then pulled taut, it presses the sliding thread against the
+cylinder, preventing it from sliding.</p>
+<p>The crucial aspect here is that, although there is a limit to how much
+force the thread brake can resist, it can resist that force regardless
+of how far the sliding thread would slide without that resistance; and
+it can do it with an almost arbitrarily small displacement of its onw.</p>
+<p>There are other approaches to braking that might turn out to be
+worthwhile; for example, if the wrapped thread clamps the sliding
+thread between two cylinders, then they can be in contact with
+different kinds of surface with different coefficients of friction,
+and the sliding thread won’t catch and pull on the wrapped thread. But
+those approaches involve moving more mass.</p>
+<p>Braking also provides memory, since the amplified signal happens later
+than the amplifier input.</p>
+<h3>Thresholding with thread</h3>
+<p>There are a couple of approaches to getting the kind of nonlinear
+behavior you need for AND or OR gates.</p>
+<p>If you have a couple of threads pulling against a spring, the spring’s
+displacement will be a function of the sum of the force from those
+threads. If the spring’s force-displacement curve is monotonic and
+nonlinear enough, you can use it to approximate the AND or OR
+functions.</p>
+<p>Alternatively, the force-displacement function of a thread tied to a
+fixed point has a huge nonlinearity as it runs out of slack: while
+it’s slack, the force is basically zero.</p>
+<h3>Limiting displacement with thread</h3>
+<p>If you couple two threads through a spring, you can use either of the
+thresholding techniques in the previous section to limit the
+displacement of the driven thread without limiting the displacement of
+the driving thread. This costs energy (the spring continues to store
+energy as the driving thread pulls further) and also loses some
+displacement, as the displacement transmitted to the driven thread
+will always be less than the displacement of the driving thread.</p>
+<h3>Changing direction with thread, and increasing displacement</h3>
+<p>If you have a thread tied to a fixed point, its end describes a circle
+around that fixed point when it’s under a small amount of tension. If
+the fixed point is far away, the circle approximates a straight line.</p>
+<p>If you have another thread tied to that end at an angle not parallel
+or perpendicular to (that part of) the circle, that other thread will
+be able to pull it along the circle; so you can change the direction
+of motion that way by anything less than 90°. If you have a second
+thread pulling the other way, also at an an angle neither parallel nor
+perpendicular, then displacement is transmitted between the two
+threads, but can be changed by any angle at all.</p>
+<p>If the angles made to the tangent line are equal, then the same
+displacement and force is transmitted, with no mechanical advantage,
+or rather a mechanical advantage of unity. But you can achieve MAs of
+either above or below 1 by having one angle be greater than the other.</p>
+<p>This allows you to convert a small displacement with great force into
+a large displacement with small force, and vice versa. (There will be
+vibrational losses, but they can probably be made small.) It is that
+ability to reduce forces to the point where they can easily be
+controlled by braking, then step them back up, that makes me confident
+in the braking mechanism as a means of amplification.</p>
+<h3>Negation with thread</h3>
+<p>If ones and zeroes are represented by different displacements when the
+countervailing force is within a certain range, then negation can be
+achieved by pulling in the opposite direction against a spring force.</p>
+<h3>Sequencing with thread</h3>
+<p>If you have a cord with a number of threads tied to it with different
+amounts of slack in them, then when you pull on the cord, the various
+threads will go taut and begin to transmit force one after the
+other. This, plus limiting displacement as discussed previously,
+allows you to drive different parts of a thread logic system in a
+predetermined sequence.</p>
+<h3>A generic thread state machine</h3>
+<p>Initially, you have a number of “register” threads R0 braked into some
+position or other by threads wrapped around them, held taut by
+springs. A few stages of thread combinational logic are driven from
+those positions, producing a thread combinational output C0.</p>
+<p>You begin to pull on the clock thread. This drives a final stage of
+combinational logic connecting the thread combinational output C0 to
+another set of registers R1, whose braking threads are currently lax,
+so their threads are free to slide back and forth — which they do,
+under the influence of your clock thread, pulling against the inputs
+of another set of combinational logic producing a second combinational
+output C1.</p>
+<p>Once the R1 threads have found their position, your further pulling on
+the clock thread is transferred to their brake threads, which hold
+them in place, preventing the combinational output C1 from changing
+further.</p>
+<p>Further pulling on the clock thread loosens the tension on the brake
+threads for R0, allowing those registers to assume their new state —
+which is coupled in from C1! There is vibration as previously slack
+threads snap taut, and the outputs of C0 (driven from R0) change. But
+R1’s threads are still held in place.</p>
+<p>Now you begin to release the tension on the clock thread. First the
+brake threads on R0 become taut again, preventing R0’s value from
+changing. Then the brake threads for R1 loosen, and R1’s threads are
+free to assume the new values of C1’s output, so there is more
+vibration as previously slack threads snap taut.</p>
+<p>Further loosening of the clock thread tension eases R1’s state threads
+back into a neutral position.</p>
+<p>Now R0 has its new state, and is ready to begin a new clock cycle.</p>
+<p>This is similar to the functioning of a master-slave flip-flop, with
+its input driven from its output, but of course with arbitrary
+combinational logic.</p>
+<p>I haven’t tried to build this yet, but from the above, I think it’s
+plausible.</p>
+<p>To me, there’s a strong appeal in the idea that universal computation
+has been within the grasp of human materials and manufacturing
+technology since the invention of sewing in the Paleolithic; it is
+only the mathematical sophistication that was absent. I don’t yet know
+if it’s true.</p>
+<h2>References</h2>
+<p><a href="http://www.zyvex.com/nanotech/mechano.html" title="Two Types of Mechanical Reversible Logic, by Ralph Merkle">Merkle 1990</a> was published in Nanotechnology, Volume 4, 1993, pp. 114-131.</p>
+<p><a href="http://www.mmsonline.com/articles/the-real-cost-of-runout" title="The Real Cost of Runout">MMS 2006</a> was an article about the effects of runout on tool life
+published in Modern Machine Shop, 2006-06-14, by Peter Zelinski.</p>
+<p><a href="http://opencores.org/project,zpu,overview">ZPU</a> is intended to be “the world’s smallest 32-bit CPU”. Øyvind
+Harboe at Zylin seems to be the guy who licensed it under a free
+license, maybe built it too, in 2008.</p>
+<!--
+ LocalWords:  LUT LocalWords LUTs MSB LSB
+--><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/history.html">History</a> (71 notes)
+</li><li><a href="../topics/small-is-beautiful.html">Small is beautiful</a> (40 notes)
+</li><li><a href="../topics/economics.html">Economics</a> (33 notes)
+</li><li><a href="../topics/physical-computation.html">Physical computation</a> (26 notes)
+</li><li><a href="../topics/self-replication.html">Self-replication</a> (24 notes)
+</li><li><a href="../topics/3d-printing.html">3-D printing</a> (23 notes)
+</li><li><a href="../topics/retrocomputing.html">Retrocomputing</a> (13 notes)
+</li><li><a href="../topics/mechanical-computation.html">Mechanical computation</a> (7 notes)
+</li><li><a href="../topics/mup21.html">The MuP21 MISC microcontroller</a> (2 notes)
+</li></ul></div></html>

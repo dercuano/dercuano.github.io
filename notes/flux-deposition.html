@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html><title>3-D printing by flux deposition ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>3-D printing by flux deposition</h1><div class="metadata">Kragen Javier Sitaker, 2017-02-24 (updated 2019-07-27)
+(21 minutes)</div><p>We’ve been doing some experiments in 3-D printing of glass parts.
+It’s a classic powder-bed binder-deposition process, except that the
+binder is another solid powder, and the postprocessing is
+different — rather than removing a fragile greenware part from the
+powder bed and then possibly baking, curing, or soaking it, we fire
+the whole powder bed to activate the binder, which acts as a flux to
+sinter or even dissolve the surfaces of the powder grains; the binder
+itself may or may not melt.</p>
+<p>We’ve had success so far with a quartz powder bed and fluxes of
+soda-lime glass frit and a commercial pottery glaze, both baked at
+1020°, in air, at atmospheric pressure.
+We also expect success with fluxes of potassic feldspar and
+lead oxide.  In all of these cases, the final product is either a
+glass or a glass with a quartz filler.</p>
+<p>However, this process is much more widely applicable.</p>
+<h2>Unique advantages</h2>
+<p>The flux-deposition process, unlike most binder-deposition powder-bed
+processes, involves no extra step of handling delicate greenware
+extracted from the powder bed.  This extra step is labor-intensive and
+often involves extra equipment such as sandblasting cabinets to remove
+extra unused powder without damaging the greenware part.</p>
+<p>Aside from the reduction in human effort, this should improve the
+resolution.  Typical binder-deposition processes as offered by service
+bureaus like Shapeways cannot reliably produce walls and wires under
+about 1000 microns in thickness.  By contrast,
+flux deposition powder bed printing
+should offer very high resolution — 3D Systems’s
+direct-metal selective laser melting machines can, as of 2015, produce
+parts with 100-micron wall thickness because they, too,
+have no greenware-handling step, so the
+articles are already at their full strength when they are removed from
+the powder.  We think flux-deposition printing can offer the same or
+better resolution, but without the long build times and inert
+atmospheres needed for direct metal SLM or SLS.</p>
+<p>While we do not expect flux deposition to be able to avoid the issue
+of dimensional change during sintering, which is a plague for
+sintering manufacturing processes in general, there is good reason to
+expect the distortion introduced by the process to be very small
+compared to fused deposition modeling, selective laser melting,
+selective laser sintering, or machining of green ceramics before
+firing them.  The binder is deposited when the powder bed is at room
+temperature, so the average expected final expansion is zero; the
+article is supported by unused binder throughout the process, limiting
+forces that could produce deformations; and the process need not
+involve any strong thermal gradients.</p>
+<p>Immediately after sintering, the boundaries between the original
+powder grains will be enriched in the flux, while their cores will
+contain none of it; but if the flux and the bulk material are miscible
+in solid solution as well as liquid, then diffusion annealing can
+remove these inhomogeneities.  This process can allow the article thus
+produced to withstand higher temperatures than those used to make it
+in the first place.</p>
+<p>Aside from the microscale inhomogeneities stemming from the union of
+different materials in powder form, it’s possible to use this process
+to create macroscale inhomogeneities; for example, by smoothly varying
+the concentration of lead oxide in a glass article, it should be
+possible to fabricate an article whose refractive index is not
+constant, but has some controllable gradient.  If the microscale
+inhomogeneities can be eliminated, such graded-index optics can
+constitute monolithic refractive optical systems that approach
+diffraction-limited performance arbitrarily closely, lacking as they
+will refractive index discontinuities to reflect stray light.</p>
+<h2>Steel and iron alloys</h2>
+<p>Iron melts at 1538°; due to alloying with 0.18% of carbon, <a href="http://www.azom.com/article.aspx?ArticleID=6115">AISI 1018
+steel</a>, the <a href="https://www.onlinemetals.com/productguides/steelguide.cfm">most common steel</a>, melts around 1520°.  <a href="http://www.bladeforums.com/forums/showthread.php/731701-1070-steel">AISI 1070
+steel is popular for harder goods</a> such as knives; it contains
+0.70% carbon and melts at 1479°.  The <a href="https://en.wikipedia.org/wiki/Iron#/media/File:Steel_pd.svg">iron-carbon phase diagram</a>
+shows a eutectic point at 4.3% carbon at about 1175°, and some cast
+irons approach that content of carbon, typically replacing some with
+silicon.</p>
+<p>This process is already used industrially to produce sintered steels;
+for example, <a href="http://www.hoganas.com/en/business-areas/sintered-components/products/pure-iron-powders/">Höganäs offers a range of “pure iron powders” for this
+purpose</a>, which all range from 20–200 μm in particle size, with
+little variation in that dimension.</p>
+<p>As of 1997, <a href="http://riad.pk.edu.pl/~mnykiel/iim/KTM/MP/DOWNLOAD/pdf/CHAPT09.PDF">iron-powder metallurgy</a> normally takes place at
+1120°–1150° for 20'–30' because this allow mesh-belt furnaces to
+survive, although some processes <a href="http://www.azom.com/article.aspx?ArticleID=1727">supposedly may require a sintering
+temperature between 1100° and 1300°</a>.  Even 1120° is enough to
+sinter plain iron.  Carbon is added as graphite; endogas avoids
+removing the carbon, though we think mere carbon dioxide should be
+adequate.</p>
+<p>Apparently it is common to include up to 2.5% powdered copper in the
+iron in order to fill pores and produce precipitation-hardenable
+alloys.  So copper is a possible alternative to carbon for this
+purpose; copper and carbon are usually used together to avoid thermal
+expansion induced by the copper.</p>
+<p>The biggest difference with the process being considered here is that
+iron powder is normally compacted into a mold at 200 to 800
+megapascals before being sintered.</p>
+<p>Iron phosphide, though hazardous to handle, is another alternative
+flux which is known to form a eutectic with iron at 10% phosphorus
+that melts at only 1050°.  The resulting iron-phosphorus alloy is
+similar to a steel, with final phosphorus concentrations of up to 0.6%
+being beneficial.  (Phosphorus is considered a contaminant in normal
+steelmaking for reasons that are not relevant here.)</p>
+<p>Aluminum is probably not a good bet; it forms no eutectic with iron,
+its miscibility is low, and <a href="http://www.thefabricator.com/article/metalsmaterials/considering-thermal-processes-for-dissimilar-metals">the intermetallics are brittle and
+weak</a>, although <a href="http://boingboing.net/2015/02/05/new-alloy-of-iron-and-aluminiu.html">there has been promising work by Hansoo Kim in
+Korea to fix this with manganese, nickel, and carbon</a>.</p>
+<p>This makes us optimistic that even a very small amount of carbon,
+copper, or iron phosphide could work effectively to flux a powder bed
+of pure iron heated to somewhere below 1120° so as not to sinter the
+iron itself.  If the carbon particles are small enough relative to the
+firing time, they will dissolve entirely into the iron particles;
+further diffusion while hot should gradually eliminate the
+lowest-melting-point liquid regions.  Depending on the size of the
+iron particles, the result should be either a pure steel article, or
+an article composed of grains of pure iron cemented together with
+steel or cast iron, in a bed of loose iron powder.</p>
+<p>We don’t know if there is a way to get the articles to be fully dense;
+this would require that the steel or cast iron have greater volume
+than the iron and carbon that went into them.  This seems unlikely, as
+steels are usually slightly denser than iron.</p>
+<p><a href="http://link.springer.com/article/10.1007/BF02680494">Korol’kov &amp; Kibak report that iron sinters more easily with 100–250
+ppm boron</a>; they mention that the eutectic liquid phase Fe₂B + Fe
+melts at 1160° to 1180°, and they sintered at 1160°.  Also, their
+100ppm boron-doped pressed iron powder began to shrink at 450°–500°,
+suggesting that sintering was already beginning, and hit a
+discontinuity at about 900°.  They suggest that this initial shrinkage
+was due to cementation of iron grains with liquid oxides of boron.</p>
+<h2>Aluminum</h2>
+<p>Aluminum natively melts at 660°, but for casting, it is normally
+alloyed with silicon, with which forms a eutectic at 12.2% Si, melting
+at 577°.  Silicon itself melts at 1414°.  <a href="http://www.azom.com/article.aspx?ArticleID=1727">Aluminum-alloy powders are
+commonly sintered at 590–620°</a>, which is hotter than the melting
+point of the eutectic.  It seems that it should thus be possible to
+flux an aluminum powder bed with small amounts of silicon, bake the
+result somewhere between 500° and 590°, and get good “cast” aluminum
+articles out without sintering the aluminum powder.</p>
+<h2>Sapphire</h2>
+<p>Sapphire, Al₂O₃, also known as corundum, aluminum oxide, or ruby,
+doesn’t melt until 2044° or so.  It’s an extremely hard and refractory
+material widely used for engineering ceramics as well as bulk
+refractories.</p>
+<p>In 1957, Cutler, Bradshaw, Christensen, and Hyatt showed that the
+addition of about 4% (wt%) of appropriate fluxes could lower the
+sintering temperature of finely divided sapphire to 1300° to 1400°.
+Specifically, they added oxides of manganese, titanium, and copper as
+fluxes.  2% of either MnO or Cu₂O and 2% of TiO₂ were successful at
+getting very nearly full sintering to 3.8 g/cc at 1300°.  Furthermore,
+they reported “bleeding” of a black liquid from their pressed pellet
+specimens onto the coarse sand below, suggesting that the mixture
+didn’t merely sinter — it partly melted.  This suggests that sintering
+should be possible at even lower temperatures, although they did not
+attempt this.</p>
+<p>Indeed, <a href="https://deepblue.lib.umich.edu/bitstream/handle/2027.42/66046/j.1151-2916.1991.tb07825.x.pdf?sequence=1&amp;isAllowed=y">Xue and Chen successfully sintered alumina at 1070° in
+1991</a> with 0.9% CuO (mol%), 0.9% TiO₂, 0.1% B₂O₃, and 0.1% MgO.
+Full sintering took an hour at 1070°, but only about 15' at 1200°;
+their result had even higher fracture toughness than undoped alumina.
+(They also mention as an aside that 1500° to 1700° is adequate to
+sinter high-purity alumina, and that there’s a known 1096° eutectic
+between Al₂O₃, CuO, and Cu₂O.)</p>
+<p>A perhaps even more effective flux for sapphire may be the MgCl₂-NaCl
+mixture in <a href="http://www.google.com/patents/US7988763">US patent 7,988,763</a>, although this is a flux in the
+metallurgical sense — it fulfills various functions, including
+scavenging contaminants from the metal and preventing oxidation of the
+molten metal, but also including liquefying metal oxides.  The patent
+mentions that MgCl₂ mixes with other salts are already in use to keep
+the melting point of the flux in the 400–500° range.  Unfortunately,
+the patent doesn’t quantify how low it reduces the melting point of
+the aluminum oxide; it does mention that the mixture was prepared at
+550° in an alumina crucible which it apparently did not dissolve in 45
+minutes, and that variants of it were used to purify molten aluminum
+at 850°, 720°, and 700°, but it does not affirm that it liquefied the
+sapphire dross at these temperatures.</p>
+<p>NaCl boils at 1413°, so using it in a pottery kiln salt-glazes both
+the pottery and the kiln and releases chlorine gas.  And that would
+also be true, and very objectionable, if you heated up sapphire to its
+normal sintering temperature of 1500–1700°.  But if it’s possible to
+use small amounts of these salts to flux alumina at temperatures more
+like 400° to 900°, no significant amount of salt should boil off.</p>
+<p>By far the most famous flux for sapphire, however, is cryolite
+(Na₃AlF₆, melting point 1009°) with an excess of aluminum fluoride,
+which is used in the Hall-Héroult process to dissolve sapphire at
+950–980° so that aluminum can be electrolytically produced from it.
+The binary eutectic melts at 962.7° and contains about 22% alumina,
+and apparently there is no solid solubility between the compounds, so
+cryolite may not in fact be very suitable for facilitating the
+sintering of granular sapphire.</p>
+<h2>Viridian</h2>
+<p>Chromium(III) oxide, the rare mineral eskolaite, also known as
+chromia, is the surface film that makes chromed bumpers and common
+stainless steels stainless.  It’s a green pigment (“viridian” or
+“chrome green”) and harder than quartz, though slightly softer than
+sapphire.  It’s sold for pigment use at about US$25/kg.</p>
+<p>Viridian is super fucking refractory, not melting until 2435° or
+sintering until 1600° in pure form, but you can sinter it at 1280° by
+adding 1% TiO₂ by weight, according to Callister, Johnson, Cutler (the
+sapphire dude), and Ure 1979.  A tricky problem is that under low
+pressures it tends to smelt to chromium at temperatures above 1600°,
+and if exposed to oxygen it tends to not sinter, so the sintering has
+to be done in a non-oxidizing (endogas or argon) atmosphere.  The
+rutile also may serve to stabilize the oxidation state of the
+viridian.</p>
+<p>Viridian is miscible with alumina in all proportions.</p>
+<p>According to Nagai and Ohbayashi (1989), viridian is a P-type
+semiconductor, but the addition of over 2% rutile makes it N-type.</p>
+<h2>Rutile</h2>
+<p>Rutile, titanium dioxide, is commonly used as a white pigment,
+including in food.  In fact, 70% of worldwide pigment production is
+synthetic rutile.  It’s a medium-hard mineral, in the same Mohs 6–6.5
+range as orthoclase, a bit softer than quartz.  It melts at 1800° and
+costs about US$20/kg on eBay.</p>
+<p>Likely fluxes include oxides of iron (FeO), magnesium, and manganese;
+more improbable candidates include alkali halides and oxides of zinc
+and vanadium.  The spinel group consists of solid solutions of oxides
+of titanium, magnesium, zinc, iron, manganese, aluminum, chromium, and
+silicon crystallized in a cubic close-packed lattice, but titanium
+spinels are rare, naturally occurring only as ulvite, iron titanium
+oxide.</p>
+<p><a href="http://www.tandfonline.com/doi/pdf/10.1080/02786820600599424">Cho and Biswas</a> did find that doping rutile (actually its
+polymorph anatase) with 1.3% (mol%) vanadium sped up its sintering
+dramatically, but none of their tests were at a low enough temperature
+to see if the doping lowered the sintering temperature; their coolest
+test was at 900°.  They do predict theoretically that their “V-TiO₂”
+should sinter at 800°, while pure TiO₂ basically won’t.</p>
+<h2>PZT</h2>
+<p>PZT by far the best piezoelectric material,
+the best high-capacity dielectric, and the best ferroelectric
+material.  It is normally sintered above 1250° but can be
+sintered at 1000° by doping it with bismuth oxide and carbonates of
+sodium or lithium (e.g. 0.375% wt% of lithium carbonate and “an equal
+mole fraction of Bi₂O₃”); this according to Cheng, Fu, and Wei, 1989.
+Corker, Whatmore, Ringgaard, and Wolny reported in 2000 being able to
+sinter it at 800° with
+a “sintering aid” of
+5% liquid oxides of lead and copper; the eutectic mixture of PbO
+(litharge or massicot) and Cu₂O (cuprous oxide or cuprite), which is
+80% PbO, melts around 680°, while PbO alone doesn’t melt until 888°,
+and Cu₂O doesn’t melt until 1235°.  (Given PbO’s well-known use as a
+flux and thinner for glasses and pottery glazes, I suspect this
+mixture would also work well as a “sintering aid” for quartz, and
+might result in a transparent article, though Cu₂O alone is so red
+it’s commonly used as a pigment, and might precipitate out as lead
+silicate forms.)</p>
+<p>Corker et al. also briefly survey the overall use of such
+sintering-temperature-reducing additives in ceramics, typically metal
+oxides, citing a pair of papers by Kingery in 1959.</p>
+<h2>Table salt</h2>
+<p>While probably not useful for any practical use, sodium and potassium
+chlorides may provide an inexpensive way to test and debug apparatus.
+<a href="http://resource.npl.co.uk/mtdata/dgsa1.htm">The NaCl-KCl system has a eutectic point at about 670°</a> at about
+50% KCl; NaCl by itself melts at 801°, while KCl by itself melts at
+about 770°.</p>
+<p>This is not an ideal test system from the point of view of the
+relative concentrations, the relatively low freezing point depression
+of the eutectic, the hygroscopic and corrosive nature of the powder,
+and the purely ionic nature of the bonding in the powder; however, we
+can easily build a “furnace” that reaches 700°, and the two feedstocks
+are very cheap, nontoxic, and readily available.  Potassium chloride
+costs US$25 for 10 pounds on eBay (US$5.50/kg); on Mercadolibre sodium
+chloride costs AR$285 (US$18) for 50kg (US$0.36/kg).</p>
+<p>According to <a href="http://www.google.com/patents/US7988763">US Patent 7,988,763</a>, the ternary MgCl₂-KCl-NaCl
+system has a eutectic point of only 383°, where all three components
+are equal, and a binary eutectic between MgCl₂ and NaCl at 45% wt%
+NaCl melting at 439°.  Magnesium chloride, which melts at 714°, is
+even easier to obtain than KCl, and on Mercadolibre it costs AR$400
+(US$25) for 5 kg (US$5/kg).</p>
+<h2>Titanium</h2>
+<h2>Amalgams</h2>
+<p>Applying small amounts of mercury to many different metals can produce
+stable amalgams.</p>
+<h2>Brass and bronze</h2>
+<p>Could you use a powder of some other metal to flux copper powder?</p>
+<p>Pure copper, though somewhat expensive, is easily obtained in the
+modern economy (or from electrical scrap) and does not melt until
+1084°; sometimes it occurs naturally allied with arsenic (“bronze”),
+which both fluxes it so that it can melt at much lower temperatures
+and hardens it greatly.  The humans started using natural bronze some
+5300 years ago and synthetic bronze made by mixing
+separately-occurring tin, rather than arsenic, with copper about 6500
+years ago, at first in Thailand and later in the Middle East.  Other
+elements are also widely alloyed with copper, notably aluminum
+(“aluminum bronze”), zinc (“brass”), zinc and nickel (“nickel
+silver”), and silicon (“silicon bronze”), with much the same results.</p>
+<blockquote>
+<p>Beryllium forms a precipitation-hardenable alloy with copper that
+can be harder and stronger than most steels (an ultimate tensile
+strength of some 1150 MPa at 2% Be), but is little used because of
+the toxicity of beryllium and beryllia; I do not think it lowers
+copper’s melting point much in the tiny quantities (0.2%–3%)
+required to make precipitation-hardenable beryllium copper.  XXX yes
+it fucking does</p>
+</blockquote>
+<p>According to 2001 edition of the ASM Specialty Handbook <em>Copper and
+Copper Alloys</em>, the solubility limits of these elements in copper at
+20° are 6.5% for arsenic, 1.2% for tin, 9.4% for aluminum, 30% for
+zinc, 0.2% for beryllium, and 2% for silicon, all by weight; it’s
+miscible in all proportions with gold, nickel, and platinum.</p>
+<p>Arsenic is somewhat dangerous, vaporizing at 615° and producing deadly
+arsenous oxide gas; this may be a significant reason for the switch
+from arsenical bronze to tin bronze in the early Bronze Age.</p>
+<p>Typical bronze is around 12% tin (the rest being copper) and melts
+around 950°, while tin itself melts at 232°, but remains liquid until
+2600°.  The tin–copper system is not very friendly for this kind of
+thing; its eutectic composition is I think <a href="https://en.wikipedia.org/wiki/Solder">Indalloy 244, melting at
+227°</a>, which is 0.7% copper, with the rest being tin; the copper
+is present as a small amount of the brittle intermetallic Cu₆Sn₅
+rather than forming an alloy.  This suggests that you’d really just be
+kind of just soldering the copper particles together with the tin,
+rather than dissolving them fully to make a homogeneous alloy.</p>
+<p>Brass — copper fluxed with zinc — melts at 900° to 940°.  Zinc melts
+at 420° and boils at 907°, producing a serious danger of zinc oxide
+fumes — mixed with air, the zinc vapor burns immediately, and the
+oxide solidifies as particles with a diameter of around a nanometer,
+since the oxide is solid until 1975°.  So Roman brass was made by the
+“cementation” process of heating calamine (zinc carbonate or silicate)
+with copper and charcoal (presumably to scavenge the oxygen), rather
+than from metallic zinc; or by heating zinc oxide together with
+copper.  This works by producing zinc vapor directly from the
+calamine, which is taken up by the solid copper, but the reaction is
+slow; it typically takes several hours.  Roman brass is typically 20%
+to 28% zinc, but some modern brasses have even higher levels, up to
+40%.</p>
+<p>So, again, the likely outcome of trying to flux copper powder with
+zinc metal would be just sort of soldering the copper particles
+together with zinc.</p>
+<p>Brasses and bronzes increase in strength as the degree of copper is
+reduced; when 60% cold-reduced, 8%-tin bronze has an ultimate tensile
+strength of some 750 MPa, and 30%-zinc brass is nearly as strong at
+600 MPa, compared to some 400 MPa for pure copper or 225 MPa for pure
+annealed copper.  But the objects produced by this flux-deposition
+process would be fully annealed, so their strength would be more like
+350 to 400 MPa even at those high alloying levels</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/materials.html">Materials</a> (112 notes)
+</li><li><a href="../topics/pricing.html">Pricing</a> (89 notes)
+</li><li><a href="../topics/manufacturing.html">Manufacturing</a> (50 notes)
+</li><li><a href="../topics/digital-fabrication.html">Digital fabrication</a> (42 notes)
+</li><li><a href="../topics/3d-printing.html">3-D printing</a> (23 notes)
+</li><li><a href="../topics/ceramic.html">Ceramic</a> (17 notes)
+</li><li><a href="../topics/electrolysis.html">Electrolysis</a> (7 notes)
+</li><li><a href="../topics/flux-deposition.html">Flux deposition</a> (4 notes)
+</li></ul></div></html>

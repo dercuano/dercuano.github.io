@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html><title>We should use end-to-end optimization algorithms for 3-D printing design ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>We should use end-to-end optimization algorithms for 3-D printing design</h1><div class="metadata">Kragen Javier Sitaker, 2015-09-03
+(14 minutes)</div><p>I just spent a few hours designing and printing things in PLA with a
+US$400 Prusa Mendel RepRap, using a workflow that goes like this:
+OpenSCAD → Slic3r → Pronterface → RepRap → break them.  I think this
+is the wrong approach, for a couple of reasons.</p>
+<h2>Printing problems I've seen</h2>
+<p>The RepRap does not realize your 3-D model with perfect precision or
+reliability.  Here are the ways I've seen it fail:</p>
+<ul>
+<li>
+<p>Printing on dirty glass, or glass that's not hot enough, the bottom
+  layer can peel up from the glass when pulled by tension from the
+  extruder.  This may be corrected by subsequent layers, or it may
+  generate a runaway positive feedback loop as the extruder crashes
+  into the debris, peeling more and more of it.</p>
+</li>
+<li>
+<p>Of course anything needs a sufficient area of contact with the
+  printing bed to anchor it during printing.</p>
+</li>
+<li>
+<p>When the bed is insufficiently well leveled, printing the first
+  layer in some places will not deposit any plastic and may cause the
+  pinch wheels to lose their grip on the filament.  This could be
+  remedied in software by using a thicker bottom layer in models with
+  a large X and Y extent.</p>
+</li>
+<li>
+<p>Sometimes, particularly with a horizontal overhang, Slic3r tries to
+  delineate a layer boundary by depositing filament on top of empty
+  space.  This works up to a point, particularly if it starts on top
+  of non-empty space and then goes out a very short distance onto
+  empty space.</p>
+</li>
+<li>
+<p>A tall, skinny model can start to flex with the extruder as the
+  extruder drags across the top of it; this results in a sort of
+  backlash.  This is relatively innocuous when you're depositing 10%
+  infill, but when you're depositing 100% infill, it can result in the
+  plastic mounding up, which creates positive feedback — the mound of
+  plastic obstructs the extruder further, which results in further
+  bending and sometimes even getting unstuck from the bed.</p>
+</li>
+<li>
+<p>Any kind of obstruction can result in lost steps in X and Y, since
+  the RepRap runs entirely open-loop.</p>
+</li>
+<li>
+<p>Depositing a horizontal surface on top of an open space (either one
+  in the model or one generated from infill) always sags somewhat; the
+  extent of the sag, and whether further layers on top of it are able
+  to become fully solid, both vary somewhat.  It's easy to end up with
+  just a set of parallel threads that don't cohere into a surface.</p>
+</li>
+<li>
+<p>Sometimes narrow vertical walls encounter the same fate: just a set
+  of parallel, unconnected threads.  I think that when I saw this, it
+  was from an infill setting that was just on the edge of instability
+  being driven over the edge by the cooling blower.</p>
+</li>
+<li>
+<p>I saw one design that drove the X drive belt into one of the support
+  beams when it drove the Z-axis up past 110 mm.  We aborted the print
+  before it could break the printer.  Apparently the electronics and
+  Pronterface don't enforce a sufficiently safe bounding box in Z.</p>
+</li>
+<li>
+<p>Layers that are too discontinuous (that is, that consist of separate
+  islands that are too small) suffer from the unavoidable imprecision
+  in start and stop times of the extruder.  Sometimes this results in
+  prints completely failing, as the extruder wiggles around in the air
+  millimeters away from the actual workpiece, perhaps spewing
+  spaghetti.</p>
+</li>
+<li>
+<p>Very small layers can remain so molten that the achievable overhang
+  drops dramatically.</p>
+</li>
+<li>
+<p>Warping during cooling can delaminate the piece and peel it up from
+  the build platform.</p>
+</li>
+<li>
+<p>Vibration of the machine produces small but visible and palpable
+  horizontal displacement errors.</p>
+</li>
+<li>
+<p>For some reason, polygons bulge at their vertices ("corner
+  blobbing"), with the result that their outer edges are concave.
+  Perhaps the extruder stops for a moment before changing direction.</p>
+</li>
+<li>
+<p>Horizontal or nearly-horizontal surfaces that are supposed to be
+  solid sometimes come out porous, due presumably to miscalibration of
+  filament diameter, and sometimes to other kinds of failures
+  mentioned above on top layers.</p>
+</li>
+<li>
+<p>Stringers, of course, which are partly a problem of getting your
+  forward and reverse pinch wheel settings right to prevent ooze, and
+  also of having a toolpath that isn't too discontinuous; and you can
+  wiggle the extruder around to break existing stringers sometimes.
+  Skeinforge has a setting to try to build separated vertical "towers"
+  each a few layers at a time, rather than potentially creating
+  stringers between them on every layer, but unfortunately this needs
+  a model of the extruder in order to work properly.</p>
+</li>
+<li>
+<p>Too small of a base area can make it too easy for the model to
+  unstick from the glass.</p>
+</li>
+</ul>
+<p>Often one problem leads to another: maybe flexing leads to mounding,
+which leads to lost steps, which leads to spaghetti spewed into the
+void.</p>
+<p>All of these problems can be solved with software, and e.g. Skeinforge
+has settings you can use to solve them already.  So what am I
+suggesting that we do differently?</p>
+<p>We can automate solving these problems so you don't have to use trial
+and error to get a working print.</p>
+<h2>Design Rule Checks</h2>
+<p>Semiconductor fabrication has had decoupling between the design and
+fabrication steps since about 1980, using the methodology designed by
+Carver Mead and Lynn Conway.  As I understand it, which might be
+wrong, this works as follows.  First you design your masks in software
+with some kind of abstraction of the process steps provided by your
+fab; then you simulate the circuits to get a good idea of analog
+performance; then you send the masks (originally on tape, thus the
+term "tape-out") to the fab, who produces some number between 10 and
+100 000 of your new design, which you can test a few weeks later.</p>
+<p>A crucial aspect of this process is a thing called "design rule
+checks", which you run on your masks before simulation, and which the
+fab also runs on your masks before doing any photolithography.  DRCs
+are mechanically checkable requirements which, if met, that ensure
+that your circuit will come out working properly despite the
+limitations of the fabrication process, things like "no wires less
+than 2Λ wide" and "minimum 2Λ spacing between wires".  If your layout
+passes the DRCs specified by the fab, it's dramatically more likely to
+produce a working chip.</p>
+<p>Shapeways publishes a sort of set of DRCs (they call them "design
+guidelines" or "printability checks") for STL files that you'd like
+them to print; for example, their <a href="http://www.shapeways.com/materials/ceramics">ceramic page</a> says, among other
+things:</p>
+<blockquote>
+<p>Max bounding box: 340 × 240 × 170 mm and X + Y + Z ≤ 400 mm<br />
+Min bounding box: X + Y + Z ≥ 120 mm<br />
+Min density: 5% material density<br />
+Max wall thickness: 15.0 mm thick <br />
+Min embossed detail: 2.0 mm high &amp; wide</p>
+</blockquote>
+<p>There are another ten parameters describing what kinds of models they
+can print, at the STL level of abstraction.  They do some of these
+DRCs (density, bounding box, wall thickness, model integrity) when you
+upload a model, while others are done manually.</p>
+<p>But I'm thinking about DRCs a layer of abstraction down from there,
+because none of the problems I've seen with RepRap prints are things
+that printability checks would have caught, except for the
+bounding-box violation I mentioned above.</p>
+<p>I want DRCs that are checks you run on your final G-Code that would
+detect problems like these:</p>
+<ul>
+<li>Excessively steep overhang (with different thresholds for
+  cantilevered overhang and void-spanning overhang);</li>
+<li>Overhang deposited in the wrong order (spaghetti spewed into the
+  void);</li>
+<li>Bounding box violations;</li>
+<li>Insufficient time to cool before printing another layer on top;</li>
+<li>Insufficient margin for error in filament diameter (resulting in
+  possible mounding or possible unwanted porosity); and</li>
+<li>Ooze-producing patterns of movement (e.g. traveling immediately
+  after shutting off the extruder)</li>
+</ul>
+<h2>Simulation and Optimization for Toolpath Design</h2>
+<p>To a great extent, you could use AI search techniques to find a
+toolpath that most closely approximates the desired shape (as
+expressed in an STL file) without violating DRCs, and then to optimize
+the toolpath for metrics like minimal plastic use and maximal speed.
+If you take this a little further, you find yourself simulating the
+plastic as it comes out of the extruder and cools, rather than using
+rules of thumb about allowable overhang, slenderness, and cooling
+time, with dozens of parameters that you have to tweak until you get
+reliably good prints.</p>
+<p>(I'm assuming here that the thermodynamics and mechanics of the
+plastic coming out of the extruder can be characterized with a smaller
+set of parameters, ideally parameters that can be measured to a few
+significant figures rather than attempted via trial and error.)</p>
+<p>But really you'd like to optimize things besides plastic use and print
+speed, while keeping the shape as a given.  For example, maybe you'd
+like to optimize strength or smoothness along with plastic use.  But
+what is "strength"?  That depends on the situation.</p>
+<h2>Why Are Long Bones Curved?</h2>
+<p>A lot of our long bones, like femurs, tibias, ulnas, and phalanges,
+are frequently subject to compressive stress.  Since they're long and
+slender, an easy way for them to fail under compressive stress is by
+buckling: bending to one side or the other, giving the compressive
+stress progressively more leverage against the tensile strength on the
+outside of the bend, until the bone breaks.  It's well known how to
+maximize resistance to buckling for a given slenderness of strut: make
+the strut as close to perfectly straight as possible, so that a
+greater force is needed to initiate buckling.</p>
+<p>So why are all these long bones curved, since a broken bone is such a
+serious injury and so important to prevent?</p>
+<p>I suspect that the answer is that early buckling, far from increasing
+the danger of broken bones, decreases it.  The long bone's diaphysis
+acts as a spring, absorbing up to a certain amount of energy without
+damage, and limiting the forces experienced by other parts of the bone
+and the body until the energy and displacement are very large.</p>
+<p>Now, I thought this was just a crank hypothesis I'd dreamed up, but it
+turns out that actual scientists published basically this idea in
+1988: <a href="http://www.ncbi.nlm.nih.gov/pubmed/3419194" title="Bone curvature: sacrificing strength for load predictability?">JE Bertram and AA Biewener</a>, and they've been cited <a href="http://scholar.google.com.ar/scholar?cites=8081012706570065627&amp;as_sdt=2005&amp;sciodt=0,5&amp;hl=fr">149
+times</a>; they cited other forms of it published in 1984.</p>
+<p>So long-bone curvature is actually an advanced design technique for
+making bones and bodies less brittle.  It was evolved by exploring the
+possibilities thoroughly with genetic algorithms, and has produced
+remarkably resilient and strong skeletons for our bodies by the
+judicious use of an unremarkable mineral.</p>
+<h2>Simulation and Optimization for Shape Design</h2>
+<p>I printed a connector to connect two plastic coke bottles together,
+with a vertical axis.  It had a coke-bottle thread (PCO-1810) on each
+side, and a lip in the middle.  The print took 45 minutes; as soon as
+I got two bottles into it, it delaminated, each bottle keeping its
+section of the thread.</p>
+<p>I rotated it to horizontal, took the opportunity to thin out the lip a
+bit, and printed it again.  As soon as I got two bottles into it, it
+delaminated again, but this time that meant it split lengthwise; still
+unusable.</p>
+<p>I gritted my teeth and added massive ugly discs girdling the pipe.
+This pumped the print time up to 75 minutes, put a bunch of extra
+plastic in places that weren't weak, added ugly cylinder corners that
+made it look like a ray-gun plumbing fitting, and made the knurling on
+the bottlecap model I was using inaccessible to your fingers, but it
+was an easy few lines in OpenSCAD.  This time it withstood several
+double-bottle insertions, only failing once I tried to really crank
+two bottles down onto the gaskets to see if I could get it to seal,
+and it only cracked instead of failing completely like the older
+models.  It used almost three meters of filament.</p>
+<p>Much of the problem, of course, is that PLA is comparatively weak
+compared to the polypropylene normally used for bottlecaps, but more —
+it's brittle, in the sense that it can't be stretched very far before
+it breaks.  But that's true of hydroxyapatite, too.</p>
+<p>Suppose, instead, we were optimizing a feasible toolpath to provide
+strength <em>and resilience</em> with constraints to provide a lip against
+which the bottles could seal, without obstructing the bottles' threads
+(including as they screw in) or necks, and resisting movement of the
+bottles in all six degrees of freedom.</p>
+<p>A first cut at the problem could be a huge block of solid plastic with
+bottle-shaped cutouts in it; a sufficiently large block would provide
+the required strength.  (FEM simulation would be needed to find out
+how large.)  Then, simply removing material from that block in
+different places would reduce the amount of plastic needed.
+Hill-climbing search might steer us to remove plastic less stressed by
+the bottle neck being screwed in tightly; some possible removals would
+reduce strength while improving resilience, while others would result
+in infeasible toolpaths.  The ultimate result would surely be
+lighter-weight, more resilient, and more aesthetically pleasing than
+what I have sitting on my desk now, and it would take much less time
+to design and produce.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/manufacturing.html">Manufacturing</a> (50 notes)
+</li><li><a href="../topics/mechanical.html">Mechanical things</a> (45 notes)
+</li><li><a href="../topics/digital-fabrication.html">Digital fabrication</a> (42 notes)
+</li><li><a href="../topics/optimization.html">Mathematical optimization</a> (29 notes)
+</li><li><a href="../topics/3d-printing.html">3-D printing</a> (23 notes)
+</li><li><a href="../topics/3d-modeling.html">3-D modeling</a> (9 notes)
+</li><li><a href="../topics/simulation.html">Physical system simulation</a> (4 notes)
+</li></ul></div></html>

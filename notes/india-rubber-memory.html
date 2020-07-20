@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html><title>India rubber memory ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>India rubber memory</h1><div class="metadata">Kragen Javier Sitaker, 2019-03-19
+(4 minutes)</div><p>I watched Tony Hoare’s 2009 talk about how null pointers were a
+billion-dollar mistake today.  One of the things he mentioned was
+that, often, pointers are used because computer memory doesn’t
+stretch — you want to logically include some child object into a
+parent object, but the child object has a potentially variable size,
+so you’re stuck using a pointer to it (a Box, in Rust parlance).  If
+you had “India-rubber memory” that could expand without invalidating
+later pointers, you could just include the child object inside the
+parent, as we traditionally represent syntax trees in text using
+nested brackets.</p>
+<p>This is an appealing idea, and I wonder if you actually could make it
+work in practice, using some kind of flexible buffer scheme to hold
+all your data — like Emacs buffers with markers pointing into them,
+except that the buffers can contain not only characters but also
+references to markers.  To the extent that you can make your data
+immutable, you can avoid the need to update the positions of markers
+from inserting and deleting data in the middle of the buffer.  You
+need the markers in order to be able to rapidly jump over
+variable-length child objects and reach later children.</p>
+<p>For example, suppose you have these definitions (from the FlatBuffers
+tutorial):</p>
+<pre><code>  struct Vec3 {
+    x:float;
+    y:float;
+    z:float;
+  }
+
+  table Monster {
+    pos:Vec3; // Struct.
+    mana:short = 150;
+    hp:short = 100;
+    name:string;
+    friendly:bool = false;
+    inventory:[ubyte];  // Vector of scalars.
+  }
+</code></pre>
+<p>Now, if you know the starting byte position of a <code>Monster</code>, you can
+easily find the starting byte position of its <code>pos</code>, <code>mana</code>, <code>hp</code>, or
+<code>name</code>, since those are all at fixed offsets.  But <code>friendly</code> comes
+after <code>name</code>, and <code>name</code> is variable-length, so somewhere we must
+store a marker to find <code>friendly</code> with — a marker which will continue
+to point to <code>friendly</code> even if some characters are inserted or deleted
+in <code>name</code>.  From that marker we can find the byte position of
+<code>inventory</code>, since <code>friendly</code> itself is fixed-size.  We don’t need a
+second marker to find the end of the object, but since the
+variable-length <code>name</code> and <code>inventory</code> fields make <code>Monster</code> as a
+whole variable-length, we would need an array of markers to organize
+an array of <code>Monster</code>s, and if <code>Monster</code> were embedded in some other
+object, we’d need a marker to find the field following the <code>Monster</code>.</p>
+<p>At least, that’s one possible set of implementation decisions.  You
+could also imagine storing the markers at the end of the <code>Monster</code>,
+and using the end position rather than the start position to identify
+the <code>Monster</code>, which would have the advantage that you could write out
+the representation in a purely sequential fashion with no
+backpatching, which in turn would allow you to use variable-length
+representations for the markers, such as variable-length byte counts.
+In that case, you’d need a marker to find the beginning of <code>inventory</code>
+(and the end of <code>friendly</code>) and a marker to find the beginning of
+<code>name</code> (the end of <code>hp</code>).  In this case, this “trailers”
+representation requires more markers than a “headers” representation
+would, but that’s only because the last field is variable-length; more
+usually both would require the same number of markers.</p>
+<p>You could also imagine representing the markers in such a way that an
+update to them was needed under different circumstances.  For example,
+you could represent a marker as a sequence of indices into B-tree
+blocks walking down from some root, and only an insertion into a
+B-tree block before the marker would require an update to that marker;
+or you could represent it as something like a BASIC line number, in
+the sense that the marker destinations would be physically present in
+the buffer along with characters, in a lexicographically ordered
+fashion, and might occasionally need a “renum” operation to
+redistribute them over the index space, which could be carried out
+somewhat lazily.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/memory-models.html">Memory models</a> (13 notes)
+</li><li>FlatBuffers</li></ul></div></html>

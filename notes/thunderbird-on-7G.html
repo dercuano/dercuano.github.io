@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><title>Why Thunderbird is inadequate for opening a 7-gigabyte mbox ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Why Thunderbird is inadequate for opening a 7-gigabyte mbox</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(2 minutes)</div><p>I opened my mailbox in Thunderbird.</p>
+<ul>
+<li>importing the mailbox is a pain</li>
+<li>had to create a dummy account first</li>
+<li>takes a number of minutes to open the mailbox</li>
+<li>uses 800-950MB of VM and 400+MB of <code>RPRVT</code> memory to open the mailbox</li>
+<li>sorts by default by date message claims to be sent, although there
+  seem to be anomalies; this clusters spam</li>
+<li>uses 7-9 minutes of CPU to render a threaded view, during which time
+  the UI is unresponsive; when you sort by something else and
+  re-enable the threaded view, it takes another 7-9 minutes</li>
+<li>is there a way to hide the junk messages?</li>
+<li>I marked a bunch of messages as spam and a bunch of other messages
+  as read in order to train the junk filter.  Then I (actually
+  Beatrice) selected all messages with interesting-feature-A (which
+  took less than a minute of CPU time, during which the UI was
+  unresponsive) and selected "Run Junk Mail Controls on Folder" from
+  the Tools menu.  This marked a number of the messages I'd marked as
+  read, but not as spam, as spam.  There is no obvious way to
+  distinguish the messages that I have marked as spam and the messages
+  Thunderbird has marked as spam.</li>
+<li>on the plus side, Thunderbird doesn't seem to want to store its
+  updates to message status flags as Status: headers in the messages.</li>
+<li>on the minus side, it seems to be storing that information in a
+  176MB Mork file, which could make it hard to get it into anything
+  else.</li>
+<li>Despite the fact that Thunderbird isn't storing
+  which-message-is-read information in Status: headers, it seems to
+  believe Status: headers added by spammers.</li>
+<li>Thunderbird thinks I have about 500 000 messages in this mailbox.
+  But I actually have about 800 000.</li>
+<li>Scrollbars are not useful on a 500 000-item list.</li>
+</ul><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/latency.html">Latency</a> (19 notes)
+</li><li><a href="../topics/email.html">Email</a> (5 notes)
+</li></ul></div></html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><title>Constant time sets for pixel painting ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Constant time sets for pixel painting</h1><div class="metadata">Kragen Javier Sitaker, 2017-02-07
+(2 minutes)</div><p>There’s a data structure for representing sets of small integers, up
+to M integers less than N, using a count variable and two arrays, A of
+size M and B of size N.  The membership test is</p>
+<pre><code>mem(i)  ⇐  B[i] &lt; count  ∧  A[B[i]] == i
+</code></pre>
+<p>from which you can derive the constant-time item insertion, item
+deletion, start-unordered-iteration, iterate-next-item, and
+set-to-empty-set operations.  Additionally the array contents do not
+need to be initialized, so creating a new such set is a constant-time
+operation (although not, I suspect, in standard C, since I think
+reading the uninitialized data in B[i] is undefined behavior).</p>
+<p>You can also use this structure as a sparse array, either adding an
+additional array of data-values parallel to A or by making A an array
+of (small-int, data-value) tuples.  And in particular I was thinking
+that this could be useful for scanline rendering of overlapping or
+self-intersecting polygons.  The idea is that, to compute a scan line,
+you maintain a sparse array of pixel value changes (polygon
+boundaries), and the resulting scan line is the prefix sum of that
+sparse array.</p>
+<p>This requires efficient sequential (rather than unordered) access to
+the items of the set, but this is readily provided by running a
+sorting step after you’re done storing boundaries into the array, but
+before you start generating pixels.  It’s not quite constant-time per
+drawing operation, but it’s pretty close.</p>
+<p>(Asymptotically speaking, it would be better to iterate over the B
+array, since you need to visit every pixel anyway.  In practice, this
+is probably silly.)</p>
+<p>By using subpixel coordinates as the indices in B, you should be able
+to get decent antialiasing in the X dimension at little additional
+cost.</p>
+<p>I don’t know if you can extend this to painting translucent or
+gradient-filled polygons; that seems like it would require a
+nearest-neighbor kind of test to find out what color a given range
+currently was.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li></ul></div></html>

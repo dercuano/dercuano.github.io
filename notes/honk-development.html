@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html><title>Honk development ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Honk development</h1><div class="metadata">Kragen Javier Sitaker, 2019-03-21
+(2 minutes)</div><p>As I listened to a car honking its horn for a long period of time far
+away with no pause, I noticed that the quality of the sound changed
+subtly several times over the first second or two.  I think this is a
+result of echoes: at first I heard only the incident horn, but after a
+short time it was joined by one, two, three, several echoes of the
+original horn.  Depending on the particular details of the time
+delays, some of the harmonics in each echo interfered constructively
+with those in the original sound, while others interfered
+destructively.</p>
+<p>Aside from what this implies about what we can learn about our built
+environment from analyzing the sound, it occurred to me as being a
+very easy effect to simulate; this took me about 15 minutes:</p>
+<pre><code>/* ./horn | aplay */
+#include &lt;stdio.h&gt;
+#include &lt;stdint.h&gt;
+
+typedef uint8_t u8;
+
+u8 wave(long long t)
+{
+  return (t &amp; 128 ? 256 - (t &amp; 255) : 128 + (t &amp; 127)) &gt;&gt; 1;
+}
+
+u8 horn(long long t)
+{
+  enum { attack = 600 };
+  int v = t &lt; 0 ? 0 : t &gt; attack ? 256 : t * t * 256 / attack / attack;
+  return wave(t) * v &gt;&gt; 8;
+}
+
+int main()
+{
+  for (int a = 0; a &lt; 32000; a++) {
+    putchar(horn(a - 1000)
+            + (horn(a - 6242) * 64 &gt;&gt; 8)
+            + (horn(a - 8932) * 32 &gt;&gt; 8)            
+            + (horn(a - 12333) * 64 &gt;&gt; 8)            
+            + (horn(a - 3013) * 128 &gt;&gt; 8)
+    );
+  }
+}
+</code></pre>
+<p>The waveform of the sound doesn’t sound very much like a horn, but the
+changes in the tonal quality over time are similar to what I was
+hearing.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/dsp.html">Digital signal processing (DSP)</a> (60 notes)
+</li><li><a href="../topics/small-is-beautiful.html">Small is beautiful</a> (40 notes)
+</li><li><a href="../topics/audio.html">Audio</a> (40 notes)
+</li><li><a href="../topics/c.html">C</a> (28 notes)
+</li><li><a href="../topics/music.html">Music</a> (18 notes)
+</li></ul></div></html>

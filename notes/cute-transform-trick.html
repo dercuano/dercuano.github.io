@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html><title>A cute algorithm for card-image templates ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>A cute algorithm for card-image templates</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(2 minutes)</div><p>There's a trick I think I saw originally in REXX, and which I think
+originally comes from the IBM mainframe world.</p>
+<p>Suppose you have a record with some fixed format and you want to
+reformat it.  For example, you have this:</p>
+<pre><code>199712100036325SITTLER   KRAGEN
+</code></pre>
+<p>And you want to reformat it to this:</p>
+<pre><code>KRAGEN    SITTLER    $00363.25  10/12/1997
+</code></pre>
+<p>The thing that would make this easy would be if you could write a
+couple of "picture" lines showing the desired input and output, and
+have software apply the transformation automatically:</p>
+<pre><code>199712100036325SITTLER   KRAGEN    
+19YyMmDd2345678OPQRSTUVWXopqrstuvwx
+opqrstuvwxOPQRSTUVWX $23456.78  Dd/Mm/19Yy
+KRAGEN    SITTLER    $00363.25  10/12/1997
+</code></pre>
+<p>So far that's nothing terribly special.  You use the correspondence of
+the characters in the before-and-after picture to show where to move
+the input characters around to in the output.</p>
+<p>The special part is that it turns out you can implement this with a
+simple character substitution, the same kind of thing you would use to
+transform uppercase to lowercase or vice versa, or remove accents from
+ISO-8859-1 text for accent-insensitive comparison, or translate
+between EBCDIC and ASCII.  Here's what it looks like in Python.</p>
+<pre><code>&gt;&gt;&gt; import string
+&gt;&gt;&gt; the_input = '199712100036325SITTLER   KRAGEN    '
+&gt;&gt;&gt; beforepic = '19YyMmDd2345678OPQRSTUVWXopqrstuvwx'
+&gt;&gt;&gt; afterpic  = 'opqrstuvwxOPQRSTUVWX $23456.78  Dd/Mm/19Yy'
+&gt;&gt;&gt; cipher = string.maketrans(beforepic, the_input)
+&gt;&gt;&gt; string.translate(afterpic, cipher)
+'KRAGEN    SITTLER    $00363.25  10/12/1997'
+</code></pre>
+<p>So first we compute a character substitution that would convert
+<code>beforepic</code> into <code>the_input</code>.  Then we apply that substitution to
+<code>afterpic</code>, and we get the desired output.</p>
+<p>It's not a very versatile trick --- all the characters in <code>beforepic</code>
+have to be distinct, so it can't work in this form for anything over
+256 bytes, it only handles fixed-width fields, and you can see I had a
+hard time coming up with reasonable-looking characters to use in the
+templates even in this small example.  But the clever thing about it
+is that, given the existing ability to translate a string of
+characters according to such a table of correspondences, and the
+ability to construct such a table from a before and after string, it
+only takes a couple of lines of code.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li></ul></div></html>

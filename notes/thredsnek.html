@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html><title>Thredsnek: a tiny Python-flavored programming language ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Thredsnek: a tiny Python-flavored programming language</h1><div class="metadata">Kragen Javier Sitaker, 2017-03-20
+(7 minutes)</div><p>I was thinking about making a tiny Python-like language, called
+Threadsnake or Thredsnek for the time being.  The idea is to implement
+as much as possible in, say, 1.5KiB or 3KiB or 6KiB of code.</p>
+<p>I think the most important linguistic reasons current Python is so
+effective are the following:</p>
+<ol>
+<li>The memory model is the Lisp-style object-graph, a
+   garbage-collected heap.</li>
+<li>A small number of general-purpose, flexible-sized data structures
+   (containers): specifically hash tables (“dicts”) and dynamic arrays
+   (“lists”).  Pervasive mutability is key to Python’s current flavor,
+   but it clashes with the object-graph memory model in a lot of ways,
+   so I think we could probably drop it.  (Python also has tuples,
+   sets, frozensets, namedtuples, deques, Counters, OrderedDicts, and
+   defaultdicts, but these are less necessary.)</li>
+<li>“Duck typing”: interactions between objects are indirected through
+   interfaces, and so it generally doesn’t matter what concrete type
+   an object is, just what interfaces or protocols it supports.  So,
+   for example, keys in the built-in hash tables need not be strings;
+   they can be any object that supports the <code>__hash__</code> and <code>__eq__</code>
+   methods.  (The original term for this was “object orientation”,
+   “message passing”, or “late binding”, but people got confused about
+   what those terms meant; “duck typing” is the current term.)  In
+   particular, any code can define its own “types” which are really
+   just wrappers that provide a duck-typed façade to dicts.</li>
+<li>As a special case, iteration indirects through an “iterator
+   protocol” which allows for composable iterators, and there is a
+   coroutine facility for this (“generators”) which can be put to many
+   different uses.  (I am sympathetic to Alexandrescu’s argument that
+   maybe we should use a “range protocol” instead of an iterator
+   protocol for this.)</li>
+<li>Errors are handled with exceptions.  Ambiguity and implicitness is
+   an error; there is very little DWIM.  (Implicit variable
+   declaration is an exception to this, and was probably a mistake.)
+   Consequently, if your program runs and produces an answer instead
+   of crashing, you can have a fair bit of confidence that the answer
+   is correct.</li>
+<li>Reflection allows the in-language implementation of debugging
+   facilities and transparent and semitransparent persistence
+   facilities like ORMs.</li>
+<li>Tasteful and largish standard library (“batteries included”).  It’s
+   very easy to, for example, run unit tests, split strings on
+   whitespace, join together many strings with a separator (such as a
+   space), concatenate strings, do formatted string interpolation, do
+   integer and floating-point arithmetic, read a line from a file,
+   read an entire file into memory, parse RFC-822 syntax, parse or
+   emit JSON or XML or CSV, do a substring search, extract a substring
+   by indices, lowercase a string, remove leading and/or trailing
+   whitespace from strings, display an unambiguous debugging
+   representation of Python objects in HTML or in text, run binary
+   search, round a number to a given number of decimals, search
+   strings for regular expressions, collate the number of occurrences
+   of each item in an iterable sequence and return the top items, sort
+   and reverse lists, encode and decode UTF-8 and other common
+   character encodings, and so on.</li>
+</ol>
+<p>This is not as poetic as Tim Peters’s <em>The Zen of Python</em>, but I think
+it might be more helpful.</p>
+<p>Duck typing in particular means that all your data structures (heaps,
+sorted lists, whatever) and algorithms (sort algorithms, graph
+algorithms, whatever) are automatically polymorphic over whatever
+types are available, and that you can substitute persistent containers
+(in the disk sense) for nonpersistent ones transparently.</p>
+<p>Python has some major shortcomings.  The semantics of its procedure
+and class definitions make live code upgrade impossible; its
+efficiency in general is terrible; its semantics are so flexible that
+many errors cannot be caught until runtime even in principle; its
+absence of first-class lambdas or Smalltalk-style blocks has given
+rise to a steadily growing pile of kludges such as method decorators
+and context managers.  But it remains immensely popular and immensely
+practical.</p>
+<p>And this is in spite of its lack of many things commonly considered
+critically important in a programming language: encapsulation,
+structs, nested scoping (at least in old versions), a decent GUI
+library...</p>
+<p>It's clearly impossible to implement a sizable standard library in a
+few K of code.  But how much code would Thredsnek need to implement
+garbage collection, dicts and lists, duck typing (including for
+iteration), exceptions, and reflection?  On modern machines, it would
+still be useful even with fairly inefficient approaches to these
+problems.</p>
+<p>What kind of abstract machine would be needed to implement this?  You
+need to be able to send messages (invoke methods), store and retrieve
+local variables (including parameters), retrieve constants, raise and
+catch exceptions, instantiate objects (including dicts and lists;
+possibly by sending messages to a class), and do reflection (possibly
+by sending messages to some kind of reflection object, which seems
+preferable to invoking magic non-implementable reflection messages on
+arbitrary objects).  You probably also need control-flow and
+method-return operations.</p>
+<p>For variable-length argument lists, like those used for instantiating
+lists or dictionaries, it might be useful to begin by pushing a stack
+mark and pass everything down to that mark as arguments.</p>
+<p>As a point of reference, the Smalltalk-78 virtual machine for the
+NoteTaker was supposedly 6KiB of 8086 machine code.  This used the
+Smalltalk-76 bytecode, which was simpler than the Smalltalk-80;
+according to Ingalls's 1978 paper on it, its high nibble selected the
+overall category of operation:</p>
+<ul>
+<li>0x1x: load an instance field (implicitly limited to 16);</li>
+<li>0x2x: load a local variable;</li>
+<li>0x3x: load from the table of constants for this method;</li>
+<li>0x4x: load <em>indirectly</em> from the table of constants (I think this
+  was used for accessing classes and other global variables);</li>
+<li>0x5x: load from a Context field (I don’t understand this);</li>
+<li>0x6x: load one of the universally common constants, -1, 0, 1, 2, 10,
+  true, false, and nil;</li>
+<li>0x7x: sends a message to the Context, but I don’t know what for;</li>
+<li>0x8x: sends one of SpecialMessages, which I assume are things like
+  <code>+</code> and <code>=</code>;</li>
+<li>0x90–0x97: jump forward up to 8 bytecodes unconditionally;</li>
+<li>0x98–0x9f: jump forward up to 8 bytecodes if false;</li>
+<li>0xa0 0xxx – 0xa7 0xxx: jump unconditionally up to 768 bytes back or
+  2047 forward;</li>
+<li>0xa8 0xxx – 0xaf 0xxx: jump conditionally (by the same amount);</li>
+<li>0xb0: discard stack top;</li>
+<li>0xb1 0xxx: copy stack top into given location;</li>
+<li>0xb2 0xxx: move stack top into given location (and pop it);</li>
+<li>0xb3: return stack top as method return value.</li>
+</ul>
+<p>The bytes denoting locations to store into were the same as the load
+opcodes.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/history.html">History</a> (71 notes)
+</li><li><a href="../topics/independence.html">Independence</a> (63 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/small-is-beautiful.html">Small is beautiful</a> (40 notes)
+</li><li><a href="../topics/instruction-sets.html">Instruction sets</a> (40 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/smalltalk.html">Smalltalk</a> (12 notes)
+</li><li><a href="../topics/bytecode.html">Bytecode</a> (6 notes)
+</li></ul></div></html>

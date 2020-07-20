@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html><title>Finishing Dercuano ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Finishing Dercuano</h1><div class="metadata">Kragen Javier Sitaker, 2019-12-30
+(9 minutes)</div>
+<p>Today is the day I'm finishing Dercuano, or, perhaps, giving up on it.
+I could of course continue to add stuff to it indefinitely, but I want
+it to have a definite, unambiguous publication year, and there's only
+one day left in the year, plus a few hours.  I slept six hours this
+afternoon after pulling an all-nighter.  I want to get it done tonight
+so that the publication year doesn't depend on your timezone.</p>
+<p>Goaded by John Cowan,
+I've spent the last week hacking together <a href="https://gitlab.com/kragen/dercuano/blob/master/genpdf.py">a terrible piece of shit
+that renders a pile of HTML to a PDF file for reading on hand
+computers</a>, as described in <a href="../notes/dercuano-hand-computers.html">How to make Dercuano work on hand computers?</a>.  The
+result is considerably more readable than the output of a one-week
+HTML-rendering hack has any right to be, and in many ways it's much
+more readable than the PDF output of browsers: it has better margins,
+its font sizes are more readable on hand computers, and links are
+annotated with page numbers so you can follow them (with about 15
+seconds of effort, in hallway user testing) even if your PDF viewer
+doesn't support links, as Google Drive's PDF viewer doesn't.</p>
+<p>There are lots of things I wanted to add to both Dercuano and its PDF
+rendering that I haven't managed to: dynamic models, 3-D models,
+drawings, diagrams, decent formula display, and so on, not to mention
+an endless variety of ideas I hoped to explore further.  Some of these
+things are in fact present in Dercuano itself, but missing from the
+HTML rendering.  <a href="../notes/parabolic-optimization.html">Rediscovering successive parabolic interpolation: derivative-free optimization of scalar functions by fitting a parabola</a> has a calculation form
+that doesn't work in PDF.  <a href="../notes/mechano-optical-vector-display.html">A mechano-optical vector display for animation archival</a> and
+<a href="../notes/dercuano-drawings.html">Dercuano drawings</a> contain SVG graphics, but I haven't
+implemented an SVG renderer, so they're not in the PDF version.
+<em>Lots</em> of notes contain tables which I went to the trouble of
+converting to HTML, but I haven't implemented HTML tables in my PDF
+renderer (whose layout model is impossibly simpleminded) and so
+they're only barely preserved; most of them are comprehensible, while
+a few aren't.  This is what happens when you hack together an HTML
+renderer in a week.</p>
+<p>I suppose no plans are realized completely, so when it's too late to
+pursue them further, they all end with some regret.</p>
+<p>Nevertheless, I can rest easy knowing that all of this foofaraw has
+been <em>Published</em> --- not in the peer-reviewed-research sense, but in
+the sense of being made public, and therefore probably being able to
+survive the inevitable and fairly imminent death of this body, as well
+as serving as prior art ("printed material") for patent purposes.</p>
+<p>So, what will this body do next?  After all, it's extremely improbable
+that it will die in the next two days.  Will there be a "Derctuwo"?</p>
+<p>I don't know.  I think I'd like to write something that has a little
+more of the nature of a Jupyter notebook and can include a lot of
+colorful illustrations, and that realizes some of the aspirations in
+<a href="../notes/book-in-itself.html">The book written in itself</a>.</p>
+<h2>Ideas I'm just now getting around to writing down</h2>
+<p>Here are some things I might have written full notes about if I'd
+gotten around to it.</p>
+<p>Could you move things around a multitouch acoustic panel, as described
+in <a href="../notes/audio-tablet.html">Audio tablet</a>, using ultrasound, vibrating it under them?</p>
+<p>Can you get mobile browsers to open <code>data:</code> URLs embedded in QR codes?
+Can you gzip the contents?  Can you stick HTML with <code>&lt;canvas&gt;</code> or SVG
+into those files?</p>
+<p>Normal build systems like <code>make</code> are pretty much theorem provers, but
+they generally only handle monotonic logics: no build artifact is
+conditional on the <em>absence</em> of another build artifact, just its
+presence.  But suppose you made a build artifact depend on the result
+of a query; adding new assertions to the database could change the
+result of the query and thus trigger a rebuild.  This could, for
+example, cause Dercuano to build a new version of an HTML file if a
+note gained new topics.</p>
+<p>Can you get haptic feedback for piano keys using magnetic braking?
+Normally piano keys move heavy hammers which have a large mechanical
+advantage; can you replicate that with magnetic brakes?</p>
+<p>In things like <a href="../notes/principled-apl.html">A principled rethinking of array languages like APL</a> I considered something similar to
+normal APL syntax, so <code>X×Y</code> would multiply <code>X</code> and <code>Y</code> elementwise,
+but to sum it you would need <code>+/X×Y</code>, meaning <code>+/(X×Y)</code>.  For an
+exploratory data analysis UI, this is kind of a suboptimal sequence:
+<code>+/X</code> is usually not a good first approximation to <code>+/X×Y</code>.  Usually
+you start with <code>X×Y</code> and then reduce it, so a postfix <code>.sum()</code> (with
+some kind of syntax) is probably better.</p>
+<p>Can you get better efficiency in floating point by sharing the same
+exponent among a group of mantissas, perhaps using some kind of CPU
+fault to trigger an exponent change?</p>
+<p>Can you build a really simple and cheap spectrum analyzer with a
+wide-range VCO, a mixer, and an STM32 that can digitize half a
+megahertz of bandwidth at any given time?</p>
+<p>The usual implementation of a priority queue uses a binary heap, but
+what if you keep the top, say, 8 items insertion-sorted in an array
+instead?  Or the top up-to-8 items?  Maybe that would give you better
+constant factors than always using a binary heap.</p>
+<p>This netbook, like many old netbooks, runs on 14 volts.  How hard
+would it be to generate 14 volts at the 800 mW or so it needs with a
+boost converter from a USB power pack?</p>
+<p>The standard Android lockscreen snaps your finger's path to a number
+of grid points in order to discretize it and thus make it possible to
+accept or reject a passcode attempt.  Hofstadter's "gridfonts" are
+similarly discretized and are aesthetically interesting letterforms;
+could such an interface be an interesting way to draw gridfont
+letterforms?</p>
+<p>The sinc tails of a brickwall bandpass filter's impulse response are
+full of beating (a "carrier frequency" amplitude-modulated by a lower
+"beat frequency"; the "beat frequency" here is the oscillating tail of
+the sinc that is the inverse Fourier transform of the rectangular
+passband in the frequency domain, while the "carrier frequency" is its
+offset from zero, which is an impulse in the frequency domain that's
+been convolved with that pulse to shift it away from zero, and thus is
+multiplied by it in the frequency domain).  Such beating also arises
+by adding two oscillations of different pure frequencies.  Can you
+somehow make a filter that somehow approximates these tails by adding
+together sinusoidal time-domain responses?</p>
+<p>Evince (the PDF etc. viewer) remembers where it is in files by
+filename.  This means that if you rename a file, for example to have a
+name other than '3280523.pdf' or 'thesis.pdf', it forgets where it
+was.  The same is true of, for example, F-Droid's Document Viewer.
+Maybe it would be better to use the file size plus some checksums of
+some byte-ranges of the file, rather than the file's name.</p>
+<p>How would you make a composite material to resist abrasion?  Making it
+very hard is of course a useful element, but perhaps it's even better
+to mix very hard flakes with a gummy binder that deforms plastically
+instead of splitting off.  Hardened steel works this way, for example,
+as does road asphalt, but you could use many other materials.</p>
+<p>A backpack needs to resist a number of different failure modes:
+ultraviolet degradation, water penetration (if it gets soaked and
+everything inside is destroyed by the water, the backpack has failed,
+abrasion, failure by tensile stress, and the zipper wearing out or
+otherwise failing.  You could imagine a backpack with different layers
+for these different failure modes; UHMWPE fiber is great at resisting
+tension, for example, but sucks at resisting ultraviolet, so a layer
+on top of the UHMWPE fiber that protects it from light would be
+useful, and some hard bosses (metal or whatever) could prevent
+abrasion from reaching the softer fabrics.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/dercuano.html">Dercuano</a> (17 notes)
+</li></ul></div></html>

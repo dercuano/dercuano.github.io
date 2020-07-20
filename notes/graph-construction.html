@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html><title>Graph construction ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Graph construction</h1><div class="metadata">Kragen Javier Sitaker, 2016-09-08 (updated 2017-07-19)
+(23 minutes)</div><p>(See also <a href="../notes/circuit-notation.html">Circuit notation</a> and <a href="../notes/stack-stack.html">A stack of stacks for simple modular electronics</a>.)</p>
+<p>I think I have a new approach to concisely and responsively describing
+directed graph structures that is useful in many different creative
+endeavors that can be undertaken with computers.  I don’t yet have a
+working implementation; this article is only an exploration.</p>
+<p>Here’s an overview of different possible notations for edge-labeled
+directed graphs (and related structures), including some new
+applications.</p>
+<p>As an example application, in one variant of the notation, this is a
+schematic for an energy-harvesting power supply circuit taken from a
+paper on the subject.  Here <code>,</code> represents parallel connection,
+concatenation represents serial connection, and <code>&lt;&gt;</code> represents
+reversal, among other things:</p>
+<pre><code>{{&lt;d&gt; {{ac i, c}}=q &lt;d&gt;, {&lt;d&gt; q &lt;d&gt;, c}} s {&lt;d&gt;, l {c, {&lt;v&gt;, r} r}}}
+</code></pre>
+<p>However, this approach is not limited to circuit design.  All of the
+following can be conveniently represented as edge-labeled directed
+graphs:</p>
+<ul>
+<li>regular expressions</li>
+<li>finite state machines</li>
+<li>bubble-and-arrow diagrams (although the bubbles are more commonly
+  labeled than the edges)</li>
+<li>database queries</li>
+<li>database contents</li>
+<li>dataflow pipelines (or more generally dataflow graphs)</li>
+<li>circuit schematics</li>
+<li>control-flow graphs in programs</li>
+<li>networks of constraints</li>
+</ul>
+<p>These techniques should be applicable to user interaction and
+generative programming in all of these areas.</p>
+<h2>Netlists</h2>
+<p>You can write these things as netlists or 3-tuples; an abbreviated
+example of a bubble-and-arrow diagram from the dot man page:</p>
+<pre><code>   digraph test123 {
+           a -&gt; z [label="hi", weight=100];
+           x -&gt; z [label="multi-line\nlabel"];
+           b -&gt; x;
+   }
+</code></pre>
+<p>Or, here’s a circuit netlist <a href="http://www.allaboutcircuits.com/textbook/reference/chpt-7/example-circuits-and-netlists/">in Spice</a>:</p>
+<pre><code>Multiple dc sources
+v1 1 0 dc 24
+v2 3 0 dc 15
+r1 1 2 10k
+r2 2 3 8.1k
+r3 2 0 4.7k
+.end
+</code></pre>
+<p>This requires naming every node; the nodes are named <code>a</code>, <code>b</code>, <code>x</code>,
+and <code>z</code> in the dot example, and 0, 1, 2, and 3 in the Spice example.</p>
+<p>Here’s a dataflow example <a href="https://courses.cs.washington.edu/courses/cse378/03wi/lectures/mips-asm-examples.html">by zahorjan@cs.washington.edu</a> in MIPS
+assembly, which is at the same level of abstraction, although it
+reuses the “dataflow node labels” $t0 and $t1 — each time they are the
+first operand of an instruction, their previous value is overwritten:</p>
+<pre><code>srl    $t0, $t0, 1       # i/2
+addi   $t1, $gp, 28      # &amp;A[0]
+sll    $t0, $t0, 2       # turn i/2 into a byte offset (*4)
+add    $t1, $t1, $t0     # &amp;A[i/2]
+</code></pre>
+<p>If we were to rewrite that with SSA-style subscripts (what Ada
+Lovelace use prefixed superscripts for) we get:</p>
+<pre><code>srl    $t0₁, $t0₀, 1
+addi   $t1₀, $gp₀, 28
+sll    $t0₂, $t0₁, 2
+add    $t1₁, $t1₀, $t0₂
+</code></pre>
+<p>There are better alternatives, though.</p>
+<h2>Infix</h2>
+<p>The traditional solution for the arithmetic dataflow case, of course,
+is to divide the computation into unary and binary operations and
+write them in infix notation; the above MIPS assembly then renders as
+follows:</p>
+<pre><code>($t0₀ &gt;&gt;&gt; 1 &lt;&lt; 2) + ($gp₀ + 28)
+</code></pre>
+<p>This is considerably easier to follow, bringing related things closer
+together and eliminating most of the accidental names, ending up about
+three times shorter.</p>
+<p>By itself, it only covers a very restricted range of cases:
+tree-shaped digraphs, in which, if interpreted as dataflow graphs,
+each value is used only once, producing a single output.  But it isn’t
+immediately obvious how to apply that to get more general kinds of
+graphs.</p>
+<h2>Kleene’s Theorem</h2>
+<p>Stephen Kleene (whose name I mispronounced for 21 years as [klin], but
+TIL it’s actually [kleɪni]) showed that any regular language, and thus
+the possible paths through a finite state automaton, can be generated
+by a regular expression.  As I understand it, a regular expression on
+some alphabet Γ is recursively defined as the smallest language L such
+that</p>
+<pre><code>L = Γ ∪ ({“concat”, “alt”} × L × L) ∪ (L × {“*”}) ∪ {∅, ε}
+</code></pre>
+<p>Hmm, that definition is shitty, I’ll try again.  A regular expression
+<code>Γ re</code> over Γ is defined as the sum type</p>
+<pre><code>Γ re = Lit of Γ
+     | Concat of (Γ re × Γ re)
+     | Alt of (Γ re × Γ re)
+     | Closure of Γ re
+     | Impossible
+     | Emptystring
+</code></pre>
+<p>The language generated by a regular expression is defined as follows:</p>
+<pre><code>lang(Lit(x)) = {x}
+lang(Concat(a, b)) = {wa || wb for wa in lang(a) for b in lang(b)}
+lang(Alt(a, b)) = lang(a) ∪ lang(b)
+lang(Closure(a)) = {ε} ∪ lang(Concat(a, Closure(a)))
+lang(Impossible) = ∅
+lang(Emptystring) = {ε}
+</code></pre>
+<p>Here <code>||</code> is string concatenation.  (Or word concatenation, as
+combinatorists apparently like to say.  And who can argue?  A C
+program as little resembles a piece of twine as it does an entry in
+the dictionary.)</p>
+<p>So the nifty thing here is that this gives you a way to generate all
+possible finite-state-machine languages by building up a finite-state
+machine from simpler single-entry single-exit finite-state machines,
+which is to say, building up a directed graph from simpler
+two-terminal directed graphs.  You can’t express every possible graph
+in this way; in particular, there are a set of “irreducible control
+flow structures” which, if present, require duplication of nodes.
+(McCabe’s 1976 paper “A Complexity Measure” explains in more detail in
+the context of program control flow.)</p>
+<p>Traditionally in regular expressions we write Concat, Alt, and Closure
+as mere juxtaposition, infix <code>|</code>, and postfix <code>*</code>, respectively,
+although, in the context of Kleene algebras, alternation is
+traditionally written with infix <code>+</code> instead.</p>
+<p>And this is somewhat more expressive; it can express any
+series-parallel circuit.  This includes trees as a subset.  If we use
+the traditional <code>|*</code> notation, we can express the above MIPS-assembly
+arithmetic graph as follows:</p>
+<p>XXX try , instead of |?</p>
+<pre><code>(($t0₀ | 1) &gt;&gt;&gt; | 2) &lt;&lt; | ($gp₀ | 28) +) +
+</code></pre>
+<p>Here we are supposing that constants and variables obliterate whatever
+data was present on their branch of the dataflow digraph, that
+rejoining dataflows creates a node where both pieces of data are
+available (with the left and right branches distinguished!), and that
+the operators then reduce the two pieces of data available at their
+node to 1.</p>
+<p>But now we can also represent the SPICE circuit I gave above, for
+example.  One possible representation is as follows:</p>
+<pre><code>(v⁻¹[dc 24] r[10k] (r[8.1k] v[dc 15] | r[4.7k]))*
+</code></pre>
+<p>This contains all the useful information in the original netlist, but
+it is both much easier to write and, I would argue, even much easier
+to read; it’s easy to see what is in series and what is in parallel.
+Interpreted as a regular expression, it yields all of the possible
+traversals through the circuit in a certain direction (which could be
+the direction current is flowing, but happens not to be).</p>
+<p>It’s common to be able to express the majority of an electrical
+circuit in terms of such series-parallel circuits, with the occasional
+deviation from series-parallel constructions; the same is true for
+control flow in programs.</p>
+<h2>Postfix</h2>
+<p>The arithmetic expression above may look suspicious:</p>
+<pre><code>(($t0₀ | 1) &gt;&gt;&gt; | 2) &lt;&lt; | ($gp₀ | 28) +) +
+</code></pre>
+<p>It happens to be exactly equivalent to how you’d express this
+expression in postfix (RPN), but with stack relationships explicitly
+called out — every time some value produced by <code>b</code> is on top of some
+value produced by <code>a</code> on the stack, we have written <code>(a|b)</code> rather
+than just <code>a b</code>.  If we adopt the more usual convention, this
+expression reduces to the following:</p>
+<pre><code>$t0₀ 1 &gt;&gt;&gt; 2 &lt;&lt; $gp₀ 28 + +
+</code></pre>
+<p>Can we apply this to the circuit diagram as well?  It’s simple:</p>
+<pre><code>{ 24 dc v⁻¹  10 k r  { 8.1 k r  15 dc v | 4.7 k r } }
+</code></pre>
+<p>Consider the expression as an RPN program to construct a circuit
+diagram, with a stack consisting of node identifiers and numbers.  It
+begins with a single node identifier on the stack, and it uses the
+following operations:</p>
+<ul>
+<li><code>{</code> duplicates the top item on the stack</li>
+<li><code>dc</code> pushes some number on the stack used to indicate DC</li>
+<li><code>v⁻¹</code> pops a voltage type and parameters from the stack, allocates a
+  new node, connects the positive side of a newly created voltage
+  source to the new node, connects the negative side to the node on
+  the stack, which it pops, and pushes the new node on the stack</li>
+<li><code>k</code> multiplies the number on top of the stack by 1000</li>
+<li><code>r</code> is analogous to <code>v⁻¹</code> but creates a resistor instead</li>
+<li><code>v</code> is exactly the same as <code>v⁻¹</code> but connects its items in the
+  opposite order.</li>
+<li><code>|</code> exchanges the top two items on the stack</li>
+<li><code>}</code> shorts together the two nodes on top of the stack, causing them
+  to become equivalent</li>
+</ul>
+<p>It turns out that, in this context, this semantics for <code>{ }</code> makes
+them adequate both for Kleene closure <code>*</code> and to enclose a binary
+alternation <code>|</code> in the context of circuit schematic capture, because a
+wire forward from the beginning of a part of a circuit to its end is
+the same as a wire backward from its end to its beginning.  In other
+contexts, like regular expressions, these two are not equivalent.</p>
+<p><code>v⁻¹</code> is a bit suspiciously ad-hoc; really we might prefer this
+operation of flipping a bit of circuitry around before connecting it
+to be an orthogonal operation, rather than separately defining <code>v⁻¹</code>,
+<code>d⁻¹</code>, <code>electrolytic_capacitor⁻¹</code>, and so on.  You could instead
+define <code>v</code> to allocate two fresh nodes and push them both on the
+stack, then use a separate <code>forward</code> or <code>reverse</code> operation to short
+two of them together and remove them from the stack.  Alternatively,
+you could have <code>&lt;</code> and <code>&gt;</code> operations that enclose a piece of
+circuitry to be reversed — the first allocating a fresh node and
+pushing two references to it onto the stack, the second performing the
+equivalent of <code>rot }</code>.  But really this is the converse relationship
+on binary relations, about which more later.</p>
+<p>In general, I find postfix less readable and more error-prone than
+infix, so I’m not sure it’s really the right thing, but it has a few
+advantages which might be relevant in this context:</p>
+<ul>
+<li>Its semantics are ruthlessly simple and thus easy to implement
+  correctly.</li>
+<li>It’s very clear to see how to extend it to define new parametric
+  components or macros — pseudo-arcs that are really an entire
+  subgraph — simply by attaching a name to a sequence of
+  graph-construction operations and invoking them as if by copy-paste
+  later on.</li>
+<li>It smoothly handles three-terminal and multiple-output devices;
+  three-terminal devices can, for example, consume two items from the
+  stack and produce a third (ideal for things like logic gates) or
+  push fresh nodes for all of their terminals onto the stack.  If you
+  can define new component macros, you could define a bridge-rectifier
+  macro that consumes two AC terminals and returns two DC terminals.</li>
+<li>For interactive graph construction and editing, not only does it
+  require fewer UI actions than other means of schematic capture, it
+  can also provide immediate simulation feedback while the circuit is
+  being constructed, because almost everything is already connected
+  when it’s constructed.</li>
+</ul>
+<p>I’m not sure that “edge-labeled directed graphs” are quite the right
+abstraction for electrical circuits.  Yes, a battery or a diode is a
+directed relationship between two wire nodes/nets, so representing it
+as a labeled directed edge in a graph makes some sense.  But a bipolar
+transistor is a relationship between three wire nodes/nets, each of
+which has a unique relationship to it, and a microcontroller is in
+some sense a relationship between dozens of nodes.  These are more
+like hypergraphs, but the existing work on <em>directed</em> hypergraphs is
+pretty slim.</p>
+<p>This mirrors the state of relational databases and logic programming,
+where most of the work is with some arbitrary number of finitary
+(N-ary) relations, rather than binary relations.</p>
+<p>A bipartite directed graph, where wire nodes/nets are one part and
+components are the other part, would be an adequate model.  In
+dataflow, the parts would instead be values and operations.</p>
+<p>Despite all this stuff and despite being quite compact, postfix, even
+augmented with the <code>{ | }</code> operations above, can’t construct arbitrary
+edge-labeled directed graphs, just directed graphs whose traversals
+are equivalent to traversals of any given directed graph, and that
+only at the cost of a potentially exponential expansion in graph size.
+In particular, they can’t construct any nonplanar graphs, and not even
+all planar graphs.</p>
+<h2>Variables/Labels</h2>
+<p>The usual solution for this in dataflow is to use (possibly immutable)
+named variables, and in control flow to use labels and <code>goto</code> —
+essentially escaping back to netlists, where connection is indicated
+by coincidence of names rather than proximity.  Labels or variables
+are “wormholes” in the otherwise planar and recursive graph
+construction; they can connect anywhere.  Usually you don’t need very
+many of them.</p>
+<p>The above discussion of regular expressions leads us to speculate on
+whether we should be labeling nodes, as is normally almost universal,
+or entire subgraphs.  Consider the following SPICE model, from the
+same textbook page as the example I gave earlier:</p>
+<pre><code>fullwave bridge rectifier
+v1 1 0 sin(0 15 60 0 0)
+rload 1 0 10k
+d1 1 2 mod1
+d2 0 2 mod1
+d3 3 1 mod1
+d4 3 0 mod1
+.model mod1 d
+.tran .5m 25m
+.plot tran v(1,0) v(2,3) 
+.end
+</code></pre>
+<p>Like bridge circuits in general, this is not a series-parallel
+circuit; you need a label.  You can represent most of it as a
+series-parallel circuit; let’s use the postfix form, and suppose we
+have the direction-reversing brackets <code>&lt;</code> and <code>&gt;</code> suggested earlier:</p>
+<pre><code>{ 15 60 ac v  { d &lt; d &gt; | &lt; d &gt; d } }
+</code></pre>
+<p>This expresses the entire circuit above except for the load
+resistance.  If we add the new operation <code>}=</code> to define a label for a
+subgraph, defining the word following it to hook up the two nodes on
+the stack as if they were an arc, then we can write it as follows:</p>
+<pre><code>{ 10 k r }= rload  { 15 60 ac v  { d rload d | &lt; d rload d &gt; } }
+</code></pre>
+<p>This defines exactly the same circuit as the SPICE model in a third
+less text, although it doesn’t specify the simulation parameters.
+Each time <code>rload</code> is invoked, it connects its environment to the
+<em>same</em> component, unlike things like <code>d</code>, which generate a new
+component each time they’re invoked.</p>
+<p>Alternatively, and more traditionally, we could define <code>}=</code> to simply
+define a name for the node on top of the stack, removing it from the
+stack; when invoked, the name shorts that saved node to whatever is on
+top of the stack at the time.  Then we can define the circuit as
+follows:</p>
+<pre><code>{ 15 60 ac v  { d { 10 k r }= rload &lt; d &gt; | &lt; d &gt; rload d } }
+</code></pre>
+<h2>Explicit series connection</h2>
+<p>Another alternative, which I mention here more for completeness rather
+than because I think it's necessarily better than the others
+mentioned, is to make the series connection explicit rather than
+implicit.  In an infix syntax, for example, using the hyphen for the
+series connection, perhaps R-C is a series connection of a resistor
+and a capacitor, while R|C is a parallel connection.  Then we can do
+things like L-(C|L-(C|R)).  Here, as in the notation at the beginning,
+the values being combined are not circuit nodes or nets but rather
+subcircuits with a beginning and end.</p>
+<p>We can, of course, use a stack notation for this as well; for example,
+instead of L-(C|L-(C|R)), we could write LCLCR|-|-.  A stack-notation
+expression can represent any number of subcircuits rather than just
+one, because it can end with any number of items on the stack;
+similarly, it can represent a transformation of a circuit or set of
+circuits, rather than just a circuit.  (Hmm, this is a digression;
+perhaps it belongs elsewhere.)</p>
+<p>Without the explicit series combination operator, we can get the same
+amount of power in a stack-language context by having an explicit
+“push new disconnected node” operator.  I think.</p>
+<h2>Other arities of edge creation</h2>
+<p>You could also create an edge between the top two nodes on the stack,
+consuming both and returning neither.  In this model, you must
+explicitly create each node, then explicitly duplicate any node that
+will be connected to more than one edge; in a sense, the expected
+degree of a node is 1.  (So to get three resistors in series, you
+would say NODE DUP NODE R NODE OVER R NODE OVER R. I think.)  The
+other approaches I’ve been describing all have, in some sense, an
+expected degree of 2 for each node — the operation of adding each new
+edge to the graph consumes a node and produces a node, which then can
+be merged with some other node in the (implicitly exceptional) case
+where that is desired.</p>
+<p>You could also imagine leaving all the nodes on the stack, not
+consuming any of them, so NODE NODE R R R would give you three
+resistors in parallel.</p>
+<p>What’s the best default node degree?</p>
+<p>Eyeballing a couple of small schematics, I have:</p>
+<ul>
+<li>8 nets, 8 2-terminal components, 2 3-terminal components, average
+  degree of <code>(/ (+ (* 8 2) (* 2 3)) 8.0)</code> = 2.75.</li>
+<li>12 nets, 8 2-terminal components, 6 3-terminal components, average
+  degree of <code>(/ (+ (* 8 2) (* 6 3)) 12.0)</code> = 2.83̄.</li>
+<li>4 nets, 4 2-terminal components, 1 3-terminal component, average
+  degree of <code>(/ (+ (* 4 2) (* 1 3)) 4.0)</code> = 2.75.</li>
+<li>9 nets, 2 2-terminal components, 1 3-terminal component, 1
+  5-terminal component, average degree of <code>(/ (+ (* 2 2) (* 1 3) (* 1
+  5)) 9.0)</code> = 1.3̄.</li>
+<li>12 nets, 12 2-terminal components, 5 3-terminal components, average
+  degree of <code>(/ (+ (* 12 2) (* 5 3)) 12.0)</code> = 3.25.</li>
+</ul>
+<p>In some sense, this suggests that the “average” degree of a circuit
+net (i.e. wire) is somewhere around 3.</p>
+<p>However, that’s including the power rails and ground as nets, which
+commonly have lots of connections.  For example, in the last circuit
+above (Figure 12.67 from Horowitz &amp; Hill 3ed., a simple laser drive
+circuit), ground has 7 connections and the positive power rail has 3.
+If we discount those, the average goes down to 2.416̄.  The first
+circuit, figure 5.56, has three ground connections; discounting those
+gives us 2.375.</p>
+<p>Consequently, I think that the most likely optimum is not 1 or ∞ or
+even somehow 3 but 2.</p>
+<h2>Binary relations and the relational product</h2>
+<p>A few years back I spent some time on <a href="http://canonical.org/~kragen/binary-relations">a database query language based
+on binary relations called Binate</a>.  It has several things in
+common with the work I’m describing here.</p>
+<p>One of the things I never resolved properly in Binate was the status
+of constants; I treated them as relations from anything whatsoever to
+the constant value, like the transformation of a register state
+produced by a load-immediate instruction.  This introduces potentially
+awkward infinities if you take its converse.</p>
+<p>Binate uses a really-infix grammar whose expressions all evaluate to
+binary relations, so it handles non-binary finitary relations with an
+N-ary relational-product operation, which produces nodes that
+participate in a bunch of fresh binary relations.</p>
+<h2>Labels, dynamic scope, and linking</h2>
+<p>Earlier I mentioned NAND gates as an example of a three-terminal
+circuit element for which it’s natural to consume two input nets from
+the stack and produce an output net, but in reality a two-input NAND
+gate has five terminals: power and ground.  Usually in a big part of
+the circuit you use the same power and ground for all the NAND gates,
+but maybe not in the entire design.  Flip-flops additionally have a
+clock, and it’s very common to hook lots of them up to the same clock,
+but to have more than one clock domain in a design.</p>
+<p>An analogous phenomenon pops up in graphics programming: it’s common
+to do a bunch of drawing operations with the same color, the same
+font, the same line joins, and so on.  It’s annoying to have to
+specify this in every drawing operation.</p>
+<p>Dynamically-scoped variables — accessible to lots of things, but set
+during particular dynamic scopes and restored afterwards — are one
+possible solution for this.  In a stack machine, you could use a
+PostScript-style <code>load</code> operation to save the current binding of a
+label on the stack, then run a bunch of graph-constructing code, then
+restore it at the end.  This requires that invoking the label connect
+you to its current value, like a DEFERred word in Forth or like an
+operator in PostScript, not like a regular word in Forth.</p>
+<p>Another way of looking at this is that it’s like what a linker does
+with an object file: it resolves the relocations for a given label to
+point to a given label definition from its environment at link time.</p>
+<p>In some cases it may make sense to provide default arguments for
+things like pullup resistors and bypass capacitors, and those could be
+provided in a similar way, rather than taken from the stack.</p>
+<h2>Dropping brackets for parallel construction</h2>
+<p>In a sense the above uses series combination as the default operation,
+which can be sort of overridden by providing a different context, like
+the <code>{ }</code> or <code>&lt; &gt;</code> contexts.  In algebra, we also have a default
+operation, which is multiplication, but we don't have to write <code>{ 3x²
++ { 2x + 5 } }</code> conventionally; instead we just write <code>3x² + 2x +
+5</code>. You could implement this by beginning with an empty sum
+(consisting of, say, 0) and an empty term (consisting of 1) “on the
+stack” and having the <code>+</code> separator sum the top two terms and push a
+new empty term “on the stack”; then all the other things can just
+implicitly multiply.  This does require a final summing action on
+termination of input, and it can’t handle infix division (it needs
+brackets), but that's not so relevant to graph construction.</p>
+<p>You could insist on a single outermost set of parentheses, with these
+stack effects:</p>
+<ul>
+<li><code>(</code> pushes 0 1</li>
+<li><code>)</code> adds the top two items on the stack</li>
+<li><code>+</code>, as before, adds the top two items on the stack and pushes 1</li>
+</ul>
+<p>These rules give the right answer for nested expressions like
+<code>( ( 3 x + 2 ) x + 4 )</code>.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/electronics.html">Electronics</a> (138 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/asm.html">Assembly language</a> (25 notes)
+</li><li><a href="../topics/stacks.html">Stacks</a> (21 notes)
+</li><li><a href="../topics/databases.html">Databases</a> (20 notes)
+</li><li><a href="../topics/binary-relations.html">Binary relations</a> (6 notes)
+</li><li><a href="../topics/graphs.html">Graphs</a> (5 notes)
+</li><li><a href="../topics/dataflow.html">Dataflow</a> (5 notes)
+</li><li><a href="../topics/state-machines.html">State machines</a> (4 notes)
+</li><li><a href="../topics/regexps.html">Regexps</a> (2 notes)
+</li></ul></div></html>

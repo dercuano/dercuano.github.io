@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><title>Database explorer ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Database explorer</h1><div class="metadata">Kragen Javier Sitaker, 2017-06-20
+(2 minutes)</div><p>Zing!  Poof!  Bam!  Let’s explore this database, composing queries
+that make sense, one step at a time, with feedback after each
+keystroke.</p>
+<p>Start typing the name of a table or column.  See the names of the
+matching tables, along with their data.  Tab, type another, see them
+together.  See likely candidate join columns highlighted, with quick
+keystrokes to select them.</p>
+<p>Behind the scenes, the database explorer is shitting out hundreds of
+queries a second and pulling a few rows from each one, using multiple
+different worker threads in case one of the queries is unresponsive.</p>
+<p>An operand stack is displayed, updated after each keystroke.
+Available keystroke commands apply to the top stack items, but
+shuffling them around is easy.  Since each value on the stack is an
+entire relation (associated with the expression that produced it) it
+can occupy potentially much more space than you have on your screen.
+The displayed summary includes the most common values in each column
+and, in some cases, other presentations such as maps for geodata.</p>
+<p>As you type them, numbers and literal strings are incrementally
+searched for at the beginnings of all indexed columns and, if time
+permits, unindexed columns too.</p>
+<p>The interface is modeless, so all the command (“accelerator”) keys are
+modified with control or alt, and the available commands are always
+displayed in the UI.</p>
+<p>Once you have the query you want, you can convert it to SQL.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/databases.html">Databases</a> (20 notes)
+</li><li><a href="../topics/sql.html">SQL</a> (6 notes)
+</li></ul></div></html>

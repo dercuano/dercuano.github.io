@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html><title>Notes on running QEMU on Debian Etch ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Notes on running QEMU on Debian Etch</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(3 minutes)</div><p>I'm running QEMU with kqemu on my old 700MHz laptop.</p>
+<p>User-mode stuff is slowed down only slightly.  This command line:</p>
+<pre><code>time for x in $(seq 10000); do :; :; :; :; done
+</code></pre>
+<p>takes 1.17 1.19 1.20 1.22 user seconds in emulation and 1.13 1.13 1.14
+1.14 user seconds outside QEMU.</p>
+<p>However, it takes about 100ms of system time in place of about 10ms.
+(The <code>-kernel-kqemu</code> flag may solve this; haven't measured.)</p>
+<p>I had some kind of keyboard problem when I ran QEMU 0.8.2-4etch1 with
+<code>-snapshot</code>.  Like, the keyboard just didn't work.  That problem went
+away when I built QEMU 0.9.1 from source and started using that, but I
+still can't use <code>-snapshot</code> and <code>-loadvm</code> together.</p>
+<h2>Networking: <code>tap</code></h2>
+<p>This was a bad idea (for me).</p>
+<p>By default, QEMU uses <code>user</code> networking, which proxies network
+connections through normal sockets, like <code>slipknot</code> or <code>slirp</code> or
+<code>term</code>.  (In fact, it uses <code>slirp</code>.)  I thought this didn't give me a
+way to talk to it over the network (for example, if I'm running a web
+server on it).</p>
+<p>So I thought <code>-net tap</code> could help with this, but it has some
+drawbacks.  It requires running QEMU as root, and then the network
+interface on the emulated machine needs to be configured statically,
+e.g. in <code>/etc/network/interfaces</code>, since <code>-net tap</code> doesn't provide
+DHCP by default.  And then you have to set up IP masquerading, more or
+less as follows:</p>
+<pre><code>qemu -net nic -net tap,script=ifup "$image"
+</code></pre>
+<p>In file <code>ifup</code>:</p>
+<pre><code>set -e
+/sbin/ifconfig "$1" 172.20.0.1
+echo 1 &gt; /proc/sys/net/ipv4/ip_forward
+/sbin/iptables -t nat -A POSTROUTING --source 172.20.0.0/24 -j MASQUERADE
+</code></pre>
+<p>This does actually work, but you have to configure the network stuff
+inside of QEMU: IP address, netmask, default gateway, and worst of
+all, DNS server.  And I think it might allow other people on your LAN
+to masquerade through you.</p>
+<p>What would be ideal would be bridging the virtual interface to my real
+Ethernet interface, but I never got around to doing this.</p>
+<h2>Networking: <code>-redir</code></h2>
+<p>It turns out there's an easier way.  I can use the default <code>user</code>
+networking, and if I have a web server on the emulated host on port
+8080, I can say</p>
+<pre><code>qemu -redir tcp:8000::8080 "$image"
+</code></pre>
+<p>and connect my web browser to <a href="http://localhost:8000/">http://localhost:8000/</a>.</p>
+<p>This works beautifully.  The one downside I've found is that if you're
+using <code>qemu -loadvm</code>, the inner virtual machine has to re-request DHCP
+before the redirection works.</p>
+<h2>Startup: <code>-loadvm</code></h2>
+<p>Bootup takes an annoyingly long time.  But, if you don't regularly
+have any permanent changes you want to save, you can use the <code>savevm</code>
+command to save an image of the virtual machine state after a boot,
+and then use <code>qemu -loadvm</code> to start QEMU in the already-booted state.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/virtualization.html">Virtualization</a> (2 notes)
+</li><li><a href="../topics/qemu.html">Qemu</a> (2 notes)
+</li></ul></div></html>

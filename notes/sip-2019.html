@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html><title>Notes on SIP VoIP in 2019 ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Notes on SIP VoIP in 2019</h1><div class="metadata">Kragen Javier Sitaker, 2019-06-07 (updated 2019-06-28)
+(8 minutes)</div><p>Looking at getting a SIP provider for international calls.  I am
+somewhat impeded by not knowing anything about SIP and RTP, although I
+have a SIP client on this phone.</p>
+<p>An overview, as I understand it: SIP is the standard call setup
+protocol for VoIP; RTP is the protocol used for the actual data.  The
+company that hooks up VoIP calls to the PSTN (public switched
+telephone network) is called a “SIP provider” or “ITSP” (“internet
+telephony service provider”).  Much of the SIP business currently
+comes from companies who want to hook up their PBXes to the PSTN.  A
+“DID” (“Direct Inward Dial [number]”) is a non-toll-free incoming phone number.  An “ATA” is a
+SIP-speaking device you can plug an analog phone into.</p>
+<p>SIP phones can speak directly to each other over the internet as well.</p>
+<h2>Notes on particular providers</h2>
+<h3>voip.ms</h3>
+<p>Voip.ms seems to be one of the default choices, and I think <a href="https://www.voip.ms/en/rates/united-states">it would
+cost</a> US$1.50 per month for E911 service (though maybe that’s
+optional?), US$0.85 to US$1.25 per month for an incoming phone number
+(plus US$0.40 to set it up), and about US$0.01 per minute both inbound
+and outbound, including to “toll-free” numbers.  You need a minimum of
+US$15 prepaid to do incoming or outgoing calls, but you can sign up
+for an account and use their voice call test thing without paying.
+They offer <a href="https://www.voip.ms/en/features/overview">a broad spectrum of features</a>.</p>
+<h3>SIPStation</h3>
+<p><a href="https://sipstation.com/">SIPStation</a> offers service at US$24.99 a month for a monthly plan,
+plus (?) US$1 per month plus US$0.024 per minute.</p>
+<h3>Vitelity</h3>
+<p>Vitelity apparently no longer allows new customers to sign up for VoIP
+since <a href="https://www.vitelity.com/voyant-merge-vitelity-bettervoice-business-units/">merging with Voyant in February 2018</a>; they’re 100% focused
+on the VoIP VAR market now.</p>
+<p><a href="https://freeswitch.org/confluence/pages/viewpage.action?pageId=2883868">The FreeSWITCH Wiki page has a lot of stuff about working around
+problems</a>, which I take to mean that they were very popular, not
+that they had a lot of problems.</p>
+<h3>Google Voice</h3>
+<p>Google Voice apparently does support SIP but will cut you off if they
+detect you’re calling 1-800 numbers from a non-US IP address.  Added
+to that is the constant menace that they may link your phone number to
+your Google account, so a problem on one means losing the other.  Not
+an option I’d ever consider.</p>
+<h3>Flowroute</h3>
+<p><a href="https://www.flowroute.com/pricing-details/">Flowroute charges</a> US$1 for setup and US$1.25 per month, plus the
+Federal Universal Service Fund charge (of some unknown amount?) plus
+US$0.012 per minute inbound and US$0.0098 per minute outbound.  They
+default to business accounts but also offer personal accounts.  They
+have <a href="https://www.flowroute.com/voice/">technical details</a>.</p>
+<p><a href="https://freeswitch.org/confluence/pages/viewpage.action?pageId=2883692">The FreeSWITCH Wiki page just offers some XML</a> from 2013.</p>
+<h3>Vonage</h3>
+<p>Vonage mostly doesn’t offer SIP, though <a href="https://freeswitch.org/confluence/pages/viewpage.action?pageId=2883896">the FreeSWITCH Wiki page
+explains that secretly they do through resellers.</a> Not an option.</p>
+<h3>Bandwidth.com</h3>
+<p><a href="https://www.bandwidth.com/">Bandwidth.com focuses on “the biggest brands”</a> and has a free
+trial.</p>
+<p><a href="https://freeswitch.org/confluence/pages/viewpage.action?pageId=2883631">The FreeSWITCH Wiki page explains how to make it work as of 2011</a>.</p>
+<h2>Notes on particular pages</h2>
+<p>The above is partly collated from the below.</p>
+<p><a href="https://freeswitch.org/confluence/pages/viewpage.action?pageId=2883894">Freeswitch.org has a list that is far too long to
+consider</a>.
+But the page for voip.ms, aka Swiftvox (last updated 2014) shares
+chunks of XML to use to configure, I guess, FreeSWITCH, to work
+properly with voip.ms.  Also implies voip.ms defaults to being
+configured for “ata device, ip phone or soft phone”, which is what I
+have, of course.</p>
+<p><a href="https://www.reddit.com/r/freepbx/comments/714y09/best_sip_trunk_providers/">A year ago, jhalstead was looking
+at</a>
+“FlowRoute, Vonage, voip.ms, nextiva, Sipstation”.  Someone else in
+the thread suggested Telnyx; another person seconded the FlowRoute
+recommendation, and cyberchaplain said, “I’ve personally used
+Bandwidth, Level3, Flowroute, callwithus and voip.ms and can’t
+complain about any of them really.”  Others mentioned Vitelity,
+Touchtone Communications, and Spectrum/TWC, and a Nextiva employee
+tried to persuade them to switch to hosted.  This suggests that, at
+the time, FlowRoute and voip.ms were the popular options.  But this
+thread is mostly oriented toward companies with PBXes.</p>
+<p><a href="https://nerdvittles.com/?p=13031">An ad for Vitelity</a> used SIPStation
+as their comparison competitor.  The ad seems to be directed at small
+businesses like a “hardware store or restaurant” who want to get phone
+service for on the order of US$3.99 a month (vs. US$100 with
+SIPStation), but also those who want to “scale up to hundreds of
+trunks”.  It also mentions SIPStation’s ability to spoof caller ID as
+a benefit, allowing you to use SIPStation for outgoing calls while
+receiving your incoming calls on a different number.  The main point
+of the post seems to be that it’s good to pay by the minute rather
+than by the phone line, and an addendum notes that eventually
+SIPStation switched to charging by the minute too.  Another addendum
+notes that Vitelity is now Voyant Communications and “has halted new
+registrations for the time being”.</p>
+<p><a href="https://www.voipsupply.com/blog/voip-insider/six-biggest-benefits-of-the-sipstation-sip-trunks-by-sangoma/">An ad for
+SIPStation</a>
+from 2017 touts the benefits of their pricing; its example company is
+paying US$499 a month for two locations with 10 lines, but by using
+SIPStation’s “trunk groups” they can switch to just 15 lines an pay
+only US$374.25 a month.  Pretty cheap if you're a company with
+multiple offices and dozens of employees, I guess.</p>
+<p><a href="https://wiki.voip.ms/article/Service_Cost">voip.ms publishes their pricing
+information</a> as follows:</p>
+<blockquote>
+<p>Outgoing Calls, USA Rates</p>
+<ul>
+<li>Premium Route: $0.0100 (1¢) per minute</li>
+<li>Toll-Free Numbers Value Route: Free</li>
+<li>Toll-Free Numbers Premium Route: $0.0106 (1.06¢) per minute</li>
+<li>e411: $0.99 per call. Must be activated by customer in settings </li>
+</ul>
+<p>Incoming calls, USA / Canada DID Per Minute Pricing</p>
+<ul>
+<li>Monthly Fee:<br />
+USA: $0.85 to $1.25<br />
+Canada: $0.85 to $1.70</li>
+<li>Per minute inbound:<br />
+$0.009 to $0.0125 </li>
+<li>One time setup Fee: $0.40</li>
+<li>Billing Increment: 6 seconds</li>
+<li>Channels: 25</li>
+<li>Intended Use: Any</li>
+</ul>
+<p>Extras Features</p>
+<ul>
+<li>E911/911 $1.50 per month</li>
+</ul>
+</blockquote>
+<p><a href="https://www.reddit.com/r/VOIP/comments/9qv86z/moving_to_voipms_need_a_little_directionhelp/">Seven months ago Blade_Fox moved from Vonage to
+voip.ms</a>,
+though they didn’t explain why, and wanted help getting SMS working.
+Mizzlezz, in the comments, is using Bandwidth.com.</p>
+<p><a href="https://www.reddit.com/r/VOIP/comments/6tukqd/voip_recommendation/">Last year johndrwhosmith</a> was looking for recommendations for a
+“hosted/cloud PBX”, saying they were thinking of Nextiva, and slayter
+commented:</p>
+<blockquote>
+<p><strong>do not use voip.ms unless you are experienced in VOIP or intending
+for residential usage</strong>. They have failed to register as a telecom
+in Canada and could even be shut down tomorrow with nothing to say
+about it.</p>
+</blockquote>
+<p>Maybe I’m being too blasé but I don’t see that as a big problem.</p>
+<p><a href="https://www.reddit.com/r/VOIP/comments/301kdz/timing_of_change_from_comcast_to_voip/">Four years ago <code>pseud_o_nym</code></a> was going to “port” their phone
+number from Comcast to ring.to, and RocketTech99 recommended looking
+at voip.ms (though it was “not [their] favorite provider”, they “have
+a very low entrance cost”.)</p>
+<p><a href="https://www.reddit.com/r/VOIP/comments/56smdq/itsps_porting_issues/">Two years ago, jrdbm, a reseller of Bandwidth.com’s VoIP service,
+asked for help with some porting problems</a>, and got recommended
+FlowRoute.</p>
+<p><a href="https://www.reddit.com/r/VOIP/comments/7pz6uo/are_there_any_free_voip_apps_that_allow_you_to/">This thread from last year explains when Google Voice cuts you
+off.</a> People are also recommending voip.ms and Callcentric in
+there, but I think the Callcentric recommendation is from someone who
+works at Callcentric.</p>
+<p>Other pages to read: <a href="https://www.reddit.com/r/VOIP/comments/bxgazj/sip_vs_pri_vs_ip/">a</a> <a href="https://www.voipsupply.com/blog/voip-insider/voip-basics-beginners/">b</a> <a href="https://www.3cx.com/pbx/fxs-fxo/">c</a> <a href="https://www.reddit.com/r/selfhosted/comments/arcwe8/looking_for_a_guide_for_a_selfhosted_voip_for/">d</a> <a href="https://www.reddit.com/r/VOIP/comments/942pg3/sip_trunk_advantages_over_pri/">e</a>.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/pricing.html">Pricing</a> (89 notes)
+</li><li><a href="../topics/protocols.html">Protocols</a> (21 notes)
+</li><li><a href="../topics/networking.html">Networking</a> (7 notes)
+</li><li>Voip</li></ul></div></html>

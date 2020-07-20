@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html><title>The delta from QEmacs,with only 88 commands, to a usable Emacs, is small ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>The delta from QEmacs,with only 88 commands, to a usable Emacs, is small</h1><div class="metadata">Kragen Javier Sitaker, 2013-05-17
+(2 minutes)</div><p>I downloaded and built QEmacs.  It's a good enough Emacs I could almost use it!
+Which is inspiring, since it was an individual spare-time project by one
+person, even if that one person is Fabrice Bellard.  So I thought I'd take some
+notes on its deficiencies to see if it's fixable, or how much more work would
+be needed to make something really usable.</p>
+<ul>
+<li>Crashes sometimes in help.  Open qe_g, C-h b q</li>
+<li>
+<p>open a C file and type</p>
+<p>typedef struct node {</p>
+<p>and QEmacs takes you to the beginning of the line. Follow that up with
+<code>enum {</code> and it happens again.</p>
+<p>Type <code>typedef int buf[4];</code> and it happens again. I think this is just
+part of a general problem it has with indenting C.</p>
+</li>
+<li>
+<p>Yes, it can open a text file of nearly 300 megabytes. But going to the end
+  of the file is slow.</p>
+</li>
+<li>
+<p>Doesn't support M-^, M-;.</p>
+</li>
+<li>
+<p>C-x C-e (compile) tries to execute the make command in the directory where
+  qemacs started, not where the file is.</p>
+</li>
+<li>
+<p>repeated C-k doesn't append to the latest kill-ring item as it should, so
+  you can't use it to cut blocks of text.</p>
+</li>
+<li>
+<p>M-q takes you out of your paragraph, so you can't just keep typing.</p>
+</li>
+<li>
+<p>Redisplay is visibly slow and not double-buffered.</p>
+</li>
+<li>
+<p>Doesn't support ~ in filenames.</p>
+</li>
+<li>
+<p>Doesn't support M-/</p>
+</li>
+<li>
+<p>Control-backspace is "help" instead of "backward-kill-word".</p>
+</li>
+<li>
+<p>When there's pending keyboard input, it wastes time updating the screen
+  with already-stale state!</p>
+</li>
+<li>
+<p>Undo works in individual buffer changes, rather than commands, which is
+  quite suboptimal with M-q and also with undoing typing.</p>
+</li>
+<li>
+<p>Doesn't support prefix arguments. M-5 M-6 M-g prompts you for a line
+  number.</p>
+</li>
+<li>
+<p>M-y (yank-pop) causes subsequent C-y to yank the same thing. Maybe this is
+  an improvement.</p>
+</li>
+</ul>
+<p>Still, it's impressive how much like Emacs it can feel with only 88 commands!</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/editors.html">Editors</a> (13 notes)
+</li></ul></div></html>

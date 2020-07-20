@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html><title>Learning low level stuff is not just fun, but also useful ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Learning low level stuff is not just fun, but also useful</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(5 minutes)</div><p>This post argues that learning low-level stuff is a waste of time:
+<a href="http://www.fluidinfo.com/terry/2008/06/18/embracing-encapsulation/">http://www.fluidinfo.com/terry/2008/06/18/embracing-encapsulation/</a></p>
+<p>But I don't think that the low-level stuff is frozen in time; it
+changes too.  There was a time when a better C compiler would only
+help the few people working on Unix at Bell Labs, but today it can
+improve performance (or security, or debuggability, or whatever) for
+all of that high-level stuff built on top of C.  So the people working
+on high-level stuff kind of act as a multiplier for the people working
+on low-level stuff.  Which is why Intel and AMD and ARM etc. can spend
+as much effort as they do designing CPUs.</p>
+<h2>More and More People Work at the Low Level</h2>
+<p>I wonder how the amount of effort that goes into making CPUs and other
+electronics for computers has changed over the years.  Intel alone has
+<a href="http://www.networkworld.com/news/financial/intel.html" title="Intel company profile">something like 100 000 employees</a>, and essentially all of them
+is focused on the lowest levels of computers: processors, motherboard
+chipsets, flash memory, and so on.  <a href="http://www.amd.com/us-en/Corporate/AboutAMD/0,,51_52_484,00.html" title="AMD at a Glance">AMD has another 16 500
+employees</a>, and other top semiconductor companies (Toshiba,
+STMicroelectonics, TI, Samsung Electronics, Freescale (24000),
+Infineon, Sanmina-SCI, and so on) add several hundred thousand more
+people.</p>
+<p>Back in 2000, the <a href="http://www.eetimes.com/news/design/columns/tool_talk/showArticle.jhtml?articleID=17406429">EE Times reported</a> that the "embedded software
+tools market" was US$670 million (estimated at US$500 per seat) and
+the electronic design automation market was four times that, or US$2.7
+billion (estimated at US$100 000 per seat).  More recently <a href="http://www.ciol.com/Semicon/SemiSpeak/Interviews/EDA-healthy-and-growing-in-India/16608107122/0/">CIOL
+reported almost twice that size</a>, and <a href="http://www.eetasia.com/ART_8800362966_480100_NT_c8b580ac.HTM" title="Is Today's EDA World Too Provincial?, 2005-04-01, by Richard Goering">EE Times Asia reported
+192 000 total semiconductor design seats in 2004</a>, although
+the article was published on April Fool's Day, 2005, plus 537 000 FPGA
+and PCB design seats:</p>
+<blockquote>
+<p>A "seat count" report issued by Gartner Dataquest in January
+showed that there were only about 56,000 ASIC design seats in
+2004, a number that's expected to decline to 39,000 by 2008. The
+total number of semiconductor design seats was pegged at 192,000
+for 2004, with a CAGR of just 1.3 percent until 2008.</p>
+<p>In contrast, the report cited 537,000 FPGA and PCB design seats in
+2004, growing at a 2.9 percent CAGR. Granted FPGA and PCB
+designers don't spend as much money as IC designers, but there are
+a lot more of them. And there are tough problems that could prove
+very lucrative for vendors that have solutions. For example, FPGA
+designers need to look at power and signal integrity, and PCB
+designers are having a hard time getting IC packages to work on
+boards.</p>
+</blockquote>
+<p>So it seems that the number of people working at the very lowest
+levels --- the hardware levels --- has been gradually increasing over
+the last several years, and has already reached a really remarkable
+number.</p>
+<h2>Changing the Low Level is Getting Easier</h2>
+<p>To write software for CP/M, you would write it in 8080 assembly, or
+maybe Z80 or 8085 assembly if you were willing to limit your userbase,
+and used the BIOS and BDOS functions for I/O and file management.  You
+could use C or FORTH, but they had big drawbacks.  Porting software in
+8080 assembly even to MS-DOS on an 8086 was a pain, and porting it to
+a 68000 basically required rewriting it, or buying or writing a slow
+8080 emulator on the 68000.</p>
+<p>If you write software in C, it's only a bit more effort to make it
+portable and compile it for many different CPU architectures.  Alll of
+the tens of thousands of packages in Debian Linux are routinely built
+for eleven different CPUs: the Alpha, the Opteron, the ARM (big and
+little-endian), the HP PA-RISC, the Intel 386, the Itanic, the 68000,
+the MIPS (big and little-endian), the PowerPC, the IBM System/390, and
+the SPARC.  All of the 6400 packages in NetBSD run on all of its
+<a href="http://www.netbsd.org/ports/" title="Hardware supported by NetBSD">supported 16 CPU architectures</a>.  Some individual software
+packages written in C have been ported to even more; GCC, for example,
+runs on something like 30 CPU architectures.</p>
+<p>This kind of portability has the advantage that you can switch CPU
+architectures and keep using the same software --- and the hardware
+exists only to support the software, anyway, just as the software
+generally exists only to support human activities carried out with it.</p>
+<p>This still leaves the problem of </p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/history.html">History</a> (71 notes)
+</li></ul></div></html>

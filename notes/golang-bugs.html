@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html><title>Golang bugs ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Golang bugs</h1><div class="metadata">Kragen Javier Sitaker, 2018-09-13 (updated 2018-10-28)
+(6 minutes)</div><p>I thought I’d try to keep track of the bugs I have in my Golang
+programs, including compile errors.  These aren’t bugs in Go, but bugs
+I wrote in Go.</p>
+<ul>
+<li>Wrote <code>=</code> instead of <code>:=</code> (7×)</li>
+<li>Wrote types before variables instead of vice versa (5×)</li>
+<li>Forgot to <code>import "io"</code> (3×)</li>
+<li>Forgot to discard the index when iterating over a slice <code>range</code> (2×)</li>
+<li>Incorrectly thought <code>regexp.Compile</code> returned a <code>Regexp</code> rather than
+  a <code>*Regexp</code> (2×)</li>
+<li>Accidentally referred to the variable <code>name</code> as <code>string</code> because it
+  was declared as <code>name string</code>, and the variable <code>data</code> as <code>byte</code>
+  because it was declared as <code>data []byte</code> (2×)</li>
+<li>Tried to quote a string with apostrophes (2×)</li>
+<li>Left off a <code>return</code> at the end of a function that had already
+  assigned its return values (2×)</li>
+<li>Tried to pass a string instead of a []byte to net.Conn.Write (2×)</li>
+<li>Used <code>%#v</code> instead of <code>%+v</code> even though I didn’t want hexadecimal
+  printing of my struct fields (2×)</li>
+<li>Forgot to <code>import "log"</code></li>
+<li>Forgot to <code>import "strconv"</code></li>
+<li>Forgot to <code>import "fmt"</code></li>
+<li>Imported "os" unnecessarily</li>
+<li>Imported "bytes" unnecessarily</li>
+<li>Imported "io" unnecessarily</li>
+<li>incorrectly assumed <code>print()</code> output goes to stdout, not stderr</li>
+<li>Forgot to include quoted spaces around variable values in <code>print</code>
+  argument lists</li>
+<li>Tried to pass a <code>[]byte</code> to <code>print</code>, which rendered as hex garbage</li>
+<li>Tried to call <code>ioutil.ReadFile</code> with a file instead of a filename</li>
+<li>Expected <code>ioutil.ReadFile</code> to return a string instead of a []byte</li>
+<li>Tried to use <code>ioutil.ReadFile</code> on a 1GB file on a machine with only
+  4GiB of RAM</li>
+<li>Left out a <code>range</code> in a <code>for</code></li>
+<li>Called <code>Regexp.FindAll</code> with no count argument</li>
+<li>Confused <code>Regexp.FindAll</code> with <code>Regexp.FindAllIndex</code></li>
+<li>Left "\n" off a <code>print</code> call</li>
+<li>Forgot to cast <code>int</code> to <code>int64</code> explicitly</li>
+<li>Referred to <code>File.Name</code> instead of <code>File.Name()</code> in a <code>print</code>,
+  printing out a hex string</li>
+<li>Failed to capitalize <code>os.Args</code></li>
+<li>Forgot to handle errors on <code>suffixarray.Index.Write</code>, which the
+  compiler doesn’t catch</li>
+<li>Failed to capitalize <code>File.Read</code></li>
+<li>Didn’t remember the server needs to start out an RFB conversation by
+  sending the version banner</li>
+<li>Did <code>copy(result[8:10], ...)</code> and then <code>result[11] =..</code> not noticing
+  the skipped item 10</li>
+<li>Tried to use a <code>bytes.Buffer</code> instead of a <code>*bytes.Buffer</code> as an <code>io.Writer</code></li>
+<li>Tried to call my <code>putTo</code> method, which returns an error, as if it
+  were <code>Write</code>, returning two things</li>
+<li>Tried to ignore only one return value from <code>bytes.Buffer.Write</code>
+  instead of two</li>
+<li>Tried to call <code>panic()</code> with multiple arguments as if it were
+  <code>print()</code> or <code>log.Fatal()</code></li>
+<li>Forgot to cast len(name) to uint32 in a field initializer</li>
+<li>Left off a trailing comma in a struct initializer</li>
+<li>Wrote nonexistent variable names <code>width</code> and <code>height</code> rather than
+  the constants I intended</li>
+<li>Called <code>log.Fatal</code> instead of <code>log.Fatalf</code>, which produced a
+  particularly confusing error because the last argument happened to
+  contain a "\r", overwriting most of the error message on the screen</li>
+<li>Didn’t check the error return from <code>binary.Write</code>, since I was
+  writing to a <code>bytes.Buffer</code>, but it was actually trying to tell me,
+  “binary.Write: invalid type *main.NServerInit”.</li>
+<li>Tried to use <code>binary.Write</code> on a struct whose fields weren’t
+  exported (no, that isn’t a bug, never mind; the bugs were those
+  below)</li>
+<li>Tried to use <code>binary.Write</code> on a struct containing a pointer to
+  another struct, instead of containing the other struct by value</li>
+<li>Tried to use <code>binary.Write</code> on a struct containing a <code>[]byte</code></li>
+<li>Oh actually you <em>do</em> need to export the struct fields for
+  <code>encoding/binary</code> after all!  But for <code>binary.Read</code>, not
+  <code>binary.Write</code>.</li>
+<li>Tried to initialize a three-element struct with just one element
+  positionally, thinking that the other elements would default to
+  zero; I guess I have to use named struct fields for that?</li>
+<li>Named a constant <code>type_SetPixelFormat</code> and then tried to <code>case
+  SetPixelFormat:</code></li>
+<li>Declared some byte-count-return variables that I didn’t use because
+  in one case <code>Reader.Read</code> was reading into a buffer of size 1, and
+  in the other case, <code>io.ReadFull</code> is guaranteed to read the right
+  number unless it fails (which I was handling already)</li>
+<li>Used <code>%+v</code> instead of <code>%#v</code> even though I did want hexadecimal
+  printing of my struct fields</li>
+<li>Tried to declare two variables of different types with a comma in
+  between, in a <code>var</code> statement</li>
+<li>Tried to use a member variable in a method without a preceding
+  <code>self.</code>, as if I were in Java or C++</li>
+<li>Used <code>log.Printf</code> instead of <code>log.Print</code> and got this <code>%!(EXTRA)</code>
+  error in my log message:
+        2018/09/13 19:51:58 closing %!(EXTRA <em>net.TCPConn=&amp;{{0xc82006a0e0}}, string= because of error , </em>errors.errorString=EOF, string= in , string=message-type)</li>
+<li>Forgot the first argument of <code>io.ReadFull</code></li>
+<li>Got the syntax for a map literal wrong; it isn't <code>var x map[foo]bar
+  = { ... }</code> but <code>var x = map[foo]bar { ... }</code></li>
+<li>Forgot to cast a uint16 to int in order to compare it to an
+  (implicitly declared) int</li>
+<li>When aping a log.Printf() line that printed a variable, aped the
+  variable too and consequently didn’t print out the value I wanted</li>
+<li>Left out an argument to <code>log.Printf</code> and got a <code>%!q(MISSING)</code> error
+  in my log message</li>
+<li>Tried to change the type of parameters by shadowing them with <code>x, y
+  := uint32(x), uint32(y)</code> at the top level of a function, which
+  totally doesn’t work</li>
+<li>Tried to use an int as a uint16</li>
+<li>Wrote <code>:=</code> instead of <code>=</code>, unintentionally shadowing an outer-scope
+  variable with one of a different type</li>
+<li>Passed a struct to <code>binary.Read</code> by value instead of passing a
+  pointer, which resulted in an error not caught until runtime (which
+  caused the VNC server to drop the connection)</li>
+<li>wrote <code>format.big_endian_flag</code> when I meant <code>format.Big_endian_flag</code></li>
+<li>tried to use a byte as a boolean value</li>
+<li>tried to call <code>string.SplitN</code> instead of <code>strings.SplitN</code></li>
+<li>tried to pass '\n' instead of "\n" to bufio.Reader.ReadString</li>
+</ul><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/golang.html">Golang</a> (7 notes)
+</li></ul></div></html>

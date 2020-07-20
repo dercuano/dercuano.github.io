@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html><title>Immediate mode productive grammars ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Immediate mode productive grammars</h1><div class="metadata">Kragen Javier Sitaker, 2018-09-13
+(8 minutes)</div><p>Immediate-mode GUI libraries, which are popular for some kinds of
+games nowadays, allow you to define your GUI structure by using the
+execution trace of a callback instead of an in-memory data structure.
+They can be used with immediate-mode graphics libraries to draw the
+GUI bit by bit as the function runs, requiring a really minimal amount
+of RAM.  Aside from the advantage in memory consumption, this approach
+reduces or eliminates the cache-invalidation problem of redrawing the
+view when the underlying model changes; whenever you draw a frame,
+your drawing function fetches the most current state directly from the
+model.</p>
+<p>An interesting feature of this approach is that there are at least two
+different reasons the library might call your callback: to <em>draw</em> the
+GUI or to <em>react to an event</em> in the GUI.  For example, you might have
+a <code>button(x, y, w, h, label)</code> function with a boolean return value;
+when called in drawing mode, it draws the button and always returns
+false, but when called in reacting mode, it draws nothing, and returns
+true if the user just clicked on the button.  So really your callback
+isn’t so much a “draw interface” callback as a “describe interface”
+callback.</p>
+<p>So I was thinking about using this approach for serialization of data
+structures.</p>
+<h2>Example application</h2>
+<p>I’m writing a VNC server, and the VNC protocol (though a beautiful
+dream compared to, for example, the Spice protocol or the X11
+protocol) has some godawful things like <code>PIXEL_FORMAT</code> and
+<code>SetEncodings</code> in it.  <code>PIXEL_FORMAT</code>:</p>
+<pre><code>         +--------------+--------------+-----------------+
+         | No. of bytes | Type [Value] | Description     |
+         +--------------+--------------+-----------------+
+         | 1            | U8           | bits-per-pixel  |
+         | 1            | U8           | depth           |
+         | 1            | U8           | big-endian-flag |
+         | 1            | U8           | true-color-flag |
+         | 2            | U16          | red-max         |
+         | 2            | U16          | green-max       |
+         | 2            | U16          | blue-max        |
+         | 1            | U8           | red-shift       |
+         | 1            | U8           | green-shift     |
+         | 1            | U8           | blue-shift      |
+         | 3            |              | padding         |
+         +--------------+--------------+-----------------+
+</code></pre>
+<p><code>SetEncodings</code>:</p>
+<pre><code>       +--------------+--------------+---------------------+
+       | No. of bytes | Type [Value] | Description         |
+       +--------------+--------------+---------------------+
+       | 1            | U8 [2]       | message-type        |
+       | 1            |              | padding             |
+       | 2            | U16          | number-of-encodings |
+       +--------------+--------------+---------------------+
+</code></pre>
+<p>This is followed by number-of-encodings repetitions of the following:</p>
+<pre><code>          +--------------+--------------+---------------+
+          | No. of bytes | Type [Value] | Description   |
+          +--------------+--------------+---------------+
+          | 4            | S32          | encoding-type |
+          +--------------+--------------+---------------+
+</code></pre>
+<p>As it happens, the server is supposed to be able to either encode or
+decode <code>PIXEL_FORMAT</code>.  It would be nice to be able to describe the
+<code>PIXEL_FORMAT</code> encoding with a function and derive both the decoder
+from it automatically; something like this, in Golang syntax:</p>
+<pre><code>func (p *PIXEL_FORMAT) format() {
+        u8(p.bits_per_pixel)
+        u8(p.depth)
+        boolU8(p.big_endian_flag)
+        boolU8(p.true_color_flag)
+        u16(p.red_max); u16(p.green_max); u16(p.blue_max)
+        u8(p.red_shift); u8(p.green_shift); u8(p.blue_shift)
+        padBytes(3)
+}
+</code></pre>
+<p>Now, as it happens, the way I’m doing this right now is with the
+Golang <code>encoding/binary</code> module, which uses reflection to slowly read
+the above description from the definition of a struct type:</p>
+<pre><code>type PIXEL_FORMAT struct {
+        bits_per_pixel, depth, big_endian_flag, true_color_flag byte
+        red_max, green_max, blue_max                            uint16
+        red_shift, green_shift, blue_shift                      uint8
+        _, _, _                                                 byte
+}
+</code></pre>
+<p>That’s all the code that’s needed to describe the format above to
+<code>encoding/binary</code>, which can then both write and, in theory, read it
+(though I haven’t actually tried this yet), and this is awesome.  But
+<code>encoding/binary</code> doesn’t support any variable-length data like the
+<code>encoding-type</code> list in <code>SetEncodings</code>, nor can it do things like
+“deserialize a client-to-server message”, in which the first byte of
+the message contains the message-type.</p>
+<p>This suggests an approach reminiscent of recursive-descent parsing
+with backtracking, which is a simple and fully general approach to
+parsing context-free languages, although it takes exponential time in
+the worst case (though see the Packrat parsing algorithm for a fix).
+When parsing, the input stream can manage an error status and a stack
+of backtracking points; when a parse fails, it sets the error status,
+which prevents further parsing from doing anything until the format
+function backtracks to a non-erroneous backtracking point.  This
+allows ordered choice among a set of possible parses.</p>
+<h2>A proposed solution</h2>
+<p>So let’s think about what <code>SetEncodings</code> might look like in this
+form:</p>
+<pre><code>func (e *SetEncodings) Format(s *Stream) {
+        LiteralByte(s, 2)
+        PadBytes(s, 1)
+
+        n := U16Split(s, len(e.encodingTypes))
+
+        if s.Parsing() {
+                e.encodingTypes = make([]encodingType, n)
+        }
+
+        for i := 0; i &lt; n; i++ {
+                &amp;e.encodingTypes[i].Format(s)
+        }
+}
+</code></pre>
+<p>When marshalling, the <code>LiteralByte</code> call emits the byte 0x2; the
+<code>PadBytes</code> call emits the byte 0x0; the <code>U16Split</code> call emits two
+bytes with a big-endian encoding of <code>len(e.encodingTypes)</code> (say, 0x00
+0x03, if it’s 3), and returns the number it just encoded; <code>Parsing</code>
+returns false; and then each of the three <code>Format</code> calls to the items
+in <code>e.encodingTypes</code> invokes an <code>S32</code> function to emit four bytes
+serializing that encoding type.</p>
+<p>When unmarshalling, the <code>LiteralByte</code> call consumes a byte, and if
+it’s not 0x2, it marks the <code>Stream</code> as failed, so that all the future
+calls on it (until possible backtracking) will be no-ops.  If it was
+successful, though, <code>PadBytes</code> consumes and discards 1 byte, and
+<code>U16Split</code> ignores its second argument, decodes two input bytes, and
+returns the decoded value.  Then <code>Parsing</code> returns true, so the format
+function allocates the slice, and then the iteration parses each
+encoding type in turn, by invoking its <code>Format</code> method.</p>
+<p>I’m not familiar enough with Golang’s type system yet to know if there
+is a better way to express this function:</p>
+<pre><code>func formatSliceU16(s *Stream, items *[]Formattable, make_item func() Formattable) {
+        n := U16split(s, len(*items))
+
+        if s.Parsing() {
+                *items = make([]Formattable, n)
+        }
+
+        for i := 0; i &lt; n; i++ {
+                items[i] := make_item()
+                items[i].Format(s)
+        }
+}
+</code></pre>
+<p>The difficulty here is that the items in the slice of interfaces
+(assuming <code>Formattable</code> is an interface!) needs a separate factory
+function to instantiate them, since this function doesn’t have any
+other way to invoke the proper <code>Format</code> for the particular type of
+<code>Formattable</code> the caller was hoping for.  This is pretty bad compared
+to just having a slice of <code>int32</code> values with some nominal type; if
+you have 60 of them, you have 61 heap allocations totaling 1680 bytes
+(assuming interface values are three 64-bit pointers, and not counting
+the size of the slice itself) instead of 1 allocation of 240 bytes.</p>
+<p>Anyway, this <code>formatSliceU16</code> function would reduce the above <code>Format</code>
+method to this:</p>
+<pre><code>func (e *SetEncodings) Format(s *Stream) {
+        LiteralByte(s, 2)
+        PadBytes(s, 1)
+        formatSliceU16(s, &amp;e.encodingTypes, func() Formattable { return &amp;encodingType{} })
+}
+</code></pre>
+<p>Using the same API, and allowing the various scalar functions to be
+variadic, the earlier-mentioned <code>PIXEL_FORMAT</code> structure can then
+serialize and deserialize as follows:</p>
+<pre><code>func (p *PIXEL_FORMAT) Format(s *Stream) {
+        U8(s, &amp;p.bits_per_pixel, &amp;p.depth)
+        BoolU8(s, &amp;p.big_endian_flag, &amp;p.true_color_flag)
+        U16(s, &amp;p.red_max, &amp;p.green_max, &amp;p.blue_max)
+        U8(s, &amp;p.red_shift, &amp;p.green_shift, &amp;p.blue_shift)
+        PadBytes(s, 3)
+}
+</code></pre>
+<p>The KeyEvent client-to-server message can be formatted as follows:</p>
+<pre><code>func (e *KeyEvent) Format(s *Stream) {
+        LiteralByte(s, 4)
+        U8(s, &amp;e.downFlag)
+        PadBytes(s, 2)
+        U32(s, &amp;e.keySym)
+}
+</code></pre>
+<h3>Backtracking — not sure if this is the right approach</h3>
+<p>Suppose we are receiving a message from the client which might be
+either a <code>KeyEvent</code> or a <code>SetEncodings</code> (or other possibilities we
+might add).  We could imagine writing an <code>Any</code> function something like
+the following:</p>
+<pre><code>func Any(s *Stream, result *Formattable, fs ...Formattable) {
+        if !s.Parsing() {
+                result.Format(s)
+                return
+        }
+
+        s.SaveBacktrackingPoint()
+        defer s.DiscardBacktrackingPoint()
+        for _, f := range fs {
+                f.Format(s)
+                if !s.Failed() {
+                        *result = f
+                        return
+                }
+                s.Backtrack()  // Preserves backtracking point
+        }
+}
+</code></pre>
+<p>And then we could call it with something like the following:</p>
+<pre><code>var ke KeyEvent, se SetEncodings, msg Formattable
+switch Any(s, &amp;msg, &amp;ke, &amp;se); msg.(type) {
+</code></pre>
+<p>I’m not sure exactly how that would work for output; ideally you’d
+like to be able to use that same code to <em>generate</em> a client message,
+leaving the parsed message in the same place when parsing that it
+would have found it when emitting, so that any subsequent conditionals
+or logic on what the actual message was will be unified between the
+parsing and emitting paths.</p>
+<p>In the particular case of client-to-server messages in VNC, this
+bidirectionality probably isn’t that useful, because the client can
+just as easily call <code>&amp;KeyEvent{downFlag: true, keySym: key}.Format(s)</code>
+in the appropriate place as it can call <code>formatClientToServerMsg(s,
+&amp;KeyEvent{downFlag: true, keySym: key})</code>.  But in cases where the
+variant type is embedded down inside some other data structure, the
+simplification could be considerable.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/parsing.html">Parsing</a> (15 notes)
+</li><li><a href="../topics/program-design.html">Program design</a> (11 notes)
+</li><li><a href="../topics/oo.html">Object-oriented programming</a> (10 notes)
+</li><li><a href="../topics/golang.html">Golang</a> (7 notes)
+</li><li><a href="../topics/serialization.html">Serialization</a> (6 notes)
+</li></ul></div></html>

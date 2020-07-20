@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html><title>Automatic dependency management ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Automatic dependency management</h1><div class="metadata">Kragen Javier Sitaker, 2015-05-28 (updated 2015-09-03)
+(5 minutes)</div>
+<p>A variety of software systems have used some kind of automatic
+dependency graph tracking to automatically recompute things, from
+Lotus 1-2-3 (and derived spreadsheets) up to current JavaScript
+frameworks like ReactJS and current big-data frameworks like Apache
+Spark.  I’m thinking about some ideas related to this, especially
+inspired by Spark, and I thought I would look around and see what
+already exists.</p>
+<p>It turns out a lot of fucking things related to this already exist, so
+I thought I’d write down a summary of some of them.</p>
+<p>There are way too many for me to summarize, though.</p>
+<p>Candidates not yet noted below: make; React; Meteor; redo;
+materialized views in databases; STMs; git-annex; database indexes;
+tabled predicates in Prologs; Merkle trees; immediate-mode GUIs.</p>
+<h2>Spreadsheet recalculation</h2>
+<p><a href="https://twitter.com/BobFrankston/status/576577770538545152">Bob Frankston said in March 2015</a> that VisiCalc, the original
+spreadsheet, didn’t include “natural order” (i.e. dependency-driven)
+recalculation, in order to fit into 16 kilobytes.  He was responding
+to a tweet from Mitch Kapor explaining that Rick Ross had implemented
+that for the first time, in 1982, in Lotus 1-2-3.  VisiCalc, instead,
+had an option to recalculate by rows or by columns.  Since 1-2-3,
+though, spreadsheets default to dependency-order recalculation.</p>
+<p>Dependency-order recalculation is comparatively easy for spreadsheets
+(although infamous thieves Rene Pardo and Remy Landau still got a US
+patent on it in 1983; Pardo claims to have done it in an “electronic
+spreadsheet” called LANPAR in 1969, but his lawyer denied it in
+court), because the total number of things that could possibly be
+recalculated is human-scale, all of them can be recalculated in only a
+single way, and so you can simply enumerate them and do a topological
+sort.</p>
+<p>Nowadays, dependency-order recalculation is approximately unnecessary
+in spreadsheets; computers are so fast that human-scale spreadsheets
+could recalculate in milliseconds, so recalculating the whole
+spreadsheet after every keystroke would be reasonable.  (They don’t,
+but that’s another story.)</p>
+<h2>ReactJS</h2>
+<p><a href="">ReactJS</a></p>
+<h2>Deterministic builds</h2>
+<p>Tor: <a href="https://blog.torproject.org/category/tags/deterministic-builds">https://blog.torproject.org/category/tags/deterministic-builds</a><br />
+Chromium: <a href="https://www.chromium.org/developers/testing/isolated-testing/deterministic-builds">https://www.chromium.org/developers/testing/isolated-testing/deterministic-builds</a><br />
+Debian: <a href="https://wiki.debian.org/ReproducibleBuilds">https://wiki.debian.org/ReproducibleBuilds</a><br />
+Firefox: <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=885777">https://bugzilla.mozilla.org/show_bug.cgi?id=885777</a>  </p>
+<h2>ccache</h2>
+<p><a href="https://ccache.samba.org/manual.html">ccache</a> is a build accelerator specific to C, C++, and
+Objective-C.  It hashes your source code, include files, compiler
+(well, typically just its size, mtime, and name), command-line
+options, etc., with MD4, and stores the compiler’s output (including
+e.g. warning messages) in an on-disk cache in, normally, your home
+directory; future recompilation attempts whose inputs haven’t changed
+will just reuse the previous compiler output.</p>
+<p>In theory, this means that you could get most of the benefits of
+<code>make</code> for C and especially C++ programs by just wrapping your
+compiler in <code>ccache</code> inside your build script; rerunning the build
+script would rehash all your source files, copy the object files into
+your current directory, and then relink the executable.  Depending on
+what you’re compiling, this might be almost instantaneous, or it might
+be very slow.</p>
+<p>Because Unix provides <code>ccache</code> with no reliable way to get a secure
+hash of the source files from the filesystem, it has to read them in
+their entirety to figure out whether they have reverted to an old
+version.  I tried it just now on my netbook on a tiny three-kilobyte
+GLUT program, and it ended up reading about a megabyte of <code>.h</code> files
+in order to figure out that it could safely reuse the 2.7kB <code>.o</code> file
+from a previous compilation, taking 39 milliseconds in all, even
+though it made only about 365 system calls.</p>
+<h2>Spark</h2>
+<p><a href="https://www.cs.berkeley.edu/~matei/papers/2012/nsdi_spark.pdf">https://www.cs.berkeley.edu/~matei/papers/2012/nsdi_spark.pdf</a></p>
+<h2>Spark Streaming</h2>
+<p><a href="https://spark.apache.org/docs/latest/streaming-programming-guide.html">https://spark.apache.org/docs/latest/streaming-programming-guide.html</a></p>
+<h2>Vesta</h2>
+<p><a href="http://www.hpl.hp.com/techreports/Compaq-DEC/SRC-RR-177.pdf">http://www.hpl.hp.com/techreports/Compaq-DEC/SRC-RR-177.pdf</a>
+<a href="http://www.vestasys.org/">http://www.vestasys.org/</a></p>
+<h2>Bup</h2>
+<p>Avery Pennarun</p>
+<p><a href="https://github.com/apenwarr/bup/blob/89ac418d84e29ba482bbd21ebc1172c2d1ff5507/DESIGN">https://github.com/apenwarr/bup/blob/89ac418d84e29ba482bbd21ebc1172c2d1ff5507/DESIGN</a>
+<a href="https://github.com/bup/bup">https://github.com/bup/bup</a>
+<a href="https://bup.github.io/">https://bup.github.io/</a></p>
+<h2>Truth maintenance systems</h2>
+<p>In <a href="http://dspace.mit.edu/handle/1721.1/6255" title="AIM-380: Forward Reasoning and Dependency-Directed Backtracking in a System for Computer-Aided Circuit Analysis, by Stallman and Sussman, 1976">Stallman &amp; Sussman 1976</a>, describing their pre-SPICE circuit
+simulator, we find, “If a user changes some part of the circuit
+specification (a device parameter or an imposed voltage or current),
+only those facts depending on the changed fact need be ‘forgotten’ and
+re-deduced, so small changes in the circuit may need only a small
+amount of new analysis.”  They are describing their invention of
+“dependency-directed backtracking”, which later became known as a
+“<a href="http://aitopics.org/sites/default/files/classic/Webber-Nilsson-Readings/Rdgs-NW-Doyle.pdf" title="A Truth Maintenance System, by Doyle">truth maintenance system</a>”, and it’s built with generalized
+constraint propagation, which is substantially more general than the
+unidirectional dependencies mentioned in the other systems above, and
+one that supports finding a contradiction and backtracking from it to
+undo the set of incorrect guesses that led to it, and avoid that set
+in the future.  You could use this kind of system, for example, to
+solve Sudoku puzzles rapidly.</p>
+<p>A TMS, like the other systems above, remembers how every datum was
+deduced, but it does so not in order to promote computational
+efficiency by caching results, but rather to track the sources of
+problems — in this case, logical contradictions.</p>
+<h2>Self-adjusting computation</h2>
+<p><a href="http://www.umut-acar.org/self-adjusting-computation">http://www.umut-acar.org/self-adjusting-computation</a></p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/caching.html">Caching</a> (25 notes)
+</li><li><a href="../topics/js.html">JS</a> (12 notes)
+</li><li><a href="../topics/dependencies.html">Dependencies</a> (7 notes)
+</li><li><a href="../topics/self-adjusting-computation.html">Umut Acar’s “self-adjusting computation”</a> (6 notes)
+</li><li><a href="../topics/spreadsheets.html">Spreadsheets</a> (3 notes)
+</li><li><a href="../topics/spark.html">Spark</a> (3 notes)
+</li><li><a href="../topics/deterministic-builds.html">Deterministic builds</a> (2 notes)
+</li></ul></div></html>

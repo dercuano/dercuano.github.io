@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><title>JIT-compiling array computation graphs in JS ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>JIT-compiling array computation graphs in JS</h1><div class="metadata">Kragen Javier Sitaker, 2017-07-19
+(1 minute)</div><p>Numeric loops running over large arrays are among the easiest kinds of
+code for JIT compilers to optimize.</p>
+<p>Numba is a popular BSD-licensed Python library for LLVM code
+generation for numerical code; among the things it can do are to
+compile graphs of Numpy array operations into efficient machine code,
+including GPU code.</p>
+<p>However, Python itself doesn’t have a general JIT compiler; Numba is a
+limited-scope attempt at one.</p>
+<p>JS does have a general JIT compiler, several of them actually
+(SpiderMonkey, V8/Crankshaft, and JavaScriptCore).  It doesn’t,
+unfortunately, have operator overloading.  But maybe building
+computation graphs of arbitrary-dimensional arrays would be a
+reasonable thing to do in JS; then you could compile them into JS
+code, from which the existing JIT compilers could generate efficient
+CPU code, and maybe you could write a new compiler to compile the
+computation graph into GPU code, whether using WebGL in browsers or
+something else.</p>
+<p>An initial hack at generating numerical code for V8
+(sweetdreams-js.js) yielded disappointing results.  But it was
+straight-line, loop-free code, so it may not be applicable.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/arrays.html">Arrays</a> (17 notes)
+</li><li><a href="../topics/compilers.html">Compilers</a> (16 notes)
+</li><li><a href="../topics/js.html">JS</a> (12 notes)
+</li><li>JIT compilers</li></ul></div></html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html><title>Cycle sort ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Cycle sort</h1><div class="metadata">Kragen Javier Sitaker, 2013-05-17
+(1 minute)</div><p>Cycle sort is an O(N²) in-place sorting algorithm that only performs N
+writes to the original array in the worst case, handy if that array is
+stored somewhere very costly such as Flash.  It's O(N²) because it
+eventually compares every element to every other element, twice, to
+find that element's position.</p>
+<p>It seems to me that it's usually possible to do better, even under the
+constraint of only performing N writes.  Of course, if you have an
+unlimited amount of RAM, you can just read the items into RAM, sort
+them, and write them back in order.  That's why the "in-place"
+qualifier on cycle sort is important: it uses only O(1) space, while
+doing the RAM sort uses O(N) space.</p>
+<p>What about the middle ground?  What if you can afford O(log N) or
+O(sqrt(N)) memory?  Is there a sorting algorithm that does better than
+the 2N² comparisons of cycle sort, while maintaining the O(N) writes
+to the original array?</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/sorting.html">Sorting</a> (8 notes)
+</li><li><a href="../topics/worm.html">Write-once read-many (WORM) memory</a> (3 notes)
+</li></ul></div></html>

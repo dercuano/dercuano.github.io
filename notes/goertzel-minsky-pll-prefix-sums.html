@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html><title>Using the Goertzel algorithm, the Minsky algorithm, PLLs, and prefix sums for frequency detection ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Using the Goertzel algorithm, the Minsky algorithm, PLLs, and prefix sums for frequency detection</h1><div class="metadata">Kragen Javier Sitaker, 2019-06-16 (updated 2019-07-05)
+(39 minutes)</div>
+<p>Windowing the results of the Goertzel algorithm, or the Minsky circle
+algorithm applied as a frequency detector, over different-sized
+windows, can provide frequency detection with variable levels of
+precision.  Some kinds of PLLs can be used in the same way, and you
+can adapt the Goertzel algorithm or the Minsky algorithm into a PLL.
+The Hogenauer-filter approach can provide very nice windows very
+cheaply.</p>
+<p>The Minsky algorithm applied as a frequency detector in the most
+obvious way turns out to be precisely equivalent to the Goertzel
+algorithm applied to the backward differences of the input signal.</p>
+<p>This is a continuation of the exploration I began in <a href="../notes/cheap-frequency-detection.html">Cheap frequency detection</a>, but this note stands on its own, which is
+to say that it duplicates a lot of the material in that other note.</p>
+<h2>The Goertzel algorithm and windowing it with prefix sums</h2>
+<p>The Goertzel algorithm
+accumulates a sequence of values with a resonant frequency: <em>sₙ</em> =
+(2 cos ω) <em>sₙ</em>₋₁ - <em>sₙ</em>₋₂ + <em>xₙ</em>.  You can verify that, if <em>xₙ</em> = 0,
+this holds true of the sequence <em>sₙ</em> = <em>a</em> sin (ω<em>n</em> + φ) for any <em>a</em>
+and φ.  First, consider the case <em>a</em> = 1, φ = 0, and suppose that it’s
+true of <em>sⱼ</em> for all <em>j</em> &lt; <em>n</em>; does it then hold true at <em>n</em>?</p>
+<blockquote>
+<p><em>sₙ</em> = (2 cos ω)(sin (ω(<em>n</em> - 1))) - sin (ω(<em>n</em> - 2))</p>
+</blockquote>
+<p>The formula above is a little more symmetrical if we rewrite it with
+<em>m</em> = <em>n</em> - 1:</p>
+<blockquote>
+<p><em>sₘ</em>₊₁ = (2 cos ω)(sin (ω<em>m</em>)) - sin (ω(<em>m</em> - 1))</p>
+</blockquote>
+<p>If you don’t remember angle-sum formulas from
+high-school trigonometry, you can
+trivially rederive them from Euler’s formula <em>eⁱᵗ</em> = cos <em>t</em> + <em>i</em> sin
+<em>t</em>; if <em>t</em> = <em>h</em> + <em>j</em>, this becomes <em>eⁱʰeⁱʲ</em> = (cos <em>h</em> + <em>i</em> sin
+<em>h</em>)(cos <em>j</em> + <em>i</em> sin <em>j</em>) = (cos <em>h</em> cos <em>j</em> - sin <em>h</em> sin <em>j</em> + <em>i</em>
+(cos <em>h</em> sin <em>j</em> + sin <em>h</em> cos <em>j</em>)), so cos (<em>h</em> + <em>j</em>) = cos <em>h</em> cos
+<em>j</em> - sin <em>h</em> sin <em>j</em>, and sin (<em>h</em> + <em>j</em>) = cos <em>h</em> sin <em>j</em> + sin <em>h</em>
+cos <em>j</em>.</p>
+<p>Here, we’re interested in these identities:</p>
+<blockquote>
+<p>sin (ω(<em>m</em> + 1)) = sin (ω<em>m</em> + ω) = sin (ω<em>m</em>) cos ω + cos (ω<em>m</em>) sin ω<br />
+sin (ω(<em>m</em> - 1)) = sin (ω<em>m</em> - ω) = sin (ω<em>m</em>) cos ω - cos (ω<em>m</em>) sin ω</p>
+</blockquote>
+<p>The second one gives us</p>
+<blockquote>
+<p><em>sₘ</em>₋₁ = (2 cos ω)(sin (ω<em>m</em>)) - sin (ω<em>m</em>) cos ω + cos (ω<em>m</em>) sin ω<br />
+= (2 cos ω)(sin (ω<em>m</em>)) - cos ω sin (ω<em>m</em>) + cos (ω<em>m</em>) sin ω<br />
+= cos ω sin (ω<em>m</em>) + cos (ω<em>m</em>) sin ω</p>
+</blockquote>
+<p>which above is established as the value of sin (ω(<em>m</em> + 1)), so <em>sₘ</em>₊₁
+= sin (ω(<em>m</em> + 1)).</p>
+<p>To establish that this is true for all values of <em>a</em> and φ, we can
+simply note that this is a linear time-invariant recurrence:</p>
+<blockquote>
+<p><em>sₙ</em> = (2 cos ω) <em>sₙ</em>₋₁ - <em>sₙ</em>₋₂ + <em>xₙ</em></p>
+</blockquote>
+<p><em>m</em> or <em>n</em> does not enter into it except as an index, and the output
+on the left is linear in all the inputs on the right.</p>
+<p>This is the unique way to get a sine wave of a fixed angular frequency
+ω as such a linear recurrence on the two previous terms, sin (ω<em>n</em>) =
+<em>sₙ</em> = <em>asₙ</em>₋₁ + <em>bsₙ</em>₋₂; that is, if you solve that equation for <em>a</em>
+and <em>b</em>, the only possible values for <em>a</em> and <em>b</em> are 2 cos ω and -1.</p>
+<p>I think it’s somewhat trickier to show is that, if <em>s</em>₀ = <em>s</em>₁ = 0,
+<em>sₙ</em> and <em>sₙ</em>₋₁ form a linear encoding of Σ<em>ⱼxⱼ</em>cis (ω<em>j</em>) for <em>j</em> ∈
+[2, n].  But it’s true; unless I’m confusing something,
+Σ<em>ⱼxⱼ</em>cis (ω(<em>n</em>-<em>j</em>)) = <em>yₖ</em> = <em>sₖ</em> - exp(-<em>i</em> ω) <em>sₖ</em>₋₁.  <em>sₖ</em> is,
+of course, a linear function of any such previous sequence of <em>sₙ</em>,
+<em>sₙ</em>₋₁ and the <em>xⱼ</em> since that point, since it’s a linear function of
+<em>xₖ</em> and <em>sₖ</em>₋₁ and <em>sₖ</em>₋₂, which themselves are such a linear
+function.</p>
+<p>The impulse response of this system makes it clear — an impulse in <em>x</em>
+will kick off a proportional sinusoidal oscillation in <em>s</em>.</p>
+<p>So at any point along the accumulation of this sequence, we can
+extract the dot product between the complex exponential <em>eⁱʲ</em> and the
+<em>x</em> samples so far.  In effect, the Goertzel algorithm computes the
+prefix sum of a particular frequency component of our signal, just in
+a slightly obtusely-encoded form.</p>
+<p>(Note that this is precisely one of the components of the Fourier
+transform of the signal over that interval.)</p>
+<h3>Using <em>sₖ</em> as a prefix sum to rectangularly window a frequency component</h3>
+<p>This means that, if we want to know how much of a particular frequency
+was present during a given time interval, and we’ve saved off the <em>sₖ</em>
+values for that time interval, we can just do the <em>yₖ</em> calculation for
+the two points above, perhaps apply a rotation to bring them into
+phase (if they aren’t separated by an integer number of cycles), and
+take the difference.  (This assumes that we aren’t getting rounding
+errors, but since we’re essentially computing a sum table here, our
+<em>s</em> values will grow without bound if the signal <em>x</em> contains a
+nonzero frequency component at the frequency of interest.  As with
+Hogenauer filters, it might be wise to do the calculation in purely
+integer math to avoid this.)</p>
+<p>This subtraction amounts to temporally windowing the signal with a
+rectangular window.  So it convolves the spectral response of the
+filter with the Fourier transform of that rectangular window, which is
+a sinc.  So, by using different widths of window on <em>the same sₖ
+signal</em>, we can get different levels of frequency selectivity.  And in
+fact we can do this with only a single multiply-subtract and addition
+per sample (since the factor 2 cos ω is fixed as long as we don’t
+change the frequency), even though we’re pulling out a number of
+different window widths from that single resonator.</p>
+<h3>Goertzel without multiplies and A440 even temperament</h3>
+<p>The multiply-subtract (2 cos ω)<em>sₙ</em>₋₁ - <em>sₙ</em>₋₂ can, for some angles,
+be done with a couple of subtracts and bit shifts: (<em>sₙ</em>₋₁ &lt;&lt; 1) -
+(<em>sₙ</em>₋₁ &gt;&gt; p) - <em>sₙ</em>₋₂.  This works when 2 cos ω = 2 - (1 &gt;&gt; p) and
+thus ω = cos⁻¹ (1 - (1 &gt;&gt; (p + 1))).  This gives the following
+periods for shift lengths from 0 to 20 bits:</p>
+<pre><code>&gt;&gt;&gt; 360/(numpy.arccos(1-2**-(1 + numpy.arange(20.0)))*180/numpy.pi)
+array([    6.        ,     8.69363162,    12.43307536,    17.67813872,
+          25.06699928,    35.49668062,    50.23272124,    71.06297418,
+         100.51459792,   142.16068241,   201.05374803,   284.33872284,
+         402.11976897,   568.68612356,   804.245674  ,  1137.37658591,
+        1608.49441598,  2274.75534121,  3216.99036595,  4549.51176711])
+</code></pre>
+<p>For the particular case of 44.1-ksps audio, these work out to the
+following frequencies in Hz:</p>
+<pre><code>&gt;&gt;&gt; 44100/(360/(numpy.arccos(1-2**-(1 + numpy.arange(20.0)))*180/numpy.pi))
+array([ 7350.        ,  5072.67870839,  3546.99048555,  2494.60651377,
+        1759.28516646,  1242.3696873 ,   877.91381613,   620.57633403,
+         438.74224154,   310.21235444,   219.34433171,   155.09670846,
+         109.6688186 ,    77.54717088,    54.83399094,    38.77343753,
+          27.41694317,    19.38670028,    13.70846505,     9.69334783])
+</code></pre>
+<p>These are far closer to A440 musical note frequencies than we would
+have any right to expect; 438.7 Hz is about 5 cents flat of A₄ (A
+above middle C), and 877.9 is only about 4.1 cents flat of A₅, and the
+frequencies that are not As are even-tempered D♯/E♭ notes.  It crosses
+over from being sharp to being flat in between 2494 and 3546 Hz,
+precisely where the human ear is most perceptive.</p>
+<h3>Better windows through Nth-order prefix sums</h3>
+<p>Usually we don’t think of sinc as being a very good filter frequency
+response, because well into the stopbands, you keep getting these
+response peaks where an odd number of half-waves fit into your window.
+The Hogenauer-filter approach to solving this problem is to use N
+levels of sum tables to get an Nth-order approximation of a Gaussian
+window, which in theory has the optimal tradeoff between frequency
+precision and temporal precision — the minimal joint uncertainty,
+according to the uncertainty principle.  If we consider the <em>yₖ</em> given
+above as representing values in a complex-valued sum table, we could
+compute running sums (prefix sums) of them to get Nth-order prefix
+sums, which we can then differentiate N times in the usual CIC-filter
+way to get a given frequency component with that window.</p>
+<p>But calculating the <em>yₖ</em> is considerably more expensive than
+calculating the <em>sₖ</em>: <em>yₖ</em> = <em>sₖ</em> - exp(-<em>i</em> ω) <em>sₖ</em>₋₁, so while
+calculating <em>sₖ</em> required a single <em>real</em> multiply, addition, and
+subtraction (presuming all real <em>xⱼ</em>), calculating <em>yₖ</em> requires a
+<em>complex</em>–real multiply and then a complex–real subtraction: two real
+multiplies and a real subtraction, which is twice the multiplies.
+Normally we sweep this under the rug by presuming that we only
+calculate <em>y</em> values occasionally, so this expense doesn’t matter, but
+to compute the prefix sum (+\<em>y</em>, in APL notation) we would need to
+do those multiplications for every sample, and then it would matter.
+Also, computing complex prefix sums would involve twice as many real
+additions as computing real prefix sums.</p>
+<p>But in fact we can avoid this hassle; Σ<em>ₖyₖ</em> = Σ<em>ₖ</em>(<em>sₖ</em> - exp(-<em>i</em> ω)
+<em>sₖ</em>₋₁) = Σ<em>ₖsₖ</em> - exp(-<em>i</em> ω)Σ<em>ₖsₖ</em>₋₁, so we can do that whole
+computation using a sum table for <em>s</em> which we use twice, instead of
+computing separate real and imaginary Nth-order sums.  Then we can
+compute a <em>y</em> value windowed with an Nth-order approximation to a
+Gaussian window using N real subtractions, a complex–real multiply,
+and a real subtraction.  The same Nth-order sum table will serve for
+any window size.  XXX is this right?  Or do we need to either do N
+subtractions per sample or N(N-1)/2 subtractions per output?  Or maybe
+decimate by the window width M and then do the N subtractions once
+every M samples?</p>
+<h3>Roundoff</h3>
+<p>However, this surely requires special measures to avoid roundoff for
+the Hogenauer-filter part of the computation; the values in a
+third-order sum table, over an interval where the signal is roughly
+constant, will grow proportional to the cube of the constant value.
+The standard approach is to implement Hogenauer filters using integer
+arithmetic with wraparound, thus entirely eliminating rounding error.
+Maybe an alternative exists, representing the sum tables using the
+tree constructed in the standard parallel prefix-sum algorithm, so
+that the values being added at each tree node are of comparable size
+and roundoff lossage is insignificant; but I suspect you need to
+traverse the tree at subtraction time, adding a logarithmic slowdown,
+and I’m not sure how this generalizes to second-order and higher sum
+tables.</p>
+<p>Even without sum tables, it’s a frequently noted observation that the
+Goertzel algorithm is prone to numerical error.</p>
+<h3>Frequency detection</h3>
+<p>So you could imagine using this approach to narrow down the frequency
+range where a particular signal might be in your input: first use very
+short windows to see if there’s anything in the frequency range at
+all, then use longer windows at a larger number of frequencies (some
+of which might be the same frequency — just using the same prefix sums
+with a longer window width) to figure out where the signal or signals
+might be inside that window.</p>
+<p>Alternatively, if your signal is sparse enough in frequency space, you
+can use a temporal window size long enough that only one significant
+frequency component will be within the corresponding frequency window,
+and then use its successive phases in successive overlapping windows
+to determine its real frequency, the way a phase vocoder does.  So,
+for example, in <a href="../notes/bleep.html">The Bleep ultrasonic modem for local data communication</a>, I want to detect tones at 17640 Hz and
+19110 Hz.  I could very reasonably use the Goertzel algorithm with a
+frequency window centered on 18375 Hz, whose beat frequency with
+either 17640 or 19110 Hz is 735 Hz; that means that every 1.36
+milliseconds (60 samples at 44.1ksps) the phase relationship between
+the reference frequency and the real frequency will shift by 90°.  So
+if I perform Goertzel for that frequency over nominally 15-sample
+windows, I should get a nice clear phase that I can unwrap.  I haven’t
+tried this yet.</p>
+<p>(18375 Hz is 2.6180 radians or 150° per sample, so the Goertzel
+recurrence becomes roughly <em>sₙ</em> = -1.732 <em>sₙ</em>₋₁ - <em>sₙ</em>₋₂.)</p>
+<p>Alternatively, suppose I’m trying to detect the tune I’m whistling as
+in <a href="../notes/whistle-detection.html">Whistle detection</a>, in the band 600Hz to 1600Hz.  Typically
+if I’m whistling it’ll be the loudest sound in that band, maybe 20 to
+40 dB louder than anything else nearby.  Suppose we have a whistle at
+1477Hz and we’re trying to detect it by windowing a 1400Hz Goertzel
+filter; we’ll get a phase spinning around the circle at 77Hz.  So if
+our window mostly averages over, say, 3 ms (4.2 cycles of the 1400Hz
+reference), the phase will rotate around almost one quadrant,
+attenuating the phasor’s average magnitude by about √2, or 1.5 dB.  By
+unwrapping the phase (again, like a phase vocoder) we can determine
+the beat frequency and phase direction, and thus the real frequency.
+So windowing a single Goertzel filter about 500 times a second covers
+about 200Hz of bandwidth, so about five or ten of them should cover
+the whole band of interest.</p>
+<p>As long as the window is pretty close to Gaussian, there’s a
+relatively precise reciprocal relationship between the bandwidth and
+necessary number of windows per second for each filter.  Using a
+window that’s half as long requires us to use twice as many windows
+per second, but also covers twice the bandwidth in a single filter, so
+we need half as many filter center frequencies.  In the limit, where
+our windowed filter kernel is just an impulse, we’re just trying to
+“unwrap the phase” of individual samples (or perhaps pairs of samples,
+since <em>yₖ</em> uses <em>sₖ</em>₋₁ as well).  At the other extreme, with a very
+large number of very narrow frequency bands, each with windows tens or
+hundreds of milliseconds long, we only need check each band every
+hundred or more milliseconds, but we start losing temporal precision.</p>
+<p>But at that point, wouldn’t it be faster to window a downconverted
+signal and do a Fast Fourier Transform?  Then we only have to do
+O(lg <em>N</em>) work per sample to get each of <em>N</em> frequency bands instead
+of O(<em>N</em>) work.</p>
+<p>(Perhaps the best way to understand the CIC-windowed Goertzel filter
+in this context is precisely that it’s providing a windowed
+downconverted signal, which we can then Fourier-transform if we like?)</p>
+<h3>In one line of C</h3>
+<p>Here’s a one-line obfuscated C program from <a href="../notes/cheap-frequency-detection.html">Cheap frequency detection</a> that generates a sine wave using
+Goertzel’s algorithm:</p>
+<pre><code>main(s,t,u){for(t=32;u=s,1+putchar(128+(s-=t-s+s/8));t=u);}
+</code></pre>
+<p>If you compile it to an executable called <code>goertzel</code> on a Linux
+machine with ALSA or an ALSA emulation, you can run it with the
+command <code>./goertzel | aplay</code>.</p>
+<p>(<code>arecord</code> and <code>aplay</code> default to 8000 unsigned 8-bit samples per
+second, which is convenient since it means we can use <code>getchar()</code> and
+<code>putchar()</code> to read and write samples.)</p>
+<h2>The Minsky algorithm</h2>
+<p>One way to think of the Goertzel algorithm’s oscillator is by linearly
+extrapolating to the current sample, then subtracting a second-order correction to
+make it curve back towards zero at the desired frequency.</p>
+<blockquote>
+<p><em>sₙ</em> = (2 cos ω) <em>sₙ</em>₋₁ - <em>sₙ</em>₋₂<br />
+= <em>sₙ</em>₋₁ + (<em>sₙ</em>₋₁ - <em>sₙ</em>₋₂) - 2(1 - cos ω)<em>sₙ</em>₋₁</p>
+</blockquote>
+<p>In essence, it’s calculating the desired second derivative by
+multiplying a small negative number, -2(1 - cos ω), by the latest
+sample.  While this is in theory exactly correct, it’s easy to see
+that it could give rise to significant roundoff errors for
+sufficiently low frequencies.  In the limit, where cos ω rounds to 1,
+it will stop oscillating entirely and merely linearly extrapolate.
+For angular velocities ω approaching 0, 1 - cos ω = ½ω² + O(ω⁴), which
+is why changing this correction by factors of 2 in the above note
+about multiplication-free Goertzel resulted in changing the frequency
+by roughly half an octave.</p>
+<p>(However, don’t be misled into thinking that this means Goertzel is merely a
+quadratic approximation that will fail at high frequencies.  As shown
+earlier, if performed with exact arithmetic, it’s exact.)</p>
+<p>The Minsky algorithm is similar to the Goertzel algorithm, but while
+the Goertzel algorithm effectively calculates the current derivative
+of the oscillation from the difference between the last two samples,
+the Minsky algorithm reifies the first derivative as a separate
+variable:</p>
+<blockquote>
+<p><em>sₙ</em> = <em>sₙ</em>₋₁ + ε<em>cₙ</em>-₁ + <em>xₙ</em><br />
+<em>cₙ</em> = <em>cₙ</em>₋₁ - ε<em>sₙ</em></p>
+</blockquote>
+<p>XXX why does LaTeX give you a lunate epsilon ϵ by default, reserving
+normal epsilon for \varepsilon?  Should I be using ϵ here?</p>
+<p>This requires two real multiplications per input sample instead of
+Goertzel’s one multiplication, but I hypothesize that it should have a
+smaller roundoff error; ε ≈ sin ω, which means that for small angular
+velocities, it’s proportional to the angular velocity rather than (as
+in Goertzel) the square of the angular velocity.  So sometimes you can
+get more accurate results with Minsky.</p>
+<p>ε is not precisely sin ω; more precisely, ω = 2 sin⁻¹(½ε), so ε =
+2 sin(½ω), as explained in <a href="../notes/cheap-frequency-detection.html">Cheap frequency detection</a> and <em><a href="http://au.blurb.com/b/2172660-minskys-trinskys-3rd-edition">Minskys
+and Trinskys</a></em> and roughly in HAKMEM.  For small angles, the
+approximation is very close.</p>
+<p>One reason for roundoff error in Goertzel is that the energy of the
+resonator <em>s</em> alternates between being in the (square root of the)
+velocity — that is, the difference from one sample to the next — and
+being in the (square root of the) displacement — that is, the value of
+the latest sample.  When the frequency is in the neighborhood of one
+radian per second, this doesn’t cause much error, but for very low
+frequencies, the velocities, measured from one sample to the next, can
+be very small compared to the sample values.  For one milliradian per
+sample, for example, at angles π/4 + nπ/2, the velocity and the
+displacement are both at √2̄ of their maximum value, but the velocity
+there is 1000 times smaller than the displacement.  So if you have
+eight decimal digits of precision, like a 32-bit IEEE-488 float, your
+velocity only has about five decimal digits of that precision, which
+means that every half cycle your signal has been rounded to five
+decimal digits.  The Minsky algorithm doesn’t have this problem in
+this form, since <em>s</em> and <em>c</em> are of similar magnitude, but it might
+have a similar problem in that the increments being added to <em>s</em> and
+<em>c</em> are potentially very small compared to their magnitude.</p>
+<p>Both Minsky and Goertzel are stable, in the limited sense that they
+don’t go to infinity over an infinite interval when the input is zero,
+if computed without roundoff.  (They are <em>not</em> BIBO stable, of
+course.)  The argument that Minsky is stable is that we can rewrite
+the above system as follows when <em>xₙ</em> = 0:</p>
+<blockquote>
+<p><em>sₙ</em> = <em>sₙ</em>₋₁ + ε<em>cₙ</em>-₁<br />
+<em>cₙ</em> = (1 - ε²)<em>cₙ</em>₋₁ - ε<em>sₙ</em>₋₁</p>
+</blockquote>
+<p>In Unicode-art matrix form:</p>
+<pre><code>⎡ sₙ ⎤ = ⎡  1   ε   ⎤ ⎡ sₙ₋₁ ⎤
+⎣ cₙ ⎦   ⎣ -ε  1-ε² ⎦ ⎣ cₙ₋₁ ⎦
+</code></pre>
+<p>The determinant of that matrix is precisely 1.  (XXX but its
+<strong>L</strong><sup>∞</sup> norm is 1+ε; what’s up with that?)</p>
+<p>In a sense, <em>sₙ</em> and <em>cₙ</em> are temporally offset from one another by
+half a sample, and we are thus doing <a href="https://en.wikipedia.org/wiki/Leapfrog_integration">leapfrog integration</a> of the
+harmonic-oscillator ODE <em>s̈</em> = -ε<em>s</em>.  For slow oscillators, this is a
+small difference, so <em>sₙ</em>² + <em>cₙ</em>² is a fairly precise estimate of the
+energy in the system, but for fast oscillators it can be a large one.
+I think <em><a href="http://au.blurb.com/b/2172660-minskys-trinskys-3rd-edition">Minskys and Trinskys</a></em> has calculated the exact expression
+for the correction, but I can’t remember.</p>
+<p>(It’s easy enough to add an exponential decay to either Goertzel or
+Minsky, which results in the system state at any given time being an
+exponentially-windowed filter of the frequency of interest, but here
+I’m focusing on the prefix-sum-based approaches because I think they
+can produce nicer windows almost as cheaply.)</p>
+<h3>The Minsky algorithm in one line of C</h3>
+<p>Here’s a <a href="http://canonical.org/~kragen/sw/dev3/minsky.c">one-liner obfuscated C Minsky-algorithm audio oscillator I
+wrote in 2017</a>:</p>
+<pre><code>main(x,y){for(y=100;1+putchar(x+128);x-=y/4,y+=x/4);}
+</code></pre>
+<p>You can pipe it to <code>aplay</code> just as with the above Goertzel program.
+The tone is agreeable.</p>
+<h3>Varying ε, and efficiency</h3>
+<p>The canonical form of Minsky’s algorithm above uses the same ε in both
+steps, but as is done in <em>Minskys and Trinskys</em>, you can scale <em>c</em> up
+and down relative to <em>s</em> by using a separate δ:</p>
+<blockquote>
+<p><em>sₙ</em> = <em>sₙ</em>₋₁ + ε<em>cₙ</em>-₁ + <em>xₙ</em><br />
+<em>cₙ</em> = <em>cₙ</em>₋₁ - δ<em>sₙ</em></p>
+</blockquote>
+<p>(Here I have the ε and δ backwards from the use in
+<a href="../notes/cheap-frequency-detection.html">Cheap frequency detection</a>.)</p>
+<p>If we’re only interested in how <em>s</em> behaves, and <em>c</em>₀ = 0, then it
+turns out that only the product δε matters; if we vary δ while holding
+δε constant, the <em>cₙ</em> values get scaled up or down by δ, but the
+sequence of <em>sₙ</em> remains constant, barring roundoff errors.  In
+particular, as explained in <a href="../notes/cheap-frequency-detection.html">Cheap frequency detection</a>, we can choose
+δ = 1 or ε = 1.  Say we choose δ = 1; to get the same angular velocity
+of ω radians per sample, ε = 4 sin²(½ω).  So our new equations are:</p>
+<blockquote>
+<p><em>sₙ</em> = <em>sₙ</em>₋₁ + (4 sin²(½ω))<em>cₙ</em>-₁ + <em>xₙ</em><br />
+<em>cₙ</em> = <em>cₙ</em>₋₁ - <em>sₙ</em></p>
+</blockquote>
+<p>So now we need one subtraction, two additions, and a multiplication
+per sample.  The Goertzel algorithm requires one subtraction, one
+addition, and a multiplication.  So our multiplication penalty has
+disappeared, but I think the rounding-error advantage has disappeared
+with it: <em>c</em> can now have peak values much larger or smaller than <em>s</em>,
+so we can lose precision when energy moves from one to the other.</p>
+<p>If we instead choose ε = 1, we get this equivalent version:</p>
+<blockquote>
+<p><em>sₙ</em> = <em>sₙ</em>₋₁ + <em>cₙ</em>-₁ + <em>xₙ</em><br />
+<em>cₙ</em> = <em>cₙ</em>₋₁ - (4 sin²(½ω))<em>sₙ</em></p>
+</blockquote>
+<p>We can reverse the order of the updates, as is usually done, which
+shifts the indices of <em>c</em> by 1:</p>
+<blockquote>
+<p><em>cₙ</em> = <em>cₙ</em>₋₁ - (4 sin²(½ω))<em>sₙ</em>₋₁<br />
+<em>sₙ</em> = <em>sₙ</em>₋₁ + <em>cₙ</em> + <em>xₙ</em></p>
+</blockquote>
+<p>We can expand this out a bit:</p>
+<blockquote>
+<p><em>cₙ</em> = <em>cₙ</em>₋₁ - (4 sin²(½ω))<em>sₙ</em>₋₁<br />
+<em>sₙ</em> = (1 - (4 sin²(½ω)))<em>sₙ</em>₋₁ + <em>cₙ</em>₋₁ + <em>xₙ</em></p>
+</blockquote>
+<p>This is looking suspiciously familiar!  What is 4 sin²(½ω), anyway?
+Well, sin(½ω) = ±√(½(1 - cos ω)), so it ends up being 2 - 2 cos ω.
+Which means that this is actually:</p>
+<blockquote>
+<p><em>sₙ</em> = (-1 + 2 cos ω)<em>sₙ</em>₋₁ + <em>cₙ</em>₋₁ + <em>xₙ</em></p>
+</blockquote>
+<p>If we want to express this purely in terms of <em>s</em>, we need to
+eliminate <em>cₙ</em>₋₁.  Since <em>sₙ</em> = <em>sₙ</em>₋₁ + <em>cₙ</em> + <em>xₙ</em>, <em>sₙ</em>₋₁ = <em>sₙ</em>₋₂
++ <em>cₙ</em>₋₁ + <em>xₙ</em>₋₁, so <em>cₙ</em>₋₁ = <em>sₙ</em>₋₁ - <em>sₙ</em>₋₂ - <em>xₙ</em>₋₁.  So we have</p>
+<blockquote>
+<p><em>sₙ</em> = (-1 + 2 cos ω)<em>sₙ</em>₋₁ + <em>sₙ</em>₋₁ - <em>sₙ</em>₋₂ - <em>xₙ</em>₋₁ + <em>xₙ</em><br />
+<em>sₙ</em> = (2 cos ω)<em>sₙ</em>₋₁ - <em>sₙ</em>₋₂ + <em>xₙ</em> - <em>xₙ</em>₋₁</p>
+</blockquote>
+<p>We have the not entirely unexpected result that using Minsky’s
+algorithm in this way as a signal filter is equivalent to using
+Goertzel’s algorithm on <em>the backward differences of</em> the input
+signal, which in this context can be understood as a high-pass
+prefilter introducing a 90° phase shift.</p>
+<p>Since the tricks we were playing with scaling <em>c</em> up and down don’t
+affect the sequence of values in <em>s</em>, this result applies to using the
+vanilla form of Minsky’s algorithm, too.</p>
+<p>This means that if we want to precisely reproduce the results of
+Goertzel’s algorithm using Minsky’s algorithm in the straightforward
+way, we need to run Minsky’s algorithm on <em>the prefix sum of</em> the
+signal.  This may be a practical problem in situations where using a
+prefix sum may result in roundoff errors.  Perhaps adding the input
+samples into <em>c</em> instead, while still reading the output from <em>s</em>
+(updated after <em>c</em>) would solve that problem?  XXX investigate
+further.</p>
+<h2>A PLL in one line of C</h2>
+<p>In 2012, after struggling with software PLLs (“SPLLs”) for a while, I
+wrote <a href="http://canonical.org/~kragen/sw/netbook-misc-devel/tinypll.c">this obfuscated one-line first-order PLL in C</a>:</p>
+<pre><code>main(a,b){for(;;)putchar(b+=16+(a+=(b&amp;256?1:-1)*getchar()-a/512)/1024);}
+</code></pre>
+<p>If you compile it to an executable called <code>tinypll</code> on a Linux machine
+with ALSA or an ALSA emulation, you can run it with the command
+<code>arecord | ./tinypll | aplay</code>; it tries to emit a tone that tracks the
+pitch of your voice, but one octave higher.  This works better with
+headphones, so that the microphone isn’t picking up the tone it’s
+emitting.</p>
+<p>This isn’t a very good PLL, but I think it’s an excellent way to show
+the anatomy of a PLL.  It contains two continuously-varying state
+variables, <code>a</code> and <code>b</code>.  <code>b</code>, or rather the low 9 bits of <code>b</code>, is the
+phase accumulator of an oscillator, while <code>a</code> is the low-pass-filtered
+error from the phase detector.</p>
+<p>When the program gets an input sample with <code>getchar()</code>, it feeds it
+into a “chopper”:</p>
+<pre><code>(b&amp;256 ? 1 : -1) * getchar()
+</code></pre>
+<p>Since the low 9 bits of <code>b</code> are the phase accumulator for the
+oscillator, its bit 8 tells us which half of the oscillation we’re in.
+And, as the oscillator alternates between the halves, it either
+inverts the input signal, or it doesn’t.</p>
+<p>How does that chopper compute a phase error?  Well, if we suppose that
+the input signal is an oscillation whose frequency is close to that of
+the PLL’s oscillator, then the sum of that chopped signal over a whole
+cycle tells us the relative phase.  If the two oscillations are
+perfectly in phase, then we’re inverting precisely the negative part
+of the input signal, and so we get a large positive number.  If
+they’re perfectly out of phase, then we’re inverting precisely its
+positive part, so we get a large negative number.  And if they’re in
+perfect quadrature, then the samples we inverted are half negative and
+half positive (and cancel each other out), and so are the samples we
+didn’t invert, so we get zero.  If there’s a small phase error from
+quadrature, say so that we’re inverting a little more of the negative
+signal than the positive one, we’ll get a small negative number.  And
+any DC bias cancels out.</p>
+<p>So a sum over a whole oscillation of this chopped signal gives us some
+kind of indication of how far away we are from quadrature, and close
+to quadrature it’s linear.  So naturally the next thing we do is to
+add that phase-error sample into our phase-error accumulator:</p>
+<pre><code>a += … - a/512
+</code></pre>
+<p>To sum over precisely a whole oscillation would require keeping in
+memory an array of values to run a rectangular window over, so here we
+just use an exponential filter with a time constant of 512 samples,
+which is 64 milliseconds.  (This is guaranteed to be several cycles
+long over the frequency range we can reach here.)  Note that this also
+means that the magnitude of <code>a</code> is about 512 times bigger than the
+chopped input samples getting fed into it — if our average phase error
+is about 3 per sample, say, then <code>a</code> reaches a steady state at <code>a</code> ≈
+1536.</p>
+<p>So, then we want to drive our oscillator at a frequency that depends
+on this filtered phase error:</p>
+<pre><code>b += 16 + (a …)/1024
+</code></pre>
+<p>If our input signal is always 0, <code>a</code> will decay to 0, and this simply
+reduces to <code>b += 16</code>, which means it will reach 512 and its low 9 bits
+will wrap around every 32 samples, which is 250 Hz.  So that’s the
+“natural frequency” of the chopping.  But if <code>a</code> is in the range, say,
+1024 to 2047, then this is <code>b += 17</code> and it pitches up to 265 Hz.  On
+most systems C division rounds towards 0, so if <code>a</code> is slightly
+negative, it doesn’t lower the pitch, but once it gets to -1024, the
+pitch drops to 234 Hz.</p>
+<p>So if you’re screeching at your computer at 234 Hz, the chopper will
+initially drift in and out of phase with your screech 16 times a
+second, but if it ever manages to accumulate a phase error of -1024 in
+<code>a</code>, it enters a steady state where it’s chopping your signal just
+enough out of quadrature to maintain that -1024.  If it falls behind
+your screeching, <code>a</code> will decay and the chopping will speed up until
+<code>a</code> is growing again, and if it gets ahead of your screeching, <code>a</code>
+will grow to an even more negative value and its chopping will slow
+down.</p>
+<p>This sounds ridiculously crude, but there’s a certain amount of noise
+on <code>a</code> from the regular increases and decreases of the phase error
+accumulator four times per cycle (about every 8 samples), plus actual
+signal noise, so it works better than you would think.  Not that well,
+but better than you’d think.</p>
+<p>Finally, it emits an output tone:</p>
+<pre><code>for (;;) putchar(b…);
+</code></pre>
+<p>This is the low 8 bits of the 9-bit phase accumulator in <code>b</code>, so it
+produces a triangle wave at twice the chopping frequency, so, in the
+neighborhood of 500 Hz.  Triangle waves sound really harsh, but
+because they’re so harmonics-rich, they make it easier to hear pitch
+changes than smoother waveforms would.</p>
+<h2>Notes on SPLLs in general, and using real sinusoids with them</h2>
+<p>The ramp up and down of the phase error accumulator at twice the
+frequency being detected is called “VCO control line ripple” or
+“reference spurious” in analog PLLs.  This is often a thing you want
+to minimize, though in this case the noise it adds probably improves
+system performance through stochastic resonance.  You could
+notch-filter this frequency out with a simple feedforward comb filter
+by the simple expedient of averaging two samples from the phase error
+signal half an oscillation apart (adjusting this, ideally, to the
+current oscillation frequency); or, since doing this requires a table
+of past phase-error samples anyway, use a prefix sum to calculate a
+simple moving average, a box filter, of that width, and dispense with
+the exponential.  Box filters have a better
+noise-suppression/tracking-latency tradeoff than exponentials anyway.</p>
+<p>I think there’s an even simpler solution, though: in a digital system,
+it probably isn’t necessary to update the phase error after every
+input sample anyway; you can do that processing at a lower sample
+rate, which filters out fast oscillations by construction.</p>
+<p>Although the overall system isn’t linear, it has a lot of linear
+pieces in it.  This phase detector, for example, produces an output
+signal that’s proportional to the amplitude of the waveform it’s
+locking onto.  If the waveform is near a local extremum where it gets
+chopped from negative to positive, then the phase-detector output is
+also locally linear in the phase error.  The chopper frequency shift
+is linear in the filtered phase error signal, and the exponential
+filter on that signal is linear and time invariant.</p>
+<p>Each of these components — the phase detector, the feedback-loop
+low-pass filter, the variable-frequency oscillator, and the feedback
+path from the oscillator to the phase detector — has lots of possible
+realizations.  This particular phase detector is called a “type I”
+phase detector, but there are also “type II” phase detctors.  And
+there are higher-order PLLs, which I don’t understand at all.  I’m
+pretty much just sticking to basic PLLs here because that’s all I
+understand at all.</p>
+<p>Chopping with a square wave means your PLL is sensitive not only to
+its nominal frequency but also its odd harmonics.  There are cases
+where this doesn’t matter, but in particular if you’re doing this on a
+sampled signal, the odd harmonics can alias down to other strange
+frequencies.  In my 18375-Hz example above, for example, the third
+harmonic would be 55125 Hz — probably heavily attenuated by the
+antialiasing filter on your sound card, but at 44.1ksps, it aliases
+down to 11025 Hz.  The fifth harmonic is even worse: it aliases to
+3675 Hz.  (Subsequent harmonics repeat this cycle backwards and
+forwards.)</p>
+<p>And, indeed, that’s what you see if you analyze the output of this
+program:</p>
+<pre><code>#include &lt;stdio.h&gt;
+int i;
+int main(){for(;;)putchar(i++*18375*16/44100&amp;8?0:128);}
+</code></pre>
+<p>Feed it to <code>head -c 44100 | sox -r 44100 -t raw -u1 - sqwv.wav</code>, hit
+^C, run <code>audacity sqwv.wav</code>, and plot the spectrum, and there are
+three sharp peaks at 18375 Hz, 11025 Hz, and 3675 Hz, just as
+predicted.  And if you were multiplying that oscillation pointwise by
+an input signal to try to do phase detection, you’d be detecting all
+three of those frequencies, too.</p>
+<p>So you may actually prefer to multiply by a real sine wave at the
+frequency of oscillation, which of course is what the Goertzel and
+Minsky resonators do; they also both have the advantage that they can
+give you a phase readout fairly directly, rather than using these
+subtle arguments about halves of chopped waves canceling each other
+out.  But to use them for this application, you need to be able to
+adjust their resonant frequency.</p>
+<p>A thing to notice is that, in this single-line SPLL, there’s nothing
+left over that tells you if you actually have a signal or just
+silence.  <code>a</code> will be 0 if you’re perfectly locked onto a strong
+250-Hz signal or if the signal is all zeroes.  <code>a</code> might be 2048
+because it’s locked onto a really strong signal around 281 Hz, or a
+weak one, or because it’s randomly being buffeted by strong random
+noise.  To get the signal amplitude, you can chop the input signal
+with a second chopper in quadrature with the one you use for phase
+detection; this chopper will be in phase with the input signal instead
+of in quadrature with it, and so it amounts to synchronous
+rectification of the input signal.  (The Goertzel or Minsky approach
+does this implicitly.)</p>
+<p>This in-phase-chopped signal gives you the amplitude of the
+oscillation at the frequency of interest (and, as noted above,
+potentially some other frequencies too).  Earlier I had suggested
+using a box filter in the feedback path to eliminate phase-error
+ripple, using a prefix sum calculated over some segment of the
+quadrature-chopped signal.  By computing an analogous prefix sum of
+the in-phase-chopped signal, you can enable the same kind of
+after-the-fact frequency selectivity described in the earlier sections
+about fixed-frequency Minsky and Goertzel resonators: by subtracting
+two nearby samples on the I-chopped and Q-chopped prefix sums, you can
+detect signals over a wider bandwidth, or by subtracting prefix-sum
+samples with a large lag between them, you can detect them over a very
+narrow bandwidth.  For better or worse, your detection band chirps
+along with your PLL oscillator.</p>
+<p>There is presumably no PLL equivalent to the phase-vocoder-like use of
+the fixed-frequency oscillators that I mentioned above, since the
+whole point of using a PLL is that it finds the frequency of the
+signal of interest and follows it.</p>
+<p>Altering the frequency has some subtle effects which may introduce
+numerical errors here.  As mentioned earlier, for fast Minsky
+oscillators, the half-sample offset between the two state variables
+becomes significant; altering the frequency will alter that
+relationship, and might rob energy from the system or add energy to
+it.  Similarly, with Goertzel, lowering the frequency can add energy
+to the system, but won’t always — it depends on what part of the
+oscillation <em>s</em> is in.  (I don’t know if it can also rob energy from
+it.)  Presumably we can work out how to correct these errors.</p>
+<h2>Related work; contributions?</h2>
+<p>I ran across a 2015 paper by Sridharan, Chitti Babu, MuthuKannana, and
+Krithika entitled “Modelling of Sliding Goertzel DFT (SGDFT)…” which
+seems to have some things in common with the above.  They’re using a
+Goertzel oscillator in their PLL, but it isn’t the oscillator; it’s in
+the feedback path between the oscillator and the phase detector.
+They’re also using a moving-average filter (a box filter).  Moreover,
+they’re using a PI controller in the loop to set the oscillator
+frequency in order to drive the phase error to zero (since their
+application is power grid synchronization), rather than the
+proportional control I used in the example above.  As far as I can
+tell, by “SGDFT” they just mean the Goertzel algorithm.</p>
+<p>I haven’t found anybody talking about the relationship between the
+Goertzel algorithm and the Minsky algorithm, about using prefix sums
+to get variable tradeoffs between precision in the frequency domain
+and in the time domain without having to redo the multiplications,
+about using the Goertzel or Minsky algorithm as a combination
+phase-detector and oscillator in a PLL, or about the fortuitously
+nearly-A440 Goertzel frequencies we get with just a bit shift.  I’ve
+never seen anybody talk about doing the Goertzel algorithm in wrapping
+integer math to avoid roundoff error (though, admittedly, it probably
+only makes sense in the context of Hogenauer-style windowing).  I’ve
+never seen a discussion of using the Goertzel algorithm to detect a
+frequency <em>near</em> the target frequency and precisely identify it by
+unwrapping the phase.  But it’s possible that that’s just because I’m
+just not that familiar with the literature.  Or that the ideas are
+wrong.</p>
+<p>However, most of the PLL and Minsky-algorithm and Goertzel-algorithm
+stuff is very well known.  As far as I can tell, the relationship
+between the Minsky algorithm and the Goertzel algorithm hasn’t been
+published, but quite possibly it’s just too obvious to those skilled
+in the art to be considered novel.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/dsp.html">Digital signal processing (DSP)</a> (60 notes)
+</li><li><a href="../topics/audio.html">Audio</a> (40 notes)
+</li><li><a href="../topics/prefix-sums.html">Prefix sums</a> (18 notes)
+</li><li><a href="../topics/music.html">Music</a> (18 notes)
+</li><li><a href="../topics/convolution.html">Convolution</a> (15 notes)
+</li><li><a href="../topics/cic-filters.html">CIC or Hogenauer filters</a> (5 notes)
+</li><li><a href="../topics/vocoder.html">Vocoder</a> (4 notes)
+</li><li><a href="../topics/goertzel.html">Goertzel</a> (4 notes)
+</li><li><a href="../topics/plls.html">Phase-locked loops</a> (3 notes)
+</li><li><a href="../topics/minsky-algorithm.html">Minsky algorithm</a> (3 notes)
+</li></ul></div></html>

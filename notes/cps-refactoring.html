@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html><title>When and why exactly should your code “tell, not ask”? That is, use CPS? ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>When and why exactly should your code “tell, not ask”? That is, use CPS?</h1><div class="metadata">Kragen Javier Sitaker, 2014-01-08
+(4 minutes)</div><p>Here I explain "<a href="">tell, don't ask</a>" in terms that explain when
+and why it's valuable, without the resorts to metaphor and simplistic
+heuristics often used in the teaching of object-oriented design.</p>
+<p>One of the widely respected principles of object-oriented programming
+is "Tell, don't ask."  In the unhelpful metaphorical language often
+used to describe OO design principles, it is said that, rather than
+asking objects about their state, you should tell them what to do:
+send them a message, don't ask them a query.  Especially don't ask
+them a query and then use the results of the query to decide how to
+modify their state; if you're doing that, you should instead move the
+logic into that object.</p>
+<p>The problem with all of this is that, so stated, it doesn't have
+enough context.  What are we trying to achieve with tell-don't-ask?
+When might the drawbacks of telling exceed the drawbacks of asking, if
+ever?  How can you tell when you've missed an opportunity to tell
+instead of asking?  What do you do when you think you want the
+benefits of tell-don't-ask but you can't figure out how to get telling
+to do what you want?  That's what this post is about.</p>
+<h2>CPS</h2>
+<p>In the land of compiler implementation, especially the Scheme school,
+tell-don't-ask is known as programming in "<a href="">continuation-passing
+style", or "CPS</a>".  It turns out that, if you have
+<a href="">polymorphic</a> method calls or <a href="">closures</a>, and you don't have a
+stack-depth limit (or you have <a href="">tail-call elimination</a>) there is
+actually no limit to the expressiveness of a program that never uses
+any return values.  You can take a program written with return values
+and transform it, completely mechanically, into a program where no
+function has a return value.</p>
+<p>In a sense, this is obvious: machine code doesn't, generally speaking,
+have functions or return values, just subroutine call and return
+instructions.  So to execute a program, a compiler must transform it,
+mechanically, into a form that doesn't need return values.  Typically,
+return addresses and function arguments are pushed onto a stack in
+RAM, or stuffed into registers and then later placed on the stack.
+There are various ways to think of the resulting process.  CPS takes
+the position that the return-address and local-variable data on the
+stack for the calling function is essentially a closure, which is
+invoked as the last thing that the callee does.</p>
+<p>This shows how to transform a function call into a CPS function call:
+you take the rest of the caller, after the function call is to return,
+and package it up into a closure that you pass to the function.  For
+example, given this JavaScript function:</p>
+<pre><code>function add_numbering(parent, domnode) {
+  parent.numbering[parent.numbering.length-1]++;
+  var number = parent.numbering.join(".") + ") ";
+  insert_before(text(number), domnode.firstChild);
+}
+</code></pre>
+<p>Suppose we want to transform the concatenation of the trailing ") "
+into CPS style.  It's an invocation of the built-in
+string-concatenation operation <code>+</code>, which yields the return value we
+are going to turn into a text node and insert into the document.  A
+generic CPS version of <code>+</code> would take an additional argument that is a
+closure to which to pass the concatenation result:</p>
+<pre><code>function concat(a, b, k) { k(a+b) }
+</code></pre>
+<p>And we can make the transformation by packaging up the tail end of the
+function like so:</p>
+<pre><code>function add_numbering(parent, domnode) {
+  parent.numbering[parent.numbering.length-1]++;
+  concat(parent.numbering.join("."), ") ", function(number) {
+    insert_before(text(number), domnode.firstChild);
+  });
+}
+</code></pre>
+<p>If you've used <a href="http://nodejs.org/">Node.js</a> this should look really familiar; Node
+uses explicit continuation-passing style for I/O functions.  It does
+this because one of the freedoms CPS gives you (to be listed later!)
+is the freedom to suspend a computation and resume it later.</p>
+<p>Generalizing this, if you have some function call </p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/sa.html">Systems architecture</a> (48 notes)
+</li><li><a href="../topics/program-design.html">Program design</a> (11 notes)
+</li><li><a href="../topics/oo.html">Object-oriented programming</a> (10 notes)
+</li></ul></div></html>

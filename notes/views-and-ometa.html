@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html><title>OMeta contains Wadler's "Views" ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>OMeta contains Wadler's "Views"</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009 (updated 2019-05-20)
+(13 minutes)</div>
+<p>I think.</p>
+<h2>Views</h2>
+<p>Philip Wadler proposed "views" in a 1986 paper (see References.)  This
+section just explains pattern-matching, views, and their relationship to
+various programming languages.</p>
+<p>ML, Haskell, <a href="http://wouter.fov120.com/aardappel/index.html" title="The Aardappel Concurrent Tree Space Transformation Language">Aardappel</a>, and many other functional programming languages
+(plus Prolog) support discriminated unions ("sum types" or I think
+"algebraic data types") that can be used in "pattern matching" that combines
+case-analysis control flow with data access.  Here's an example program in
+OCaml that defines a single type called <code>tree</code> and uses it to sort a list of
+strings.</p>
+<pre><code>(* a simple binary tree sort program *)
+
+(* an object of type "foo tree" can be either a Leaf, containing
+   no data, or a Fork, containing another "foo tree", a "foo", and
+   another "foo tree". *)
+type 'foo tree = Leaf | Fork of 'foo tree * 'foo * 'foo tree ;;
+
+(* Here we define a function whose unnamed second argument is a tree.
+   If it's a Fork, we bind the names "left", "key", and "right" to its
+   data contents, and which of the two branches we take is determined
+   by whether it's a Leaf or a Fork. *)
+let rec tree_insert datum = function
+    Leaf                   -&gt; Fork (Leaf, datum, Leaf)
+  | Fork(left, key, right) -&gt; if datum &lt; key
+      then Fork(tree_insert datum left, key,                   right)
+      else Fork(                  left, key, tree_insert datum right) ;;
+
+(* Here we pattern-match on a list, which can be either the empty 
+   list, or a list consisting of a first item "h" followed by a list 
+   of zero or more other items "t". *)
+let rec make_tree old_tree = function
+    [] -&gt; old_tree
+  | h :: t -&gt; make_tree (tree_insert h old_tree) t ;;
+
+let sorted_tree = make_tree Leaf ["t"; "r"; "e"; "e"; "t"; "o"; "p"; "!"] ;;
+
+(* Here we use pattern-matching to iterate over the data of the tree, in 
+   what will be sorted order if the tree was built with the tree_insert
+   function above. *)
+let rec tree_iter f = function
+    Leaf -&gt; ()
+  | Fork(left, key, right) -&gt; tree_iter f left; f key; tree_iter f right ;;
+
+tree_iter print_endline sorted_tree ;;
+</code></pre>
+<p>The trouble with the pattern-matching is that it breaks data abstraction.
+The interface to the data structure is the same as its implementation, at
+least for those who want to pattern-match on it instead of just passing it
+to other functions.  Changing the implementation implies changing all of the
+code that pattern-matches on it, and possibly changing that code to not use
+pattern-matching.</p>
+<p>Wadler gives several examples:</p>
+<ul>
+<li>small integers are most efficiently represented as machine words
+  containing binary numbers, but some kinds of functions clearer when
+  written with pattern-matching on Peano notation (<code>Succ(Succ(Zero))</code>) or
+  explicit binary (<code>Twice(Twiceplusone(Twiceplusone(Zero)))</code> for 6).</li>
+<li>complex numbers have imaginary and real parts, or a magnitude and an
+  angle, depending on how you look at them; in languages like Haskell, only
+  one of these can get the brevity benefit of pattern-matching.</li>
+<li>lists are conventionally viewed, as above, as being either empty or
+  consisting of a first item and a list of other items; some algorithms are
+  more conveniently expressed if the second alternative is instead a last
+  item and a list of other items.  A "rope" representation can provide
+  reasonable performance for both of these "views" of the list.</li>
+</ul>
+<p>Wadler's suggested explicit-binary view looks like this:</p>
+<pre><code>view int ::= Zero | Even int | Odd int
+  in n = Zero,               if n = 0
+       = Even (n div 2),     if n &gt; 0 &amp;&amp; n mod 2 = 0
+       = Odd  ((n-1) div 2), if n &gt; 0 &amp;&amp; n mod 2 = 1
+  out Zero     = 0
+  out (Even n) = 2 * n,     if 2 * n &gt; 0
+  out (Odd n)  = 2 * n + 1, if 2 * n + 1 &gt; 0
+</code></pre>
+<p>Here <code>Even</code> means "twice", and "Odd" means "twice, plus one".  His <code>out</code>
+"function" works by pattern-matching, just like the OCaml functions above;
+and the <code>in</code> "function" can do the same.  The <code>in</code> and <code>out</code> clauses explain
+how to translate between the <code>Zero</code>/<code>Even</code>/<code>Odd</code> view of integers and the
+language's native representation of integers.</p>
+<p>In Wouter van Oortmerssen's Aardappel, the problem is diminished; if you
+define a new representation of some abstract data type, then in a single
+place, you can provide new clauses for all the functions that pattern-match
+on the old representation.  However, the problem still exists, since you
+have to do an amount of work that's proportional to the number of places
+that pattern-match on the old concrete data type.</p>
+<p>In 2007, I wrote about <a href="http://lists.canonical.org/pipermail/kragen-tol/2007-March/000855.html">object-oriented equational rewrite rules</a> which
+are basically nothing but views.  I still haven't implemented the system I
+described in that post.</p>
+<h2>OMeta</h2>
+<p><a href="http://www.cs.ucla.edu/~awarth/papers/dls07.pdf" title="OMeta: An Object-Oriented Language for Pattern Matching">OMeta</a> is a system intended to dramatically simplify compiler
+development.  Its authors write:</p>
+<blockquote>
+<p>Several popular programming languages --- ML, for instance --- include
+support for pattern matching. Unfortunately, while ML-style pattern matching
+is a great tool for processing structured data, it is not expressive enough
+on its own to support more complex pattern matching tasks such as lexical
+analysis and parsing.</p>
+</blockquote>
+<p>But what is weak about ML-style pattern-matching?  Why can't it do lexical
+analysis and parsing, if you have (perhaps lazy) lists of characters or
+tokens?</p>
+<h2>OMeta in terms of Views</h2>
+<p>In fact, I suspect that views, plus non-backtracking pattern matching, plus
+some syntactic sugar, more or less equals OMeta.  Here's the first sample
+grammar from the OMeta paper, modified to remove left recursion;
+incidentally, this is roughly Figure 3-1 from Bryan Ford's <a href="http://pdos.csail.mit.edu/~baford/packrat/" title="Bryan Ford's Packrat Parsing Page">PEG parsing</a>
+thesis:</p>
+<pre><code>meta E {
+  dig ::=  '0' | ... | '9';
+  num ::=  &lt;dig&gt;+;
+  fac ::=  &lt;num&gt; '*' &lt;fac&gt;
+         | &lt;num&gt;;
+  exp ::=  &lt;fac&gt; '+' &lt;exp&gt;
+         | &lt;fac&gt;;
+}
+</code></pre>
+<p>We can think of this as a "view" on a list of characters, with the proviso
+that a particular list of characters may fail to parse with some or all of
+the nonterminals.  Let's augment the grammar with some semantic actions:</p>
+<pre><code>meta E {
+  dig ::=  '0' | ... | '9';
+  num ::=  &lt;dig&gt;+:ds           =&gt; number ds;
+  fac ::=  &lt;num&gt;:x '*' &lt;fac&gt;:y =&gt; x * y
+         | &lt;num&gt;;
+  exp ::=  &lt;fac&gt;:x '+' &lt;exp&gt;:y =&gt; x + y
+         | &lt;fac&gt;;
+}
+</code></pre>
+<p>(I'm assuming a <code>number</code> function from a list of characters to a number.)</p>
+<p>So when we ask for the <code>fac</code> "view" of the character stream, we're hoping to
+get a number --- and also, implicitly, the rest of the stream after the
+parsed-out factor.  In Wadler's notation, borrowing from OCaml where
+necessary:</p>
+<pre><code>view fac ::= Fac int * char list
+  in Num (x, '*' :: Fac(y, rest)) = Fac(x * y, rest)
+  in Num (x, rest)                = Fac(x, rest)
+</code></pre>
+<p>(I've omitted the <code>out</code> clause because it's not relevant to the problem of
+parsing.)  If the grammar were more OCaml-like, I think it would look like
+this.  (Incomplete matches are considered bad style in OCaml, and the
+compiler warns about them.)</p>
+<pre><code>view fac = Fac of int * char list
+  in Num (x, '*' :: Fac(y, rest)) -&gt; Fac(x * y, rest)
+   | Num (x, rest)                -&gt; Fac(x, rest) ;;
+</code></pre>
+<p>The theory here is that if neither <code>in</code> clause matches, then the attempt to
+view a list of characters as a <code>fac</code> will fail to pattern-match, which may
+cause backtracking of outer parses.  In this syntax, it is only two and a
+half times as long as the rule in the OMeta-style grammar above.</p>
+<p>The <code>+</code> notation causes a little bit of trouble; it's syntactic sugar.  We
+can write out a desugared form as follows:</p>
+<pre><code>  num ::= &lt;digplus&gt;:ds -&gt; number ds;
+  digplus ::= &lt;dig&gt;:x &lt;digplus&gt;:y =&gt; x :: y
+            | &lt;dig&gt;:x             =&gt; [x];
+</code></pre>
+<p>Here are the other nonterminals in this grammar, in the OCamly notation:</p>
+<pre><code>view dig = Dig of char * char list
+  in c :: t when '0' &lt;= c &amp;&amp; c &lt;= '9' -&gt; Dig (c, t) ;;
+view num = Num of int * char list
+  in Digplus (ds, rest)               -&gt; Num (number ds, rest) ;;
+view digplus = Digplus of char list * char list
+  in Dig (x, Digplus (y, rest))       -&gt; Digplus (x :: y, rest)
+   | Dig (x, rest)                    -&gt; Digplus ([x], rest) ;;
+view exp = Exp of int * char list
+  in Fac(x, '+' :: Exp(y, rest))      -&gt; Exp(x + y, rest)
+   | Fac(x, rest)                     -&gt; Exp(x, rest) ;;
+</code></pre>
+<p>And I think there you have the parser and expression evaluator, in a
+hypothetical extension of OCaml.  Although this is several times wordier
+than the OMeta version above, it's several times more concise than the
+Haskell version in Ford's thesis.  It's missing a bit of syntactic sugar,
+resulting in nested parentheses, unnecessary type definitions, redundant
+default cases, and explicit passing-around of the <code>rest</code> parameter, but it's
+much of the way there.  ...</p>
+<p>You might think that all of these nonterminals should be part of a single
+view <code>E</code>, but the normal case in OCaml and the other languages Wadler was
+thinking about that support pattern-matching is that the variants of a sum
+type are disjoint, which generally allows the compiler to tell you if you've
+missed a case in your case analysis.  So here each one is a separate "type".</p>
+<p>OMeta introduces four major extensions over normal PEGs:</p>
+<ul>
+<li>you're not limited to pattern-matching on streams of bytes or characters;</li>
+<li>there are ways to pass more arguments that weren't in the original input
+  to nonterminals;</li>
+<li>guard clauses on patterns;</li>
+<li>you can subclass grammars.</li>
+</ul>
+<p>Of course, if you have a functional programming language with
+pattern-matching, you have the first three of these four already.</p>
+<h2>Views in terms of OMeta</h2>
+<p>So if OMeta "contains views", can we write Wadler's other examples of uses
+of "views" in a reasonably homeomorphic way in OMeta?</p>
+<h2>PEG Parsing and Object-Oriented Equational Rewrite Rules</h2>
+<p>My unimplemented <a href="http://lists.canonical.org/pipermail/kragen-tol/2007-March/000855.html">object-oriented equational rewrite rules</a> language
+supports views quite straightforwardly and concisely. ...</p>
+<h2>PEG parsing and Bicicleta</h2>
+<p>Bicicleta, although it doesn't have pattern-matching, does have "views" in
+the sense that accessing data that's stored inside a data structure looks
+the same as accessing data that's computed on the fly.  This is also a
+feature of Self and Forth....</p>
+<p>, and
+also contains a sort of notion of failure, which I believe can be
+implemented entirely outside of the core language itself --- it merely
+requires overloading the infix !!  operator differently on non-error objects
+and error objects.</p>
+<p>So I suspect that OMeta's simplistic notion of failure (it doesn't do
+general backtracking) should be fairly straightforward to implement in
+Bicicleta with an overloaded '/' operator, something like this:</p>
+<pre><code>parsed = {self:
+    '/' = {op: '()' = self}
+}
+parse_failure = ...
+</code></pre>
+<h2>References</h2>
+<p>Wadler's paper, "Views: a way for pattern matching to cohabit with data
+abstraction", was written in 1986 and published in 1987 in some ACM journal,
+pp.307--313.</p>
+<p><a href="http://wouter.fov120.com/aardappel/index.html" title="The Aardappel Concurrent Tree Space Transformation Language">Aardappel</a> is an experimental visual programming language designed by
+Wouter van Oortmerssen, with a novel concurrency primitive and a very simple
+side-effect-free subset used to describe sequential computation.</p>
+<p><a href="http://lists.canonical.org/pipermail/kragen-tol/2007-March/000855.html">Object-oriented equational rewrite rules</a> is a kragen-tol post I wrote in
+2007 about a slightly novel design for a pattern-matching programming
+language that natively incorporates views.  I wrote further on it in 2008 in
+<a href="http://lists.canonical.org/pipermail/kragen-tol/2008-February/000881.html">IRC bots with object-oriented equational rewrite rules</a>,
+which is <a href="../notes/funbot.html">IRC bots with object-oriented equational rewrite rules</a>.</p>
+<p><a href="http://www.cs.ucla.edu/~awarth/papers/dls07.pdf" title="OMeta: An Object-Oriented Language for Pattern Matching">OMeta</a>, by Alessandro Warth and Ian Piumarta, is a <a href="http://pdos.csail.mit.edu/~baford/packrat/" title="Bryan Ford's Packrat Parsing Page">PEG parsing</a> system
+generalized so that it can be used for a wider range of tasks.  To date it
+has been used for scanners, parsers, optimizers, code generators, network
+protocol implementations, and automated code inspections, among other
+things.  They published a paper about it in the Dynamic Language Symposium
+2007.</p>
+<p><a href="http://pdos.csail.mit.edu/~baford/packrat/" title="Bryan Ford's Packrat Parsing Page">PEG parsing</a> is a new parsing method invented by Bryan Ford in 2002,
+based on work from the late 1960s on Bob McClure's
+<a href="http://www.multicians.org/tmg.html">TMG</a> "TransMoGrifier" program.  It can
+parse a large set of languages, including some non-context-free languages
+but probably not including all context-free languages, supports scannerless
+one-level parsing well, and has a provably linear-time parsing algorithm
+called "packrat parsing", which uses a lot of memory.  It has its problems;
+the non-memory-hungry implementation can require exponential time, the
+absence of backtracking makes some languages more difficult to parse and
+presumably makes some languages impossible to parse, and the lack of support
+for left recursion in the basic algorithm is annoying (although Warth and
+buddies have a solution to this problem that I haven't read yet.)</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/parsing.html">Parsing</a> (15 notes)
+</li><li><a href="../topics/oo.html">Object-oriented programming</a> (10 notes)
+</li><li><a href="../topics/ocaml.html">OCaml</a> (8 notes)
+</li><li><a href="../topics/pegs.html">Parsing Expression Grammars (PEGs)</a> (4 notes)
+</li><li><a href="../topics/bicicleta.html">Bicicleta</a> (4 notes)
+</li><li><a href="../topics/ometa.html">OMeta</a> (3 notes)
+</li></ul></div></html>

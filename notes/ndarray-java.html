@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html><title>Ndarray java ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Ndarray java</h1><div class="metadata">Kragen Javier Sitaker, 2015-05-28
+(1 minute)</div><p>Different libraries for n-dimensional arrays in Java.  None seem to
+support memory-mapping the arrays to files.  What I really want is a
+minimal-overhead way to randomly access a giant column of index values
+written out by a now-dead process.</p>
+<p><a href="http://www.kdgregory.com/?page=java.byteBuffer">http://www.kdgregory.com/?page=java.byteBuffer</a> explains how to use
+java.nio.MappedByteBuffer.</p>
+<h2>Vectorz</h2>
+<p><a href="https://github.com/mikera/vectorz">https://github.com/mikera/vectorz</a></p>
+<p>“designed to allow the maximum performance possible for vector maths
+on the JVM”</p>
+<blockquote>
+<pre><code>Vector3 v=Vector3.of(1.0,2.0,3.0);      
+v.normalise();                       // normalise v to a unit vector
+Vector3 d=Vector3.of(10.0,0.0,0.0);     
+d.addMultiple(v, 5.0);               // d = d + (v * 5)
+</code></pre>
+</blockquote>
+<p>1 billion vector operations per second.  Has a Clojure interface.</p>
+<h2>Colt</h2>
+<p><a href="http://dst.lbl.gov/ACSSoftware/colt/api/cern/colt/matrix/package-summary.html#Overview">http://dst.lbl.gov/ACSSoftware/colt/api/cern/colt/matrix/package-summary.html#Overview</a></p>
+<p>“an infrastructure for scalable scientific and technical computing in
+Java. It is particularly useful in the domain of High Energy Physics
+at CERN”</p>
+<blockquote>
+<pre><code>double[] v1 = {0, 1, 2, 3}; 
+DoubleMatrix1D matrix = new DenseDoubleMatrix1D(v1);
+cern.jet.math.Functions F = cern.jet.math.Functions.functions;
+// Sum( x[i]*x[i] ) 
+System.out.println(matrix.aggregate(F.plus, F.square));
+</code></pre>
+</blockquote>
+<p>"...LU, QR, Cholesky, Eigenvalue, Singular value..."</p>
+<h2>ND4J</h2>
+<p><a href="http://nd4j.org/">http://nd4j.org/</a></p>
+<p>“a scientific computing library for the JVM. It is meant to be used in
+production environments rather than as a research tool...CUDA...API
+mimics the semantics of Numpy [and] Matlab”</p>
+<blockquote>
+<p>INDArray arr1 = Nd4j.create(new float[]{1,2,3,4},new int[]{2,2});
+   INDArray arr2 = ND4j.create(new float[]{5,6,7,8},new int[]{2,2});
+   arr1.addi(arr2);
+   System.out.println(arr1);</p>
+</blockquote>
+<p>Apparently this is the library used by DeepLearning4J.</p>
+<h2>LArray</h2>
+<p><a href="https://github.com/Ponnie/larray">https://github.com/Ponnie/larray</a></p>
+<p>Safely-unmappable memory-mapped files, including &gt;2GB, as arrays in
+Java, with map, filter, reduce, zip, etc.  But no n-dimensional
+arrays.</p>
+<h2>util-mmap</h2>
+<p><a href="http://engineering.indeed.com/blog/2015/02/memory-mapping-with-util-mmap/">http://engineering.indeed.com/blog/2015/02/memory-mapping-with-util-mmap/</a></p>
+<p>This is a replacement for java.nio.MappedByteBuffer that overcomes its
+2GB limit.  Also, supports little-endian.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/arrays.html">Arrays</a> (17 notes)
+</li><li><a href="../topics/java.html">Java</a> (5 notes)
+</li></ul></div></html>

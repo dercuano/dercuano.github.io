@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html><title>Patterns for failure-free, bounded-space, and bounded-time programming ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Patterns for failure-free, bounded-space, and bounded-time programming</h1><div class="metadata">Kragen Javier Sitaker, 2018-04-27 (updated 2019-09-10)
+(42 minutes)</div>
+<p>Often, the most convenient way to program a piece of software is to
+use garbage collection, recursion, and <a href="http://canonical.org/~kragen/memory-models">the Lisp object-graph memory
+model</a> they were born in, often along with closures and dynamic typing.
+But these approaches have their drawbacks: almost any part of your
+program can fail or require unbounded time to execute.  Sometimes it
+is useful to write programs that will not fail, even on a computer
+with finite memory, and will make progress in bounded time.  For
+example, if your user interface stops making progress, your computer
+becomes unusable, even if the rest of its software is working fine
+(see <a href="../notes/real-time-windowing.html">Real time windowing</a>); and, if the program on a
+microcontroller fails, there is often no sensible way for it to report
+failure, and physical processes it was controlling may run out of
+control, perhaps damaging equipment or killing some of the humans.</p>
+<p>The basic incompatibilities are the following:</p>
+<ul>
+<li>In the object-graph memory model, heap allocation happens often,
+  usually implicitly (although not in early versions of Java), can
+  always fail, and can almost always take an unbounded amount of time.</li>
+<li>Closures in particular — at least, the way they are normally
+  implemented — give rise to implicit heap allocation.</li>
+<li>Recursive function calls can potentially use both unbounded space
+  (for the stack) and unbounded time.  If you have no recursion and no
+  closures, you don’t strictly need a stack; it’s purely an
+  optimization.</li>
+<li>With dynamic typing, any primitive operation — and, in OO languages,
+  any method call — can fail due to a type error.</li>
+</ul>
+<p>Here I will discuss approaches that can be used to write programs that
+can execute in bounded time, bounded space, and without the
+possibility of error conditions arising.</p>
+<p>These approaches are usually used in contexts where system resources
+are very limited, and so they are usually used in conjunction with a
+lot of optimization, which can reduce both the average-case resource
+use and the worst-case resource use of the program.  However, they are
+conceptually distinct from optimization, even though they may be
+confused with it.</p>
+<h2>Static checking, including type checking</h2>
+<p>The most general technique is to check invariants before the program
+is run.  An invariant that is (correctly) verified to hold by static
+reasoning cannot be violated give rise to a run-time error.  For
+example, object-oriented programs in languages such as OCaml are
+guaranteed not to compile a method call on an object that might not
+support that method.  This is almost true in C++, but C++ has enough
+undefined behavior that it is in practice impossible to make any
+compile-time assertions about program behavior.</p>
+<p>Such static checking can happen after compile time as well as before.
+For example, for TinyOS, a stack depth checker was developed that
+statically verifies the maximum stack depth of a machine-code program.
+(See also <a href="../notes/direct-addressing.html">Techniques for, e.g., avoiding indexed-offset addressing on the 8080</a> for more on how to do this.)</p>
+<p>This generalizes to proving arbitrary properties of programs, as was
+done for CompCert and seL4.</p>
+<h2>Pointer-reversal tree traversal</h2>
+<p>Lisp systems traditionally used a mark-and-sweep garbage collector,
+which first <em>marks</em> all the nodes in memory that are accessible from
+“roots” (such as the stack or global variables), then <em>sweeps</em> through
+memory to find any unmarked objects, adding them to the free list.  A
+simple implementation of the mark phase that handles only conses might
+look something like this:</p>
+<pre><code>(defun gc-mark (node)
+  (when (and (consp node)
+             (not (eq (mark-field node) *collection-number*)))
+    (setf (mark-field node) *collection-number*)
+    (gc-mark (car node))
+    (gc-mark (cdr node))))
+</code></pre>
+<p>This is simple enough, but it sweeps a critical issue under the
+carpet: those recursive calls to <code>mark</code> eat up stack space.  How much
+stack space do they need?  Well, it can be as much as one level of
+stack for every live cons, if they’re all in a single list!  Normally
+traversing a tree through recursive calls like this is a reasonable
+thing to do, but this function is being invoked because the
+interpreter ran out of memory, except what it needs for the stack, and
+needs to free some up.  So statically bounding the stack usage, as
+mentioned in the previous item, would be really super useful.</p>
+<p>You might think we could rewrite it into a non-recursive loop:</p>
+<pre><code>(defun gc-mark (node)
+  (loop while (and (consp node)
+              (not (eq (mark-field node) *collection-number*)))
+     do (setf (mark-field node) *collection-number*)
+     do (gc-mark (car node))
+     do (setf node (cdr node))))
+</code></pre>
+<p>That way, if we have one huge long list <code>(a b c d ... zzz)</code>, we don’t
+eat up our stack recursing down it; each cons of the list gets
+processed in the same stack frame as the previous one.  But we still
+have a recursive loop which can still eat up space bounded only by the
+number of conses — it’s just that now it has to look like
+<code>(((((...zzz...)))))</code> instead.</p>
+<p>The fundamental problem is that every time we encounter a new cons, we
+encounter not one but two new pointers to follow, and so whichever
+path we choose to take, the number of paths not traveled by can always
+keep growing, one new path for each cons node we traverse.</p>
+<p>If we could only leave some sort of breadcrumbs in those conses in
+order to avoid needing to allocate that data on the stack!  Too bad
+they’re already full of essential data.</p>
+<p>Consider this implementation of NREVERSE for lists:</p>
+<pre><code>(defun nreverse (list)
+  (loop with next with reversed = nil
+     if (null list) return reversed
+     do (progn
+          (setf next (cdr list))
+          (setf (cdr list) reversed)
+          (setf reversed list)
+          (setf list next))))
+</code></pre>
+<p>It isn’t recursive and doesn’t allocate any memory other than its
+three local variables.  Nevertheless, <code>(nreverse (nreverse list))</code>
+will traverse the same list nodes twice, once forwards and once
+backwards, and it leaves them in the same state as before.  By
+reversing the pointers, it maintains the state it needs to traverse
+the list again in reverse order.</p>
+<p>This implementation of NREVERSE is a simple case of pointer-reversal
+tree traversal.  Where regular tree traversal maintains a single
+pointer to the current node, we maintain two pointers: the current
+node and the previous node.  (While executing a movement along the
+tree, we have an additional temporary pointer, called <code>next</code> above.)
+The previous node used to have a pointer to the current node, but no
+longer does; it now points to its own previous node instead.  It
+happens that the backward traversal in this case is precisely the same
+as the forward traversal, but that is not the case in general.</p>
+<p>To walk the whole tree, sometimes you’ll be descending down the left
+branch (the car) and sometimes down the right branch (the cdr).  That
+means that sometimes the previous node will have its car reversed and
+pointing to its parent, in which case when we return back up to it we
+want to descend down the cdr branch instead, and sometimes it will
+have its cdr reversed and pointing to its parent, in which case when
+we return back up to it we want to keep on returning back up to its
+parent.  To distinguish these two cases, we need to store that one bit
+of per-node state somewhere, just like the mark bit, and typically we
+use a bit somewhere in the node itself, though there are other
+options.  If you have three or four children on a node, you need two
+bits instead of one, and so on.  When you finish walking the tree, you
+have undone all your mutations.</p>
+<p>And that’s Deutsch–Schorr–Waite tree traversal, which needs only a bit
+per node in the worst case instead of a word per node.</p>
+<p>Deutsch–Schorr–Waite tree traversal is designed as a failure-free
+algorithm because, like most algorithms, garbage collection can only
+fail by running out of memory; but, in the GC case, that failure is an
+overwhelmingly likely outcome if you don’t make it impossible.</p>
+<p>You can use it for things other than garbage collection.  You can
+implement a binary-tree search function using Deutsch–Schorr–Waite
+traversal, for example; you just choose which child to recurse down by
+comparing the key, and when you’re traversing back up the tree, you
+always just go up to the parent, rather than sometimes traversing down
+to another child, as you do for garbage collection.  More
+interestingly, you can implement red-black tree insertion this way.</p>
+<p>Using it for DAG traversal may be hairier; GC uses the mark bit to
+avoid endlessly revisiting the same nodes, but other traversal
+algorithms may not be able to.</p>
+<p>An interesting thing about this traversal is that it’s achieved by
+using mutation instead of the usual side-effect-free algorithms to
+traverse the tree, because the alternative to storing the breadcrumbs
+with mutation is to allocate memory for them, and that introduces
+failure.  (See <a href="../notes/z-machine-ops.html">The Z-machine memory model</a> for some notes on a memory model
+that’s all about tree mutation and was at one point used by a
+significant number of hackers.)</p>
+<p>Of course, such a mutating tree traversal would be a disaster if it
+could be interrupted in the middle, for example, by an out-of-memory
+exception or a program interruption from the keyboard.  But since what
+we’re exploring here is precisely how to eliminate such exceptions
+from our system, we are justified in taking advantage of the benefits
+thus gained.</p>
+<p>Note that, in the above loop, the number of pointers to a given node
+remains constant, except for the ephemeral copy in <code>next</code>.  I think
+this is a necessary property of all such traversal algorithms on
+trees, which is to say, data structures with only a single pointer to
+each node; my reasoning is as follows.</p>
+<p>If the reference count of such a linearly-referenced node drops, it
+drops to zero, and the node leaks.  If you have a garbage collector,
+it may recover the node later, and you may be able to avoid turning a
+memory leak into an actual failure, but for reasons explained in the
+introduction, I don’t think garbage collection is likely to be
+compatible with failure-free computing.</p>
+<p>For the reference count of such a linearly-referenced node to
+increase, either it must be overwriting some other reference and
+decreasing its reference count, or it must be allocating new memory;
+neither of these is compatible with failure-free computing.</p>
+<p>(The potential hole in this reasoning is that it’s legitimate for the
+traversal algorithm to have some finite number of local variables like
+<code>next</code> above that potentially alias pointers found in nodes on the
+heap, but which may be the only access path to a node at some time.
+I’m not sure this is ever essential but I don’t have a strong argument
+that it isn’t.)</p>
+<p>Swap is an adequate primitive for expressing such arbitrary
+permutations of pointers, and it guarantees that no pointers are
+duplicated or destroyed.  The pointer permutation in the above
+NREVERSE loop could be thus expressed without temporary variables as
+follows, given a SWAPF analogous to SETF:</p>
+<pre><code>(swapf reversed (cdr list))
+(swapf list reversed)
+</code></pre>
+<p>However, I do not have faith that such a microscopic approach to
+eliminating failure can scale to a whole computing system.  In
+particular, a pointer cycle can be cut off from the rest of the object
+graph through such operations, and deciding whether or not that
+happens potentially requires whole-program analysis (or, worse,
+run-time whole-heap analysis).</p>
+<p>Note that this approach to tree traversal does not bound the time
+needed for a tree traversal, only the space, and indeed it prevents
+you from killing the traversal process after a timeout to bound the
+traversal time cheaply.</p>
+<p>(<a href="../notes/linear-trees.html">Linear trees</a> has more thoughts on this.)</p>
+<h2>Pagaltzis’s wall-following tree traversal</h2>
+<p>You can do flexible immutable tree traversals in constant space if the
+tree nodes have parent pointers.</p>
+<p>Aristotle Pagaltzis wrote the fascinating <a href="http://plasmasturm.org/log/453/">Tree traversal without
+recursion: the tree as a state
+machine</a> in 2007,
+describing an algorithm for traversing a binary tree in constant
+space, if each node has a parent pointer as well as the usual child
+pointers; <a href="https://news.ycombinator.com/item?id=20865561">HN user kofejnik pointed out</a> that the algorithm is
+equivalent to the standard wall-following maze algorithm, where you
+just keep your right hand on the right wall as you walk through the
+maze, so that whenever you re-enter a node with multiple exits, you
+exit through a new exit, your only state being your position and which
+way you’re facing.</p>
+<p>In summary, the next node and direction is either:</p>
+<ul>
+<li>the current node’s left child, traversing down, if you’re traversing down;</li>
+<li>the current node’s right child, traversing down, if you’re
+  traversing up and the previous node is the current node’s left
+  child; or</li>
+<li>the current node’s parent, traversing up, otherwise (when you’re
+  traversing up and the previous node is not the current node’s left
+  child; instead it will be the current node’s right child).</li>
+</ul>
+<p>This algorithm generalizes to general ordered tree traversal (you have
+to search through the child node pointers until you find the right
+one) and to cases where you don’t want to traverse the entire tree for
+things such as database index traversal — you just pretend to have
+traversed the subtrees of no interest.</p>
+<p>Pagaltzis pointed out in his article that, using node locks, the
+traversal can continue successfully even in the face of tree mutations
+as long as they don’t detach a non-leaf node.  But of course it won’t
+traverse a consistent snapshot of the tree, and node locks eliminate
+its failure-free, bounded-time nature.</p>
+<p>The Pagaltzis algorithm takes constant space and constant traversal
+time per tree node.  However, to put bounds on the Pagaltzis
+algorithm’s time to traverse the next leafnode — the metric of
+interest in many cases — you need to bound the depth of the tree,
+e.g., ensure that it doesn’t degenerate into a linked list.  If you
+can do that, though, you can also bound the space and time usage of a
+traditional recursive tree traversal.</p>
+<h2>Moving things in linked lists</h2>
+<p>Given an item <code>i</code> that is a member of a linked list and a place <code>p</code> in
+(the same or a different) linked list after which to insert it, you
+can move it to its new position in a failure-free, allocation-free,
+bounded-time fashion:</p>
+<pre><code>node *n = *i;
+*i = n-&gt;next;
+n-&gt;next = *p;
+*p = n;
+</code></pre>
+<p>This is similar to the pointer-reversal tree-traversal approach
+described in the previous section; the end result is that you have
+permuted the pointers at <code>n-&gt;next</code>, <code>p</code>, and <code>i</code>.  It is still
+failure-free even if <code>n-&gt;next</code> is a NULL pointer, but of course <code>p</code>
+and <code>i</code> must not be, and <code>i</code> must point to a node rather than null.</p>
+<p>This operation is very commonly used in contexts like operating-system
+schedulers, where you might use it to move a job between different
+mutually exclusive queues.  If one of the lists is a free list, this
+pattern becomes the next pattern, “fixed-size object pools”.</p>
+<h2>Fixed-size object pools</h2>
+<p>If a program may be called upon to store some arbitrarily large amount
+of data at once, it cannot be both failure-free and bounded-time;
+however large its memory is, there is always the possibility that it
+will be called upon to store more data than there exists storage on
+the computer it is running on, and then either it must fail, or it
+must wait until more storage becomes available.  So if a program is
+not bounded-space, it cannot execute failure-free in bounded time.</p>
+<p>However, if there is an up-front limit to the amount of data the
+program needs to manage, and it’s running on a computer with that much
+memory, it can be failure-free and bounded-time within that limit.
+Moreover, unless defeated by a too-clever-by-half operating system, it
+can verify that amount of memory is available at startup time — so it
+may fail to start up if running on a too-small machine, but then be
+failure-free thenceforth.</p>
+<p>Preallocated object pools are a standard strategy for keeping time
+bounds on execution in this context: if your game needs to handle up
+to, say, 64 sprites at a time, you can preallocate and perhaps even
+preinitialize 64 sprite data structures and make a linked list of
+them.  Then, whenever you need to allocate a new sprite, you grab the
+first node on that free list, a constant-time operation; to deallocate
+a sprite, you put it at the head of that list, also a constant-time
+operation.</p>
+<h2>Fixed-size queues to permit communication with non-failure-free systems</h2>
+<p>It’s quite common for a computer system to contain some parts that
+have to be failure-free and use bounded space and bounded time, and
+other parts that don’t; for example, a robot control system might
+contain one component that periodically toggles a pin to generate a
+waveform to control a servomotor, another component monitoring sensors
+and running a PID control algorithm that commands the first component
+what signal to emit, and a third motion-planning component that tells
+the PID control what set-point to use.  If the waveform generator
+misses its deadlines (a few hundred μs of error at most is acceptable;
+RC model servos use a 50Hz pulse-position-modulation signal with a
+pulse width of 500μs to 2500μs encoding the commanded position, so
+100μs of error is a 5% error), the waveform will have the wrong duty
+cycle, and the servomotor will receive the wrong command, possibly
+breaking the robot or a person near it.  If the PID control algorithm
+misses its deadlines (typically a few milliseconds), the control
+system will at least oscillate and possibly go out of control.  If the
+motion-planning algorithm runs slowly, though, the robot just takes
+longer to get things done.</p>
+<p>This gives you a lot of freedom to have failures and missed deadlines
+in your motion-planning algorithm, but not if they can propagate to
+the waveform generator or even the PID controller.  But clearly these
+components of the system need to communicate somehow.</p>
+<p>The simplest approach is for them to share an atomically-updated
+variable; in an analog system, this might be the voltage on a wire
+connecting two of the components, or if we’re running the PID
+controller on the same microcontroller that generates the waveform, a
+<code>volatile</code> variable written to by the PID controller process and read
+by an interrupt handler that generates the waveform, or an I/O
+register in a waveform-generation peripheral integrated into the
+microcontroller, like the AVR’s timer/counter modules.</p>
+<p>In the case of a <code>volatile</code> variable, though, we need to be careful of
+the danger of “torn reads”: perhaps you’re updating the value from
+0x00ff to 0x0100, but on an AVR, that update involves sequentially
+setting two different bytes of RAM.  If an interrupt handler runs
+between the two updates, it might see 0x0000 or 0x01ff and the robot
+might kill somebody.</p>
+<p>(The “variable” might be arbitrarily large; you can think of
+framebuffers as being such “variables” shared between the main program
+and the display hardware, or in the case of the Arduino TVout library,
+the interrupt handler that generates the video signal.  In this case
+“tearing” is manifested as on-screen “tearing” of images.)</p>
+<p>This is similar to the CRT ADC case for which Gray invented Gray code,
+and so in this case you could try using Gray code to limit the
+magnitude of the torn-read error, but there are other more general
+solutions.  One is to use a circular buffer to enqueue values to be
+communicated between components with different deadlines, a fixed-size
+queue that never blocks, in order to isolate failures within a given
+component.</p>
+<p>XXX include implementation</p>
+<p>This allows the PID component, for example, to isolate itself from
+failures in motion planning — if it goes to read messages from motion
+planning and none are there, it immediately gets a queue-empty
+message, a totally normal situation, and goes on about its business.
+Similarly, the waveform generator, if it has no new messages from the
+PID component, can go on about its business; and if there are
+interrupt handlers for the sensors feeding the PID controller, they
+too can add messages to a queue for it, not concerned about the PID
+controller’s lack of adherence to their deadlines.  If the queue gets
+full because the PID controller is failing, the sensor-reading
+messages will be lost, but the sensor-reading interrupt handler won’t
+itself fail.</p>
+<p>The same approach is essential in non-isochronous communication
+networks.  If a gateway receives packets on one or more input streams
+whose maximum total input bandwidth is A, and forwards those packets
+to one or more network interfaces whose total minimum guaranteed
+output bandwidth is B, then as long as A &gt; B, it needs a bounded-size
+queue for outbound packets, and may drop packets at times.  (Most
+commonly B = 0 because the common types of networks do not provide any
+guaranteed bandwidth.)</p>
+<h2>Anytime algorithms</h2>
+<p>“Anytime algorithms” or “interruptible algorithms” are a family of
+algorithms which can be interrupted at any time and get some kind of
+answer; if allowed to run longer, they can produce better answers.  In
+particular, iterative approximation algorithms, which produce a series
+of progressively closer approximations to a mathematically correct
+answer, can be used as anytime algorithms.</p>
+<p>For example, this Python implementation of the method of secants (from
+<a href="../notes/implementation-separation.html">Separating implementation, optimization, and proofs</a>; see also <a href="../notes/genetic-secants.html">Using the method of secants for general optimization</a>)
+is an anytime algorithm.  It tries
+to find a zero of the scalar function <code>f</code> starting from guesses <code>x0</code>
+and <code>x1</code>, which are in general vectors:</p>
+<pre><code>def sec_seq(f, x0, x1):
+    y = f(x0), f(x1)
+
+    while True:
+        yield x1
+        x0, x1 = x1, x1 - y[1]*(x1 - x0)/(y[1] - y[0])
+        y = y[1], f(x1)
+</code></pre>
+<p>After each iteration, <code>sec_seq</code> yields control back to the main
+program along with its current best solution; the main program can
+elect to resume it for another iteration or to accept that solution,
+either because it’s adequately precise, because it’s run out of time,
+or perhaps because a different approach to finding a zero is working
+better.  (CPython doesn’t allow us to prove tight bounds on the
+execution time of a single iteration, or to interrupt it either safely
+or in bounded time, but you could imagine a language that did; and, in
+some cases, even CPython’s loosey-goosey behavior will be good
+enough.)</p>
+<p>Anytime algorithms can exist in non-continuous domains, too — an
+optimizing compiler, for example, could reasonably work by
+constructing a correct but possibly slow compiled piece of code, then
+attempt various ways of optimizing it as long as there is time.</p>
+<h2>Mathematical optimization</h2>
+<p>A particular special case of anytime algorithms is the case of
+iterative mathematical optimization algorithms.  Optimization, in this
+sense, is the mathematical problem of calculating the minimum of a
+function; for example, the minimum of <em>x</em>² + <em>x</em> + 1 is at <em>x</em> = -½,
+which can be calculated in closed form; minima of more complex
+functions are more difficult to find, and often we settle for
+local-search results rather than finding the global minimum.</p>
+<p>In most cases, the objective is to reduce the function as low as
+possible, rather than rigorously guarantee that no other value is
+lower, and iterative optimization works by finding progressively lower
+and lower values.</p>
+<p>So, for example, in SKETCHPAD, while it’s <em>desirable</em> to satisfy the
+user’s drawing constraints as quickly as possible, it’s <em>necessary</em> to
+redraw the screen frequently in order to remain usable; so the
+relaxation procedure that seeks a satisfying value of the constraints
+runs a few steps before each screen redraw.</p>
+<p>Optimization is a fairly general approach to solving “inverse
+problems”, where we have a description of what properties a solution
+would have; optimization algorithms work especially well given a
+<em>fuzzy</em> description.</p>
+<h2>Constant-space representations</h2>
+<p>Traditional Lisps, Squeak, and newer versions of Python transparently
+overflow integer arithmetic into bignum arithmetic.  This has the
+advantage that the results of integer arithmetic operations are always
+correct, while in many other programming languages, they may be only
+approximate, or they may overflow, either crashing the program or
+producing dramatically incorrect results.</p>
+<p>However, this more common approach of producing approximate or
+dramatically incorrect results is often the price of failure-free,
+bounded-space, and bounded-time computation.</p>
+<p>In signed 16-bit arithmetic, for example, 32767 + 1 = -32768, and
+32767 + 3 = -32766; the first Ariane 5 rocket was destroyed by an
+arithmetic exception resulting from such an arithmetic overflow
+(though on a conversion from floating-point, rather than addition.)</p>
+<p>Floating-point, as used for integer arithmetic in particular in JS,
+gives incorrect results for most operations, though not all.  In
+64-bit IEEE-754 floating-point, integer arithmetic (except for
+division) is exact up to 2⁵³ = 9007199254740992.0; one result of this
+is that 9007199254740992.0 - 1 gives the correct result in most
+programming languages, while 9007199254740992.0 + 1 simply gives
+9007199254740992.0 again.  Under many circumstances, these errors are
+tolerable, although you can easily spend years on techniques to prove
+bounds on the errors in particular algorithms; and in many cases they
+produce results that are just wrong.</p>
+<p>But both two’s-complement integer arithmetic and floating-point
+arithmetic are usually constant-space and constant-time, and is often
+failure-free, although floating-point division by zero may produce a
+failure-free ±∞ value or, as in Python, an exception, depending on how
+things are configured; two’s-complement integer division by zero
+almost invariably produces some kind of exception.</p>
+<p>So what’s the disadvantage of defaulting to bignums?  Well, one of the
+first things I did with Squeak Morphic was to write an escape-time
+Mandelbrot-set renderer, but I had to set it to 16×16 pixels with a
+maximum number of iterations of about 10 or 12.  (The Mandelbrot set
+is the set of complex numbers <em>c</em> for which the recurrence <em>zᵢ</em> =
+<em>zᵢ</em>-₁² + <em>c</em> remains bounded rather than zooming off to infinity as
+<em>i</em> increases, starting at <em>z</em>₀ = 0; escape-time rendering colors each
+pixel according to the number of iterations of the recurrence needed
+to exceed some limit, usually |<em>z</em>| &gt; 2.)</p>
+<p>When I set my iteration limit to a more reasonable number, like 256 or
+100 or 30 or even 20, it took an unreasonably long time to render, or
+would hang completely.  I was mystified; why was Squeak so slow?</p>
+<p>A little investigation showed that the values of <em>c</em>, derived from
+dividing pixel positions by the width and height of the array,
+producing exact rational numbers; so, for example, <em>z</em>₄ = ((<em>c</em>² +
+<em>c</em>)² + <em>c</em>)² + <em>c</em> might involve calculating the eighth power of a
+number like 11/16, which is 214,358,881/4,294,967,296; but then <em>z</em>₅
+would include its 16th power, which is
+45,949,729,863,572,161/18,446,744,073,709,551,616; and so on.  So my
+little Mandelbrot-set renderer was taking time — and memory! — 
+<em>exponential</em> in the number of iterations.</p>
+<p>Using an exponential amount of time is bad enough, but using an
+exponential amount of memory guarantees that you’ll run out of memory
+before too many iterations.</p>
+<p>Adding a decimal point somewhere was sufficient to get Squeak to
+switch from using exact arithmetic to using floating-point arithmetic,
+and suddenly I could use thousands of pixels and thousands of
+iterations.</p>
+<p>So, constant-space arithmetic that doesn’t crash on overflow is a
+useful way to make your arithmetic bounded-space, bounded-time, and
+failure-free, in the sense of not crashing (because of running out of
+memory or for any other reason).</p>
+<p>More generally, if you are going to compute with some kind of entity,
+whether a number or not, in a failure-free fashion, you need to be
+able to represent it with a constant space bound, and usually in
+constant space.  If your representation uses unbounded space, you
+cannot guarantee that your program will not run out of memory.  (If it
+uses variable space with a constant bound, to get failure-free
+computing, you need to somehow ensure that space is always available
+when it needs to expand to its maximum size, which is feasible but
+usually more difficult than just always using the maximum size.)</p>
+<p>But constant-space arithmetic gives you the wrong answer some of the
+time, which you could consider a software failure, even if the
+software doesn’t consider it an “error condition arising”.  It is a
+widely shared observation that sometimes subtly wrong answers are
+worse than an outright failure, to the point that it’s one of the core
+design principles of Python.</p>
+<p>So, to use constant-space arithmetic without that danger, you need
+some extra care.  There are three basic approaches: numerical
+analysis, overflow-safe arithmetic, and self-validating arithmetic.</p>
+<h3>Numerical analysis</h3>
+<p>Numerical analysis consists of statically analyzing your software to
+prove that it doesn’t provoke the arithmetic errors inherent to
+constant-space arithmetic representations — in particular, the errors
+caused by the particular representation you’re using — or that, if it
+does, the errors are acceptably small.</p>
+<p>For standard C <code>signed</code> arithmetic, this involves statically ensuring
+that no overflow happens, because C <code>signed</code> arithmetic is undefined
+on overflow, which basically means that the compiler is free to break
+your program.  The simplest approach is to statically associate
+constant upper and lower bounds with every arithmetic expression in
+the program, but this works only in the simplest cases; it fails for
+any code containing nontrivial loops.  So, generally, you need to use
+bounds that are some kind of algebraic expression, rather than
+constants.</p>
+<p>For wrapping binary arithmetic such as C <code>unsigned</code> arithmetic and the
+two’s-complement arithmetic performed by CPUs when they are doing
+signed arithmetic, in many cases it isn’t necessary to ensure that
+intermediate quantities don’t overflow; it is only necessary to ensure
+that final results don’t overflow.  This is true for addition,
+subtraction, and I think multiplication, but not division; I think it
+is necessary that neither dividends nor divisors overflow.</p>
+<p>For floating-point arithmetic, it’s usually not a question of whether
+the result is correct — it’s not — but of computing bounds on its
+error.  The IEEE-754 standard guarantees that fundamental
+operations — +, -, ×, ÷, and perhaps surprisingly √ — are correct to
+within half an <a href="https://en.wikipedia.org/Unit_in_the_last_place">ulp</a>, but offers less stringent guarantees for
+other operations, including exp, ln, exponentiation, and trigonometric
+functions.</p>
+<h3>Overflow-safe arithmetic</h3>
+<h3>Self-validating arithmetic (e.g., interval arithmetic and affine arithmetic)</h3>
+<h2>The object-embedding memory model</h2>
+<p>The <a href="http://canonical.org/~kragen/memory-models">object-embedding memory model</a> eliminates certain failure modes
+from the object-graph memory model.  In its pure form, all allocation
+is static, so there is no chance of any allocation failure.  Embedded
+objects cannot be NULL, cannot be aliased (except via a pointer), and
+cannot be of the wrong type.</p>
+<p>I suspect that this is one of the reasons for the empirically-observed
+reliability of C programs — although C has lots of undefined behavior
+and provides ample ways for programmers to shoot themselves in the
+foot, introduce failure, and introduce unbounded time and unbounded
+space, much of a typical C program is not touching those bits of the
+language.  Although C has pointers, substantial parts of C programs
+use object embedding where programs in Java or Python would use
+pointers.</p>
+<h2>Records and sum types rather than arrays</h2>
+<p>Every time you index into an array (except with a constant index such
+as <code>a[0]</code>), you have a potential failure: the index may be outside the
+bounds of the array.  Typical static program analysis techniques are
+too weak to prove that this cannot happen.  In some cases this amounts
+to an allocation failure, as in the innumerable stack buffer-overflow
+bugs in 1990s C programs like NCSA httpd.</p>
+<p>By contrast, if you have a (non-nullable) pointer to a known type of
+record, accessing the fields of the record is statically safe; it is
+constant-time and cannot produce failures.  The pattern-matching
+approach used in ML allows this approach to extend to arbitrary
+Lisp-style object graphs; the compiler can statically verify that your
+pattern matching is exhaustive, statically ruling out run-time
+failures due to incomplete case analysis.</p>
+<h2>Arena allocators</h2>
+<p>If you allocate memory from an arena (or “region”, in MLKit’s term, or
+“pool”, in the terminology of the Apache APR library) that is all
+freed at once, you get constant-time allocation and constant-time
+deallocation.  To eliminate failure and bound time and space usage,
+you then must merely prove a worst-case bound on the allocation of the
+program, and allocate a bigger arena than that.</p>
+<h2>Functional iteration/concurrency</h2>
+<h2>Iteration protocols and per-array operations rather than array indexing</h2>
+<h2>Hard priority scheduling</h2>
+<h2>Wait-free and lock-free synchronization</h2>
+<p>Handling concurrency with locks or monitors introduces unwanted
+coupling between the time bounds of different processes: the
+worst-case execution time of code in a high-priority thread that needs
+to enter a monitor must include the time it needs to wait on whatever
+other thread might currently hold that monitor, which is to say, all
+code that can execute inside that monitor in any thread.  Priority
+inversion, where a thread holding a lock that is blocking a
+high-priority thread has to sleep while an intermediate-priority
+thread runs, is perhaps the most severe manifestation of this problem,
+but it is more general.</p>
+<p>Moreover, locks can produce deadlock, which results in a program
+failure; global analysis is required to rule deadlock out.</p>
+<p>Interrupt handlers never use locks, because there is no mechanism to
+put the interrupt handler to sleep until the main program releases the
+lock, then wake it back up again.  In some cases, the main program
+uses a lock (often with the big-hammer approach of disabling
+interrupts entirely) to lock out the interrupt handler entirely for a
+short time, but more generally, if the main program is doing something
+that an interrupt-handler execution might interfere with, it maintains
+the shared data in a consistent state the whole time, atomically
+committing its “transaction” at the end, typically with a
+compare-and-swap operation — a commitment which might fail if an
+interrupt handler ran in the meantime, requiring the main program to
+restart its transaction.</p>
+<p>This same approach works for multiple threads of a program
+concurrently updating a memory area.  It introduces a soft sort of
+failure — the need to retry a transaction — but, unlike locking
+protocols, it guarantees progress.  In combination with hard priority
+scheduling, it entirely prevents a lower-priority process from slowing
+down a higher-priority process by forcing it to wait.  However, the
+price is that if the lower-priority process can be forced to retry a
+transaction repeatedly, it can no longer guarantee time bounds on its
+execution.</p>
+<p>Lock-free and wait-free synchronization algorithms are notoriously
+difficult to implement correctly.</p>
+<h2>Bounded-time, failure-free restricted virtual machines</h2>
+<p>Earlier I discussed how fixed-size queues can firewall failures and
+unbounded delays from propagating from one domain into another,
+enabling more-sensitive domains to be failure-free and bounded-time
+while less-sensitive domains can be programmed in easier, more general
+ways.  But fixed-size queues can only support a certain kind of
+arm’s-length interaction; in many cases, more intimate levels of
+cooperation are desirable.</p>
+<p>Bitcoin Script, BPF, and BPF’s predecessor CSPF are loop-free virtual
+machines; a trusted virtual machine runs untrusted code in a
+timing-sensitive context (an interrupt handler in the case of BPF and
+CSPF!), which is safe only because the execution time is bounded by
+the script size.  This allows fast-and-loose code like tcpdump, or
+your half-assed shell script invoking it, to safely execute code in a
+kernel interrupt context.  And that’s damn cool.</p>
+<p>See <a href="../notes/wercam-scriptable-windows.html">Scriptable windowing for Wercam</a> for some thoughts on how to get a
+failure-free, bounded-time GUI with techniques like these.</p>
+<h2>Abstract interpretation with non-standard semantics</h2>
+<p>However, if you’re writing most of your program in something
+comfortable like JS or whatever, it’s going to feel pretty clumsy to
+have to write part of it in loop-free bytecode for a register machine.</p>
+<p>Consider the case of pubsub.  In the most general case, each
+subscriber has some Turing-complete filter function; you apply it to
+every message published to determine whether to deliver that message
+to that subscriber.  It’s often convenient to be able to run these
+filter functions in some kind of centralized message router, so that
+you don’t have to send messages across a network to a subscriber that
+is just going to ignore them.  But then, if the filter function uses
+unbounded space or time, the router might seize up.  (Or it might
+fail.)</p>
+<p>(There are some notes in <a href="../notes/fast-secure-pubsub.html">Fast secure pubsub</a> about how to do
+this by running the filter function in a transactional-memory-like
+sandbox.)</p>
+<p>So suppose you have such a client–server pub-sub system, with a client
+library in Python, and you give it this filter function:</p>
+<pre><code>def wanted(message):
+    if message.domain in whitelisted_domains:
+        return True
+    if message.length &gt; 8192 or message.domain in blacklisted_domains:
+        return False
+    return spamminess(message) &lt; spamminess_threshold
+</code></pre>
+<p>Python allows you to override attribute access and comparisons.  This
+allows you to write an object like this:</p>
+<pre><code>class Comparator(object):
+    def __init__(self, desc):
+        self.desc = desc
+
+    def __getattr__(self, attr):
+        return Comparator(self.desc + '.' + attr)
+
+    def __eq__(self, other):
+        print(self.desc, '==', other)
+        return False
+
+    def __gt__(self, other):
+        print(self.desc, '&gt;', other)
+        return False
+
+if __name__ == '__main__':
+    x = Comparator('x')
+    x.domain in 'this is an example'.split() or x.length &gt; 8192
+</code></pre>
+<p>When executed, this code prints:</p>
+<pre><code>x.domain == this
+x.domain == is
+x.domain == an
+x.domain == example
+x.length &gt; 8192
+</code></pre>
+<p>That is, the <code>x</code> object has access to each of the things it’s being
+compared with, and can choose the result of the comparison.  If you
+invoke the above <code>wanted</code> function with such a <code>Comparator</code> object, it
+might produce output like the following before, presumably, it crashes
+the <code>spamminess</code> function:</p>
+<pre><code>message.domain == gmail.com
+message.length &gt; 8192
+message.domain == godaddy.com
+</code></pre>
+<p>A slightly more sophisticated object could allow the caller to choose
+the results of the comparisons, in an effort to probe the tree of
+possible execution paths of the filter function.  In this case, it
+could determine that if the first comparison returns <code>True</code>, then the
+filter function returns <code>True</code>; if not, but the second or third one
+returns <code>True</code>, then the filter function returns <code>False</code>; and then
+perhaps the function goes off into further calculations which raise an
+exception and terminate the probing process.</p>
+<p>These observations permit the client library to compute a string of
+bytecode for the sort of restricted virtual machine described above, a
+bytecode function that calculates the same results as the filter
+function under some circumstances; this bytecode can then be sent to
+the server to prefilter the set of messages that get sent to the
+client.</p>
+<p>I’ve used Python’s operator overloading here because it’s convenient,
+but operator overloading is just a particularly simple way of doing
+abstract interpretation with nonstandard semantics, not the only way.
+It’s not even a particularly good way, in this case; it requires
+restarting the function from the beginning to explore each new
+execution path, and if <code>whitelisted_domains</code> is a <code>set</code> rather than a
+<code>list</code>, it fails silently.</p>
+<p>The key relationship here, though, is that the failure-free,
+bounded-time code for the virtual machine produces a conservative
+approximation of the result of the more unrestricted code for the
+unreliable, loosey-goosey CPython virtual machine.</p>
+<h2>Stream processing</h2><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/optimization.html">Mathematical optimization</a> (29 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/latency.html">Latency</a> (19 notes)
+</li><li><a href="../topics/memory-models.html">Memory models</a> (13 notes)
+</li><li><a href="../topics/program-design.html">Program design</a> (11 notes)
+</li><li><a href="../topics/oo.html">Object-oriented programming</a> (10 notes)
+</li><li><a href="../topics/failure-free.html">Failure-free computing</a> (10 notes)
+</li><li><a href="../topics/lisp.html">Lisp</a> (9 notes)
+</li><li><a href="../topics/concurrency.html">Concurrency</a> (9 notes)
+</li><li><a href="../topics/pubsub.html">Pubsub</a> (7 notes)
+</li><li><a href="../topics/formal-methods.html">Formal methods</a> (7 notes)
+</li><li><a href="../topics/anytime-algorithms.html">Anytime algorithms</a> (7 notes)
+</li><li><a href="../topics/types.html">Types</a> (5 notes)
+</li></ul></div></html>

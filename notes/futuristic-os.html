@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html><title>What does a futuristic OS look like? ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>What does a futuristic OS look like?</h1><div class="metadata">Kragen Javier Sitaker, 2017-08-18 (updated 2019-05-05)
+(6 minutes)</div><p>I was just looking at the screenshot of
+<a href="http://www.helenos.org/">HelenOS</a> at
+<a href="http://www.helenos.org/chrome/site/screenshot.png">http://www.helenos.org/chrome/site/screenshot.png</a>, and it occurred
+to me that it’s a bit clichéd.</p>
+<h2>Hobbyist OS clichés that look outdated</h2>
+<p>I mean, the reasons HelenOS is
+supposedly interesting aren’t capable of being shown in a screenshot
+at all.  But here’s a sort of checklist/bingo card of things that look
+“outdated”:</p>
+<ol>
+<li>Fixed-width fonts everywhere.</li>
+<li>Big title bars on all the windows.</li>
+<li>A rotated rectangular window.</li>
+<li>Flat-shaded buttons (and everything) with no texture and no
+   gradient.  I mean, Arena had texture on its backgrounds
+   in 1994. All our displays are TrueColor now.  No physical objects have
+   no texture and no gradient.</li>
+<li>ASCII-art tables (in the top display).</li>
+<li>A restricted color palette that nevertheless includes a diversity
+   of saturated colors.</li>
+</ol>
+<p>There’s a lot of hobbyist-OS work that kind of looks like that
+actually.  I’m looking at a TempleOS screenshot that
+hits #1, #2, #4, #5, and #6;
+it’s mostly fixed-width text on a white background, even
+the window borders; of the I think 59 lines of text on the screen,
+about 5 (8%) are taken up by window borders and titlebars; the text is
+in white, magenta, red, green, dark blue, light blue, and yellow; the
+filesystem directory and the hotkey menu are both ASCII-art tables.
+(TempleOS additionally has many aesthetic problems: very wide borders,
+640×480×16, color boundaries that butt up right next to text and
+impair readability, low-contrast color choices, underlining, and a
+profoundly ugly font, among others.)</p>
+<p>ColorForth screenshots I find have fixed-width text in red, green,
+yellow, white, and blue on a plain black background,
+hitting #1, #4, #6, and arguably #5.</p>
+<p>The Toledo family’s Fénix operating system and Biyubi web browser is
+an effort that seems mostly to have escaped this, though it still
+suffers from #2.</p>
+<p>Oberon suffers from none of these except #4.</p>
+<h2>Hollywood “futuristic” UI clichés</h2>
+<p>There’s a separate set of clichés in Hollywood depictions of
+“futuristic” user interfaces, some of which are due to constraints of
+filming:</p>
+<ol>
+<li>Transparent screens.</li>
+<li>Giant flashing error messages, and more egregiously, non-error
+   messages: “INTERCEPTING SIGNAL”,
+   “&gt;&gt;SEARCHING_ALL_LIBRARY_ARCHIVES”, “QUERY COMPLETE”.</li>
+<li>Lots of “cool” slide transitions and animations, including lots of
+   three-dimensional rotations and progressive delays.  Things rarely
+   just blink into or out of view; instead we have progressive display
+   on even the simplest of data, such as monospace hex dumps or even
+   individual people’s names, as if we were receiving it over a
+   1200-baud modem.</li>
+<li>Bright-on-dark text, but never in monospace except to show that the
+   user is a data vandal.</li>
+<li>Bright-on-dark vector drawings, including lots of wireframes.</li>
+<li>Radial menus.  Radial and circular layouts wherever possible,
+   really.  This is sort of a callback to “high-tech” products of the
+   19th and 20th centuries made by lathing steel and brass.</li>
+<li>Touchscreens and voice interfaces.</li>
+<li>Lots of capital letters.</li>
+<li>Holographic displays.</li>
+<li>Textures, animation, and translucency everywhere.  Incessant
+    animation.</li>
+<li>Lots of 3-D interfaces and zooming.  “This is Unix!  I know this!”</li>
+<li>Rectangular grids.</li>
+<li>Great text size variation to focus viewer attention on the most
+    important part, like that used in machine tool DROs.</li>
+<li>Windows with tabs in funny places.</li>
+<li>Random patterns of dots linked into a Delaunay triangulation or
+    something similar, all bright on a dark background, maybe with
+    some of the triangles filled with translucent bright.</li>
+<li>Sound effects, especially square-wave beeps.</li>
+<li>Constant, instant responsivity, even of partial results.</li>
+<li>Lots of primary colors, and things changing color over time.</li>
+<li>Roundrects, perhaps with a bit of rotation.</li>
+<li>Lots of text windows that look more like chyrons than anything
+    else.</li>
+<li>Gestural interfaces.</li>
+<li>Lots of photos, often with strange clipping paths around them,
+    often reminiscent of punched cards.</li>
+<li>Visible pixelation and glitches.  Things flickering into or out of
+    visibility.</li>
+<li>Hershey-ish monoline fonts.  Old movies often used MCR characters.</li>
+<li>Dotted lines.</li>
+<li>Crosshatch shading (usually light on dark).</li>
+<li>Bright-on-dark displays, especially with cyan glows (the ZnS:Cu
+    color of an analog oscilloscope screen; sometimes the green
+    oscilloscope color is also seen).  Fairly sparse color schemes,
+    mostly varying in the intensity of a small number of
+    hue-saturation settings, usually not very saturated.  (ZnS:Cu cyan
+    is not very saturated.)</li>
+<li>Bright-on-dark color schemes in general.</li>
+<li>Lots of numbers and graphs.</li>
+<li>Callouts, like on a mechanical drawing — with a leader connecting
+    some text to a point in a drawing.</li>
+<li>Ripples expanding from things.</li>
+<li>Targeting crosshairs.</li>
+<li>Lots of non-convex polygons whose sides are lines at multiples of
+    45°, often looking kind of like punched cards.</li>
+<li>“Scientific” information: the Earth, the Periodic Table, chemical
+    diagrams, DNA double helices.</li>
+</ol>
+<p>Some of these are actually good ideas.  Some are instead chosen to
+make things look foreboding, scary, “futuristic”, intimidating,
+advanced, and so on; others are simply imitations of previous films.
+<a href="https://scifiinterfaces.com/2017/05/24/an-interview-with-mark-coleran/">As Christopher Noessel
+says</a>,
+“This is the fundamental problem of the idea of sci-fi interfaces,
+they’re not interfaces. What they are are <em>plot
+visualizations</em>. They’re there to illustrate, or demonstrate something
+happening, or something that has happened.”  Some are not currently
+achievable.  Some are actually packs of prepackaged effects, like the
+Cybertech HUD Infographic Pack template for After Effects.</p>
+<p><a href="https://ux.stackexchange.com/questions/998/interesting-user-interfaces-from-sci-fi-movies-tv">A UX StackExchange
+question</a>
+goes into more details.  There’s a whole category of “FUI” or
+“fictional user interface” videos on YouTube, too.</p>
+<p>See also <a href="../notes/window-systems.html">Window systems</a>.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/independence.html">Independence</a> (63 notes)
+</li><li><a href="../topics/guis.html">Graphical user interfaces</a> (23 notes)
+</li><li><a href="../topics/operating-systems.html">Operating systems</a> (18 notes)
+</li><li><a href="../topics/terminals.html">Terminals</a> (6 notes)
+</li><li><a href="../topics/oberon.html">Oberon</a> (3 notes)
+</li><li><a href="../topics/toledo-family.html">Toledo family</a> (2 notes)
+</li></ul></div></html>

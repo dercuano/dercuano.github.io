@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html><title>Leconscrip: a family of JS subsets for BubbleOS ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Leconscrip: a family of JS subsets for BubbleOS</h1><div class="metadata">Kragen Javier Sitaker, 2018-11-23
+(2 minutes)</div><p>Leconscrip is a family of languages for implementing BubbleOS (see
+<a href="../notes/bubbleos.html">Speculative plans for BubbleOS</a>).</p>
+<p>It’s mostly a subset of JS, since that eliminates unnecessary
+syntactic obstacles.  But it’s implemented as a series of levels.</p>
+<h2>Leconscrip level 0: Lecon</h2>
+<p>Lecon is nearly the lowest programming level at which it makes sense
+to use JS syntax at all; it’s barely above the assembly level.  It has
+recursive functions with global and local <code>let</code> variables, assignment,
+integers, <code>if</code>, <code>while</code>, binary <code>+</code>, <code>-</code>, <code>*</code>, <code>%</code>, <code>&amp;</code>, <code>|</code>, <code>^</code>, and
+arrays of integers.  The arrays must be defined with the syntax <code>let x
+= Array(k)</code>, where <code>k</code> is a compile-time constant.  Expressions are
+only permitted as the right operand of a variable initialization or
+assignment.  It doesn’t support closures, objects, object references,
+or <code>for</code> loops.  Functions can return integers.  Identifiers are
+limited to two characters.  Semicolons are required.  I/O is done with
+<code>read</code> and <code>write</code> functions on arrays of integers representing bytes.</p>
+<p>Variables are of three types: arrays, integers, or functions.  Type
+inference is used; only arrays can be indexed, only integers can be
+indexes or participate in arithmetic, and only functions can be
+called.  Parameters can be arrays or functions.</p>
+<p>Because Lecon doesn’t directly permit runtime allocation, it is (in
+conjunction with a stack-depth checker) suitable for functions in
+which failure is not an option.</p>
+<p>Here’s the whole grammar, bottom-up, as a PEG.</p>
+<pre><code>_ &lt;- (` ` / `\t` / `\n`)*.
+LP &lt;- `(` _.
+RP &lt;- `)` _.
+LB &lt;- `{` _.
+RB &lt;- `}` _.
+LS &lt;- `[` _.
+RS &lt;- `]` _.
+EQ &lt;- `=` _.
+C &lt;- `,` _.
+S &lt;- `;` _.
+
+literal &lt;- [0-9]+ _.
+name &lt;- [A-Za-z] ([A-Za-z0-9] / ) _.
+atom &lt;- name / literal.
+op &lt;- [-+*%&amp;|^] _.
+
+aparams &lt;- atom (C aparams / ) / .
+fparams &lt;- name (C fparams / ) / .
+
+call &lt;- atom LP aparams RP.
+expr &lt;- atom op atom / atom LS atom RS / atom.
+assign &lt;- name EQ expr.
+decl &lt;- name EQ `Array` _ LP literal RP / assign.
+decls &lt;- decl (C decls / ).
+
+return &lt;- `return` _ atom.
+let &lt;- `let` _ decls.
+
+block &lt;- LB statement* RB.
+if &lt;- `if` _ LP atom RP statement.
+while &lt;- `while` _ LP atom RP statement.
+statement &lt;- block / (let / return / if / while / assign / call) S.
+
+func &lt;- `function` _ name LP fparams RP LB statement* RB.
+
+prog &lt;- func*.
+</code></pre><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/bubbleos.html">BubbleOS</a> (17 notes)
+</li></ul></div></html>

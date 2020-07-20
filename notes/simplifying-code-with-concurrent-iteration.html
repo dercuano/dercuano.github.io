@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html><title>Simplifying code with concurrent iteration ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Simplifying code with concurrent iteration</h1><div class="metadata">Kragen Javier Sitaker, 2014-04-24
+(2 minutes)</div><p>An observation from Unix is that it's often more convenient to
+structure a computation as a set of concurrent processes, each
+applying some simple transformation to one or more data streams, than
+to force everything into a single thread.</p>
+<p>I'm observing this right now in a $work project that is scraping data
+from a server, respecting API rate limits, where the explicit state
+machine that handles API errors is gradually getting more and more
+complicated.  In a well-structured program, this state machine would
+be written as a composition of primitive actions using sequences,
+conditionals, and iteration, with the state of the state machine
+encoded in the program counter; but since each API response from the
+server is handled by a callback function, this is not straightforward.</p>
+<p>A simple way to handle this is to spawn off a separate thread that has
+a blocking proxy object for the API.  When it calls a method on the
+blocking proxy object, this sends a message to the server (via the
+callback thread if necessary) and waits until the callback thread gets
+a response, either success, error, or if necessary, a timeout.  Then I
+can write my retry and looping logic in this other thread using normal
+structured control flow and block-structured local variables, instead
+of a passel of boolean variables and suchlike.</p>
+<p>This would work well on this project, where I have just one thread —
+although I'm probably not going to do it, because I don't expect to
+modify that code enough more to justify such a rewrite — but there are
+some practical memory difficulties with large numbers of threads.</p>
+<h2>OUTLINE</h2>
+<ul>
+<li>fixed-size stacks (ref to previous thingy)</li>
+<li>Io language</li>
+<li>ref to previous thingy about low-level iteration</li>
+<li>threading to avoid buffering (connection to SAX)</li>
+<li>variable-size thread contexts</li>
+<li>merging with CPS sequence push</li>
+</ul><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/program-design.html">Program design</a> (11 notes)
+</li><li><a href="../topics/concurrency.html">Concurrency</a> (9 notes)
+</li></ul></div></html>

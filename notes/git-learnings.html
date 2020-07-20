@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html><title>Git learnings ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Git learnings</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(3 minutes)</div><p>Here are the top few things I learned about Git, mostly in the first
+few hours I used it.  This is the document I wished I had had, on top
+of the various introductions floating around.  Maybe it will be useful
+to somebody else.</p>
+<ol>
+<li>
+<p>Git handles 400MB of HTML crawl data less gracefully than it
+    handles 700K of Python.  But it handles that data more gracefully
+    than <code>cp</code> and <code>rsync</code> do.</p>
+</li>
+<li>
+<p>Don't <code>git push</code> to a repository that actually has a work area.
+    Always use <code>git pull</code> instead.  <code>git push</code> doesn't update the
+    associated working area, or the index either, so if you try to <code>git
+    commit</code> in that repository, you will commit a patch that undoes all
+    the stuff you just did.  See
+    <a href="http://utsl.gen.nz/talks/git-svn/intro.html">http://utsl.gen.nz/talks/git-svn/intro.html</a> section "Push changes
+    and the working copy".  You can solve this with <code>git reset --mixed
+    HEAD</code>, or eventually <code>git reset --hard HEAD</code> to throw away any
+    changes in the working area.</p>
+<pre><code>23:05 &lt; johnw&gt; $ rsync -av .git/ server:/tmp/foo.git/ ; cd /tmp ; git clone ssh://server/tmp/foo.git
+23:06 &lt; johnw&gt; that's all you need to setup a remote repository, and to start using it right away
+</code></pre>
+</li>
+<li>
+<p><code>git repack -a -d -f</code> can achieve some truly astonishing
+    compression ratios.  This is how you make git checkouts faster than
+    <code>cp -a</code> or <code>rsync</code>.  In my case, three times faster than <code>rsync</code>
+    over a slow network, due to a 7:1 compression ratio.</p>
+</li>
+<li>
+<p>You have to <code>git add</code> changed files before you can <code>git commit</code>
+    them, or use <code>git commit -a</code>, because <code>git commit</code> commits things
+    from the index, not your work area.  In older versions of Git, you
+    used <code>git update-index</code> instead of <code>git add</code> on changed files.</p>
+</li>
+<li>
+<p><code>git commit</code> takes an option <code>--amend</code> which lets you amend the
+    previous commit.  <code>git rebase --interactive</code> lets you amend
+    previous commits in general.  Both of these don't really work if
+    you've shared the commits with someone else.</p>
+</li>
+<li>
+<p><code>git clone -l</code> makes a hardlinked clone.  (This is default in newer
+    versions of Git.  It's another factor in making git checkouts fast.)</p>
+</li>
+<li>
+<p>git has early-stage support for something called "submodules" in
+    recent versions, similar to <code>svn:externals</code>.  And there's an
+    in-development <code>git hunk-commit</code> command that might end up in git
+    someday that should add most of Darcs's UI niceness to git,
+    although <code>git gui</code> or <code>git add --interactive</code> get you partway
+    there already.
+    <a href="http://raphael.slinckx.net/files/git-darcs-record">http://raphael.slinckx.net/files/git-darcs-record</a></p>
+<blockquote>
+<p>02:38 &lt; twb&gt; I found git commit --interactive pretty confusing.<br />
+02:39 &lt; andreaja&gt; twb: I prefer to use git add -p</p>
+</blockquote>
+</li>
+<li>
+<p>If you try to <code>git pull</code> when you have un-checked-in changes,
+    <code>git</code> will complain with an unhelpful error message.  Check in the
+    changes or <code>git stash</code> them before you pull.</p>
+</li>
+</ol>
+<p>I took the first 125 563 056 bytes of my mailbox and compressed them
+into 59M with git.  However, git (1.4) doesn't seem to work very well
+with multi-gigabyte quantities.</p>
+<p>If you're using the Git 1.4 from Debian Stable, you'll want to know to
+use <code>init-db</code> instead of <code>init</code>, <code>repo-config</code> instead of <code>config</code>,
+and often <code>update-index</code> instead of <code>add</code>.</p>
+<p><a href="http://cheat.errtheblog.com/s/git">http://cheat.errtheblog.com/s/git</a>
+<a href="http://www-cs-students.stanford.edu/~blynn/gitmagic/">http://www-cs-students.stanford.edu/~blynn/gitmagic/</a></p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/compression.html">Compression</a> (28 notes)
+</li><li><a href="../topics/git.html">Git</a> (5 notes)
+</li></ul></div></html>

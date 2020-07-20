@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html><title>A survey of small TCP/IP implementations ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>A survey of small TCP/IP implementations</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(4 minutes)</div><h2>Implementations</h2>
+<p>There are a few small TCP/IP implementations out there.  Most
+recently, the Viewpoints Research Institute "STEPS toward the
+reinvention of programming" project has just done a "TinyTCP",
+including IP and TCP. [0] Although they claim it is "well under 200
+lines of code" and provide some details about implementation
+techniques, it looks larger to me; see the section "TinyTCP" for
+details.</p>
+<p>There have been a number of small TCP/IP implementations before.  Adam
+Dunkels's 2001 "Miniweb", which is proprietary [1], supposedly
+implements a more or less working TCP, IP, and web server in about 400
+lines of C.</p>
+<p>Later, Dunkels wrote "uIP" and "lwIP", for "microIP" and "lightweight
+IP", which are complete and supposedly correct implementations of ARP,
+IP, UDP, and TCP. [2]</p>
+<h2>TinyTCP</h2>
+<p>I checked out TinyTCP r400 from Subversion:</p>
+<pre><code>svn co http://piumarta.com/svn2/idst/trunk/function/examples/tcp/
+</code></pre>
+<p>In the resulting directory, I counted the number of unique source lines:</p>
+<pre><code>cat *.k *.st | sort -u | wc -l
+</code></pre>
+<p>It counted 1270 lines of code, not "well under 200" as claimed.
+However, this includes the following (the listing is hand-annotated):</p>
+<pre><code>$ for x in *.k *.st; do printf "%30s " "$x"; sort -u "$x" | wc -l ; done
+                    boot.k 152 construct the default environment (C iface)
+                net-icmp.k 25  ICMP implementation
+                  net-if.k 19  network pseudo interface
+                  net-ip.k 62  the IP implementation
+                 net-tcp.k 81  TCP packet structure
+              quasiquote.k 53  quasiquotation as userland syntax
+               structure.k 87  the packet structure ASCII art parser
+                    tcp2.k 78  TCP state machine, daytime, http
+                     tcp.k 47  smaller version of the above
+         Match-printing.st 74  COLA Smalltalk PEG parsing
+                  Match.st 221 more COLA Smalltalk PEG parsing
+ NetworkPseudoInterface.st 108 TUN/TAP network interface in C and Smalltalk
+                  parse.st 275 more PEG parsing
+            ParseStream.st 120 more PEG parsing
+</code></pre>
+<p>So the part that specifically pertains to TCP/IP, and not a particular
+network interface, or the system as a whole, and that isn't
+duplicative, is much smaller:</p>
+<pre><code>$ sort -u net-icmp.k net-ip.k net-tcp.k structure.k tcp2.k | wc -l
+311
+</code></pre>
+<p>A bit over 311 lines of code.</p>
+<h2>TCP Wrinkles</h2>
+<p>TCP itself is defined in RFC 793, STD 7 [3], which dates from 1981.
+But a number of problems have been discovered in TCP since then and
+worked around.</p>
+<p>There's a full list of the specification documents in RFC 4614 [4]</p>
+<p>RFC 896: where the term "congestion collapse" comes from.</p>
+<p>http://64.233.169.104/search?q=cache:LGoJzUQCXH8J:www.welzl.at/research/publications/q2s-ntnu-2006-tcp.ppt+slow+start+nagle+syn+cookies&amp;hl=en&amp;ct=clnk&amp;cd=10</p>
+<p>"Requirements for Internet Hosts -- Communication Layers"</p>
+<blockquote>
+<p>http://tools.ietf.org/html/rfc1122</p>
+</blockquote>
+<p>"Known TCP Implementation Problems"</p>
+<blockquote>
+<p>http://www.faqs.org/rfcs/rfc2525.html
+http://tools.ietf.org/html/rfc2525</p>
+</blockquote>
+<p>Slow start.</p>
+<p>Congestion avoidance.  Increase congestion window by at most one
+segment per RTT.</p>
+<blockquote>
+<p>http://tools.ietf.org/html/rfc2581 (TCP Congestion Control)
+(explains fast retransmit and fast recovery)</p>
+</blockquote>
+<p>RTT estimation: Jacobson's algorithm.</p>
+<blockquote>
+<p>http://tools.ietf.org/html/rfc2988 (Computing TCP's Retransmission Timer, 2000)</p>
+</blockquote>
+<p>Jacobson, V. and M. Karels, "Congestion Avoidance and
+Control", </p>
+<blockquote>
+<p>ftp://ftp.ee.lbl.gov/papers/congavoid.ps.Z.</p>
+</blockquote>
+<p>Karn's algorithm.</p>
+<blockquote>
+<p>http://en.wikipedia.org/wiki/Karn's_Algorithm</p>
+</blockquote>
+<p>SYN cookies.</p>
+<blockquote>
+<p>http://cr.yp.to/syncookies.html
+http://cr.yp.to/syncookies/archive</p>
+</blockquote>
+<p>Fast retransmit.</p>
+<p>Fast recovery.</p>
+<p>Nagle.</p>
+<p>Hard-to-predict initial sequence numbers.</p>
+<blockquote>
+<p>http://www.faqs.org/rfcs/rfc1948.html</p>
+</blockquote>
+<h2>Stuff To Leave Out</h2>
+<p>Miniweb optionally does slow start, but not ...</p>
+<p>SACK.</p>
+<p>PAWS.</p>
+<p>WSCALE.</p>
+<p>NAK.</p>
+<p>Path MTU discovery.</p>
+<p>ECN.</p>
+<p>Header prediction.</p>
+<p>Silly Window Avoidance.</p>
+<p>Delayed ACK.</p>
+<h2>References</h2>
+<p>[0] Viewpoints Research Institute Technical Report TR-2007-008, "STEPS
+Toward The Reinvention of Programming, First Year Progress Report,"
+Dec 2007; the TinyTCP work is documented in Appendix E, "Extended
+Example: A Tiny TCP/IP Done As A Parser (by Ian Piumarta)", p.44, and
+the section "A Tiny TCP/IP Using Non-Deterministic Parsing, by Ian
+Piumarta", p.17.</p>
+<blockquote>
+<p>http://www.viewpointsresearch.org/pdf/steps_TR-2007-008.pdf</p>
+</blockquote>
+<p>[1] Adam Dunkels's Miniweb</p>
+<blockquote>
+<p>http://www.sics.se/~adam/miniweb/</p>
+</blockquote>
+<p>[2]</p>
+<p>[3] Internet Society RFC 793, currently STD 7, "Transmission Control
+Protocol", by Jon Postel.</p>
+<blockquote>
+<p>http://www.faqs.org/rfcs/rfc793.html</p>
+</blockquote>
+<p>[4] Internet Society RFC 4614, by M. Duke, R. Braden, W. Eddy,
+E. Blanton, 2006-09, "A Roadmap for Transmission Control Protocol
+(TCP) Specification Documents".</p>
+<blockquote>
+<p>http://www.faqs.org/rfcs/rfc4614.html</p>
+</blockquote>
+<p>[5] Internet Society RFC 2581, "TCP Congestion Control", by Van
+Jacobson (?), 1999-04</p>
+<blockquote>
+<p>http://www.faqs.org/rfcs/rfc2581.html</p>
+</blockquote><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/small-is-beautiful.html">Small is beautiful</a> (40 notes)
+</li><li><a href="../topics/networking.html">Networking</a> (7 notes)
+</li><li><a href="../topics/ometa.html">OMeta</a> (3 notes)
+</li><li><a href="../topics/tcp%252Fip.html">TCP/IP</a> (2 notes)
+</li></ul></div></html>

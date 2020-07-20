@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html><title>Programming paradigms for tiny microcontrollers ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Programming paradigms for tiny microcontrollers</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(6 minutes)</div><h2>Concurrent actors in a microcontroller</h2>
+<p>Suppose you have a microcontroller with a small RAM (say, 2kiB) and you
+want to run bigger actor-oriented programs.  Perhaps you can "page"
+the actors in and out to an external serial memory?</p>
+<p>What I have in mind is that you can have many messages in flight at
+the same time --- enqueued in the RAM --- and some subset of actors
+resident.  Whenever an actor sends a message to another actor, the
+message is enqueued, and the execution engine merely repeatedly
+searches for a message to deliver to a resident actor.  When there are
+no more such messages, it "pages out" some actors to the serial memory
+to make space to "page in" some other actor that has messages waiting
+for it.</p>
+<p>It's possible for the set of in-flight messages to get too big for
+RAM.  There are a couple of tactics we could use in this case.</p>
+<p>First, we could simply page out a chunk of the message queue to the
+serial memory.  This will universally work, but it might make it hard
+to figure out what actors would be good choices to page in later.</p>
+<p>Second, we could look for message deliveries that will diminish the
+number of in-flight messages instead of increasing it.  In the
+classical Actors model and in Erlang, each handling of a message
+returns a new state for the actor, rather than mutating the actor's
+state during the handling of the message; if the system implemented
+this, then any message delivery could simply be undone by returning
+the message to the queue, deleting whatever outgoing messages the
+execution produced, and keeping the old actor state instead of using
+the new one.  So the system could simply try each pending message, one
+after another, until it finds one that reduces the number of in-flight
+messages.</p>
+<p>Third, we could page out actors to make more room for the message
+queue.</p>
+<p>Of these three, the first strategy is apparently mandatory; the other
+two might be useful optimizations.</p>
+<p>2kiB of RAM is enough to hold 1024 16-bit quantities; if a typical
+message contains four of these (destination actor, message name, and
+two arguments) then we could handle a queue of 256 messages at once.
+If half the RAM is dedicated to actor storage, we could handle 128.
+This is the level of concurrency at which the system would be most
+efficient; having fewer concurrently in-flight messages would worsen
+the choices of which actors to page in next, and possibly reduce the
+amount of work a particular actor could do before getting paged back
+out, while having more would not improve that choice, but would
+require time to be spent paging messages in and out.</p>
+<p>When considering the size of each actor on its way to or from memory,
+it's important to remember that we have to include its code as well as
+its data.  The data might be only 2-10 words, but the code will
+probably be much larger.  So it's probably worthwhile to take this
+into account in decisions of which actors to page in and out, and to
+share the code between objects when possible, just as in a traditional
+in-memory object system without concurrency.</p>
+<p>There are several drawbacks to this scheme:</p>
+<ul>
+<li>the space usage of the message queue is inherently nondeterministic
+  --- it depends deeply on the task switcher's choice of the order to
+  run tasks in.</li>
+<li>the cost to "page" actors in and out may be excessive, especially
+  since most microcontrollers don't have any support for DMA for
+  access to external serial memories.  The actors will have to be
+  contain very much less code than the objects we are familiar with
+  from current OO systems.</li>
+</ul>
+<h2>Concurrent tree-space transformation in a microcontroller</h2>
+<p>Suppose instead that we run Aardappel in the microcontroller.  In
+place of in-flight messages, we have the trees of the tree space,
+which of course we page out to memory; in place of stateful actors, we
+have stateless rewrite rules, which rewrite one or more trees into
+zero or more trees.  (Approximately.)  In the Aardappel
+implementation, all the rewrite rules for a particular "type" of tree
+get collected by the compiler and compiled into a single function,
+where the "type" is the atom at the beginning of the expression for
+the tree.</p>
+<p>So for a relatively simple system, we repeat the following process:</p>
+<ul>
+<li>figure out which type of tree is most abundant in the tree space;</li>
+<li>"page" in all the code needed for rewriting that type of tree
+  (unless it's already paged in);</li>
+<li>rewrite all the trees of that type, paging them in as necessary,
+  except for those that aren't currently rewritable (because some
+  other tree is needed).</li>
+</ul>
+<p>(This needs some refinement in case all the trees of the most common
+type aren't currently rewritable.)</p>
+<p>I'm not sure this is really very different from the other proposal,
+but I think it is likely to work better for the following reasons:</p>
+<ul>
+<li>the code to rewrite a type of tree in Aardappel is likely to be
+  substantially smaller than the code for a class in a Smalltalk-like
+  language;</li>
+<li>all the state is in a single kind of thing, rather than being spread
+  between messages and actor states;</li>
+<li>it seems straightforward in the source language to separate out
+  rewrite paths that increase the number of trees from those that
+  leave them constant or decrease them.</li>
+</ul><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/microcontrollers.html">Microcontrollers</a> (29 notes)
+</li><li><a href="../topics/actors.html">Actors</a> (2 notes)
+</li><li><a href="../topics/aardappel.html">Aardappel</a> (2 notes)
+</li></ul></div></html>

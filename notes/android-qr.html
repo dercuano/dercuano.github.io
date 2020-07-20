@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html><title>Notes on QR code capabilities on typical Android hand computers ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Notes on QR code capabilities on typical Android hand computers</h1><div class="metadata">Kragen Javier Sitaker, 2018-09-10
+(2 minutes)</div><p>Alejandra’s cellphone automatically scans QR codes when they show up
+in the camera app, popping up a translucent notification.  If they are
+a Mecard (or presumably a VCARD) it offers to add a contact, attaching
+the photo from which the QR code was snagged.  If they are text, it
+displays about the first 27 characters of it, displaying newlines as
+spaces, and offers a chance to copy it to the clipboard.  If they
+begin with “http:” (I guess?) it has a “chain link” button to follow
+the link.  Gzipped data shows up as a question mark in a diamond, the
+“substitute” symbol.</p>
+<p>Presumably it also supports vCalendar and Wi-Fi network codes.</p>
+<p>Encoding life.py (1987 bytes) resulted in a QR code it failed to
+recognize.  However, angleadd.py (1060 bytes) resulted in a scannable
+QR code, which resulted in text that could be pasted into a notepad,
+containing the full Python program; however, this doesn’t work
+reliably.  With -s 1 and the default PNG type in qrencode, I get a
+117×117 barcode.  fraktur.py (566 bytes, 89×89) worked somewhat more
+reliably, including at 2×2 pixels per module (which I guess means 50
+modules per inch?); the UTF-8 decoded properly but most of the Fraktur
+glyphs are missing from the phone’s fontset.</p>
+<p>Alejandra installed an QR-code scanner from F-Droid, and it was able
+to scan the Mecard, but it didn’t recognize it as a Mecard.</p>
+<p><a href="https://github.com/zxing/zxing/wiki/Barcode-Contents">https://github.com/zxing/zxing/wiki/Barcode-Contents</a> goes into some
+more details, though from a 2016 perspective.</p>
+<p><a href="https://qrworld.wordpress.com/2011/06/16/how-to-create-qr-codes-for-business-cards/">https://qrworld.wordpress.com/2011/06/16/how-to-create-qr-codes-for-business-cards/</a>
+talks about Mecard vs. VCARD in 2011.  Apparently by then Mecard was
+actually more widely supported than VCARD.</p>
+<p>Aaron Toponce went hardcore for his business card:
+<a href="https://pthree.org/2010/01/07/qr-code-with-mecard-and-hcard/">https://pthree.org/2010/01/07/qr-code-with-mecard-and-hcard/</a></p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/hand-computers.html">Hand computers</a> (10 notes)
+</li><li><a href="../topics/business-cards.html">Business cards</a> (2 notes)
+</li></ul></div></html>

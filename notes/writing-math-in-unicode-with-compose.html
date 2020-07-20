@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html><title>Writing math in Unicode with the Compose key ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Writing math in Unicode with the Compose key</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(2 minutes)</div><p>I can write quite a bit of math in a quasi-reasonable way with
+Unicode combining characters.  For example:</p>
+<p>This one uses COMBINING OVERLINE; xterm supports this, but Emacs,
+gnome-terminal, and Firefox 2 don’t:</p>
+<blockquote>
+<p>zz̅ = x² + y² = |z|²</p>
+</blockquote>
+<p>Using <code>•</code> for the compose key, I type this as <code>zz•^__ = x•^2 + y•^2 =
+|z|•^2</code>.)</p>
+<p>This one totally abuses it, and it doesn’t look that great in xterm
+either:</p>
+<blockquote>
+<p>√a̅²̅+̅b̅²̅</p>
+</blockquote>
+<p>That’s <code>•sqa•^__•^2•^__+•^__b•^__•^2•^__</code>, which is kind of a pain,
+but still kind of cute.</p>
+<p>This uses superscript and Greek characters:</p>
+<blockquote>
+<p>θ = tan⁻¹(b/a)</p>
+</blockquote>
+<p>That’s just <code>•*u = tan•^-•^1(b/a)</code>.  My Greek bindings, which are
+based on the standard Greek keyboard layout, are adequate for math,
+but not for typing Greek, because they don’t include accents.  And, as
+you can see, typing things like x³²⁰⁷² is a bit of a pain.</p>
+<p>There are logic characters:</p>
+<blockquote>
+<p>∀x ∈ ℤ: ∃y ∈ ℤ: y &gt; x</p>
+</blockquote>
+<p><code>•AAx •in • Z: •EEy •in • Z: y &gt; x</code></p>
+<blockquote>
+<p>∀x, y ∈ ℤ: x &lt; y ∨ x = y ∨ x &gt; y</p>
+</blockquote>
+<p><code>•AAx, y •in • Z: x &lt; y •\/ x = y •\/ x &gt; y</code></p>
+<p>Definition of XOR:</p>
+<blockquote>
+<p>x ⊕ y = x̅y + xy̅</p>
+</blockquote>
+<p><code>x •(+) y = x•^__y + xy•^__</code></p>
+<p>Or in different notation:</p>
+<blockquote>
+<p>x ⊻ y = ¬x ∧ y ∨ x ∧ ¬y</p>
+</blockquote>
+<p><code>x •\_/ y = •-,x •/\ y •\/ x •/\ •-,y</code></p>
+<p>I’m not sure if this is any clearer than the C:</p>
+<blockquote>
+<p>x ^ y = ~x &amp; y | x &amp; ~y</p>
+</blockquote>
+<p>And I can write:</p>
+<blockquote>
+<p>f∘g = λx.f(g(x))</p>
+</blockquote>
+<p><code>f•o*g = •*lx.f(g(x))</code></p>
+<p>Also I have a keybinding for the vector arrow, even though its
+rendering is pretty suboptimal in every piece of software I have
+handy:</p>
+<blockquote>
+<p>F⃗ = ma⃗</p>
+</blockquote>
+<p><code>F•^&gt; = ma•^&gt;</code></p>
+<p>An example from the Zeldovich HiStar paper:</p>
+<blockquote>
+<p>L₁ ⊑ L₂  iff  ∀c: L₁(c) ≤ L₂(c).</p>
+</blockquote>
+<p><code>L•_1 •[= L•_2  iff  •AAc: L•_1(c) •&lt;= L•_2(c)</code></p>
+<p>๛</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/unix.html">Unix</a> (7 notes)
+</li><li><a href="../topics/keyboards.html">Keyboards</a> (5 notes)
+</li></ul></div></html>

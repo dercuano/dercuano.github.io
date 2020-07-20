@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html><title>The miraculous low-rank SVD approximate convolution algorithm ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>The miraculous low-rank SVD approximate convolution algorithm</h1><div class="metadata">Kragen Javier Sitaker, 2019-08-14 (updated 2019-08-15)
+(31 minutes)</div>
+<p>When reading papers for <a href="../notes/convolution-bokeh.html">Real-time bokeh algorithms, and other convolution tricks</a>, I ran across a paper
+by Tim McGraw on a powerful convolution algorithm.  The algorithm took
+me a while to understand, and it turns out it isn’t original to
+McGraw; it was extensively investigated in the 1970s and 1980s.  It’s
+an absolutely astounding technique, and I think it has much broader
+applicability than is widely appreciated.</p>
+<p>Much of the below is somewhat speculative because <em>I've only just
+tried the algorithm</em>.  It’s very possible I’m misunderstanding its
+limitations.  But it gives me the first general attack on the problem
+in <a href="../notes/sparse-filters.html">Sparse filters</a>, and I have a lot of reading to do!</p>
+<h2>The profound and wide-ranging importance of convolution</h2>
+<p>The <em>convolution theorem</em> is one of the most important theorems in the
+theory of signals (in the sense of “digital signal processing” or
+“Signals &amp; Systems”, not in some kind of semiotic sense).  It says
+that any linear, shift-invariant system is fully characterized by its
+impulse response, because you can add up a bunch of shifted and scaled
+copies of that impulse response to compute its response to some
+arbitrary signal.  (Or, in continuous domains, integrate.)  This has
+applications both theoretical, in proving theorems generally
+applicable to linear, shift-invariant systems, and applied, in
+computing the result of a linear, shift-invariant system through one
+or another convolution algorithm.</p>
+<p>Significant linear, shift-invariant systems include nearly all
+acoustic systems (in the time domain), circuits made of linear
+components (voltage sources, current sources, resistors, transmission
+lines, capacitors, and inductors — or their idealized versions,
+anyway), nearly all optical systems in the time domain, and imaging
+optics in the spatial domain as well.  Many systems that are not in
+fact linear or shift-invariant can be locally approximated as linear
+shift-invariant systems, though not all.  (You can’t get the Doppler
+effect out of a locally-shift-invariant model, for example.)</p>
+<p>Furthermore, because convolution in the space or time domain is
+equivalent to pointwise multiplication in the frequency or Fourier
+domain, we can do things like frequency filtering, blurring, and
+sharpening by using convolution.</p>
+<p>That point about “sharpening” deserves some sharpening.  In theory,
+any convolution with no zeroes in the frequency domain, which is
+mathematically almost all convolutions, has an inverse
+convolution — you just take the reciprocal in the frequency domain and
+Bob’s your auntie!  In theory this means that you can undo the
+degradation caused by almost any known convolution (for example,
+defocus blur) by applying an inverse convolution, a process known as
+“deconvolution”.  However that inverse does not in general have a
+finite impulse response.  And, because some frequency-domain
+components of the original convolution may be very small indeed — the
+high-frequency components of a blur, for example — their reciprocals
+can be very large, which makes the problem ill-conditioned — that any
+noise in those frequencies will be enormously amplified by the inverse
+filter.  <a href="https://en.wikipedia.org/wiki/Wiener_filter">Wiener filters</a> are the usual compromise solution to this
+problem.</p>
+<blockquote>
+<p>In two dimensions the impulse response is sometimes called the “point
+spread function”, and sometimes, especially in imaging optics, it’s
+also called the “output transfer function”.  In the context of
+computing a convolution it’s also called a “kernel”.  Older papers
+sometimes call it the “response function” or “amplitude response”.</p>
+</blockquote>
+<p>Also, the probability distribution of a sum of random variables is the
+convolution of the probability distribution of the individual random
+variables, from which you should be able to see that convolution is
+commutative and associative.  The damned thing just pops up
+everywhere!</p>
+<h3>Convolution defined mathematically</h3>
+<p>Mathematically, the definition of discrete convolution is almost
+comically simple; using * for convolution:</p>
+<blockquote>
+<p>(<em>f</em> *<em>g</em>)<em>ₜ</em> = Σ<em>ᵢ fᵢ gₜ</em>₋<em>ᵢ</em> = Σ<em>ᵢ fₜ</em>₋<em>ᵢ gᵢ</em></p>
+</blockquote>
+<p>Here <em>i</em> ranges over all possible values and <em>t</em> might be some
+<em>D</em>-dimensional index as well as just an integer.  For example, when
+we’re convolving images, it’s an (<em>x</em>, <em>y</em>) pair.  <em>g</em> might be the
+impulse response (the “kernel”) of some system we’re simulating on
+input <em>f</em>.  (You can easily verify that, if <em>f</em>₀ = 1 and <em>fₜ</em> = 0 for
+all other <em>t</em> — that is, <em>f</em> is a discrete unit impulse — it merely
+reproduces <em>g</em>.)</p>
+<p>(Continuous convolution is the same thing but with an integral.)</p>
+<h3>Yay convolution!</h3>
+<p>Despite this extremely broad spectrum of existing applications, I
+think convolution is actually an underappreciated operation that could
+be applied much more widely than it is.  See the “convolution” section
+of <a href="../notes/powerful-primitives.html">More thoughts on powerful primitives for simplified computer systems architecture</a> and <a href="../notes/convolution-applications.html">Convolution applications</a> for
+more detail.  One reason it isn’t applied more broadly is that it’s
+computationally pretty expensive.  And that’s where the earthshaking
+discovery of SVD convolution comes in!</p>
+<h2>Singular-value decomposition convolution</h2>
+<p>XXX This section is repetitive</p>
+<p>The amazing SVD convolution algorithm uses a “low-rank linear
+approximation” to approximate convolutions of an image with arbitrary
+kernels.  I first ran across it in <a href="https://web.ics.purdue.edu/~tmcgraw/papers/dof_mcgraw_2014.pdf">Fast Bokeh Effects Using Low-Rank
+Linear
+Filters</a>
+(McGraw, 2014), where it’s used to simulate camera bokeh.  The basic
+idea is that you approximate an arbitrary filter kernel, as McGraw
+says, with a sum of a few separable kernels, which you derive by using
+SVD (see below for a brief explanation if you’re as naïve about linear
+algebra as I am) on the original kernel.  Usually most of the singular
+values are very small, so you can throw them out.</p>
+<p>The algorithm treats the rows and columns of the point spread function
+you want to approximate as the rows and columns of a matrix, and then
+uses the singular-value decomposition to find a “best” rank-<em>N</em>
+approximation of that matrix.  You could think of this as
+approximating each column of the filter kernel as a linear combination
+of <em>N</em> principal-component columns, which are chosen to represent as
+much column-to-column variation as possible.  (Or analogously for rows.)</p>
+<p>There is nothing in SVD convolution that is specifically limited to
+bokeh; it is a very general technique for efficiently approximating
+any arbitrary two-dimensional convolution!  The speedup you can get
+without unreasonable degradation depends very much on the kernel
+you’re trying to approximate, but very often kernels contain
+sufficient similarity between rows or columns to permit an excellent
+approximation with only a few separable terms.</p>
+<p>SVD convolution is specifically two-dimensional, because it relies on
+the singular-value decomposition (SVD) to compute the <em>N</em> separable
+filters whose sum is the least-squares-closest rank-<em>N</em> approximation
+to the original filter kernel.  Each of these filters is represented
+by a pair of vectors, one a horizontal convolution kernel and one a
+vertical convolution kernel, whose outer product is a matrix that is
+the convolution kernel of the composition of those convolutions.  The
+sum of the <em>N</em> of these matrices corresponding to the <em>N</em> largest
+singular values forms the optimal approximation.</p>
+<p>In the bokeh paper, McGraw typically got visually very good results
+with bokeh kernel approximations of rank 3 or greater.</p>
+<h3>Singular-value decomposition (SVD)</h3>
+<p>(You can probably skip this if you know linear algebra well, but I
+don’t.)</p>
+<p>Singular-value decomposition is a generalization of eigendecomposition†
+to nonsquare matrices; it decomposes some arbitrary matrix <em>M</em> as a
+product of three matrices <strong>M</strong> = <strong>UΣV*</strong>, where <strong>U</strong> and <strong>V</strong> are
+orthogonal (or more generally unitary) and <strong>Σ</strong> is diagonal.  One of
+many interesting ways to view the result is as a series of
+least-squares-optimal approximations of the original matrix whose
+terms are <em>separable</em> matrices, meaning that they can be expressed as
+the outer product of some pair of vectors.  Specifically, they are the
+outer products of corresponding columns of <strong>U</strong> and <strong>V</strong>, scaled by
+the members of the diagonal of <strong>Σ</strong>; because in general a matrix
+product <strong>AB</strong> can be seen as the sum of the outer products of the
+columns of <strong>A</strong> with the corresponding rows of <strong>B</strong>.</p>
+<p>†<em>Eigendecomposition</em> is the decomposition of a square matrix using
+its <em>eigenvectors</em>, a term whose only advantage is as a shibboleth for
+exposing Malcolm Gladwell — the Spanish term <em>autovector</em> is much more
+informative.  I only mentioned this because if you already know about
+eigenvectors, the above explanation of SVD will be easier to
+understand.</p>
+<p>Since those columns of <strong>U</strong> and <strong>V</strong> are unit vectors, the elements
+of <strong>Σ</strong> are what tell you how big the contribution of each of these
+separable matrices is to the final matrix sum, so you can get the best
+<em>N</em>-term approximation by taking the columns corresponding to the <em>N</em>
+largest elements of <strong>Σ</strong>, which are by convention ordered to be
+first.  It turns out that this is the optimal <em>N</em>-term approximation
+in the sense of the Frobenius norm — that is, in the sense of
+differing by a matrix with the smallest Frobenius norm (the sum of
+squares of all the elements).</p>
+<p>In Numpy the SVD is found at numpy.linalg.svd, which is a wrapper
+around LAPACK’s <code>*gesdd</code>, which mostly works by calling <code>*bdsdc</code>, both
+by Ming Gu and Huan Ren.  (The <code>*</code> is the data type in question.)</p>
+<h3>Separable filters</h3>
+<p>A separable filter is a two-dimensional convolution you can compute by
+first doing a one-dimensional convolution on each row and then doing a
+one-dimensional convolution on each column of that result.  (Or vice
+versa, since, as it turns out, convolutions commute.)  This is great
+because if you have a convolution kernel that is <em>w</em>×<em>h</em> and you try
+to calculate the convolution by brute force, you need <em>w</em>·<em>h</em>
+multiply-accumulates per pixel, but you can do a separable filter with
+just <em>w</em> + <em>h</em> multiply-accumulates per pixel.  So if you have an
+11×11 kernel you can get by with 22 multiply-accumulates instead of
+121.  Big win!</p>
+<p>(That is, your horizontal one-dimensional convolution uses 11
+multiply-accumulates on pixels in the same scan line to calculate each
+pixel of the intermediate image, and then the vertical one-dimensional
+convolution uses 11 multiply-accumulates on intermediate-image pixels
+in the same column to calculate each pixel of the final image — 22 in
+all.)</p>
+<p>It turns out that doing this pair of 1-D convolutions is equivalent to
+doing a 2-D convolution with the outer product of the two convolution
+kernels, as you can easily calculate.</p>
+<p>There are three very popular separable 2-D filters: box filters,
+double-exponential filters, and Gaussian filters.  Box filters and
+double-exponential filters are popular because you can calculate them
+in just a few operations per pixel, like, about three along each axis.
+Gaussian filters are popular because they’re circularly symmetric, and
+they’re the <em>only</em> separable circularly symmetric filters; also, there
+are a fair number of physical phenomena with Gaussian behavior, but
+they get applied pretty often in wildly inappropriate ways.  The most
+common way to approximate a Gaussian filter is actually to run a few
+iterations of one of the other two, which works because of the Law of
+Large Numbers.</p>
+<p>Since the outer product of two vectors <em>u</em> ⊗ <em>v</em> is separable in this
+way, and any matrix product <strong>UV</strong> is a sum of separable terms — each
+the outer product of a column of <strong>U</strong> and the corresponding row of
+<strong>V</strong> — any decomposition of your convolution kernel into a product of
+two matrices gives you a way to express it as a sum of separable
+kernels.  The outstanding advantage of SVD is that it gives us a
+decomposition where <em>as much as possible</em> of the result comes from <em>as
+few as possible</em> of these outer-product terms.</p>
+<h2>History</h2>
+<p>As I said above, SVD convolution was explored extensively in the 1970s
+and 1980s.  The seminal paper is probably Treitel and Shanks, “The
+Design of Multistage Separable Planar Filters”, in 1971:</p>
+<blockquote>
+<p>A two-dimensional, or planar, digital filter can be described in
+terms of its planar response function, which is in the form of a
+matrix of weighting coefficients, or filter array.  In many
+instances the dimensions of these matrices are so large that their
+implementation as ordinary planar convolutional filters becomes
+computationally inefficient.  It is possible to expand the given
+coefficient matrix into a finite and convergent sum of matrix-valued
+stages.  Each stage can be separated with no error into the product
+of an <em>m</em>-length column vector multiplied into an <em>n</em>-length row
+vector, where <em>m</em> is the number of rows and <em>n</em> is the number of
+columns of the original filter array.  Substantial savings in
+computer storage and speed result if the given filter array can be
+represented with a tolerably small error by the first few stages of
+the expansion.  Since each constituent stage consists of two
+vector-valued functions, further computational economies accrue if
+the one-dimensional sequences described by these vectors are in turn
+approximated by one-dimensional recursive filters.  Two geophysical
+examples have been selected to illustrate how the present design
+techniques may be reduced to practice.</p>
+</blockquote>
+<p>The paper doesn’t use the term “singular-value decomposition”, perhaps
+because it was new at the time, instead explaining how to derive the
+SVD from eigendecomposition.  By 1975 papers were using the term.</p>
+<p>In 1980 Sang Uk Lee did his dissertation on it, “Design of SVD/SGK
+Convolution Filters for Image Processing”, citing Treitel and Shanks
+1971 and also Twogood and Mitra’s 1977 “Computer-Aided Design of
+Separable Two-Dimensional Digital Filters”, which also cites Treitel
+and Shanks.  Andreas Antoniou and what I assume are his students, such
+as Wu-Sheng LU and Hui-Ping WANG, continued publishing on the subject
+through the 1980s, and, for example, in 1990 published “Design of
+Two-Dimensional FIR Digital Filters by Using the Singular-Value
+Decomposition”, in which they find ways to further modify the filter
+to decrease the computational load, one using LU decomposition.</p>
+<p>Mitra, Grosen, and Neuvo published a couple of papers in 1985 on
+extending the algorithm to one-dimensional signals by partitioning
+them into equal-sized chunks.</p>
+<p>Work continues today, perhaps at a reduced pace; Atkins, Strauss, and
+Zhang published “Approximate convolution using partitioned truncated
+singular value decomposition filtering for binaural rendering” in 2013
+on a way to filter audio to produce the binaural sensation of space,
+and in 2014 McGraw published the paper where I learned about the
+technique.  McGraw doesn’t cite this earlier work and seems to be
+unaware of it; he may have invented the technique independently 40
+years later.</p>
+<p>Of all of the above, I find Lee’s dissertation to be by far the most
+readable, perhaps in part because it’s jargon-compatible with me.  The
+earlier work largely uses terminology I find confusing, and the later
+work assumes familiarity with the earlier work.  The Treitel–Shanks
+paper is a close second, despite the alien jargon, because it’s very
+well written, but of course it only covers developments up to 1971.</p>
+<h2>A toy example</h2>
+<p>With Numpy and SciPy, it’s pretty easy to test the algorithm out; the
+following took me about half an hour with IPython.  It’s probably
+better to use IPython or Jupyter, with <code>%pylab inline</code>, so you can use
+<code>matshow</code> to see the values as images.</p>
+<p>First, let’s compute a flat circular convolution kernel, like a
+typical camera bokeh:</p>
+<pre><code>&gt;&gt;&gt; import scipy.signal
+&gt;&gt;&gt; import numpy.linalg
+&gt;&gt;&gt; import numpy
+&gt;&gt;&gt; r = range(-8, 9)
+&gt;&gt;&gt; x, y = numpy.meshgrid(r, r)
+&gt;&gt;&gt; circle = (x**2 + y**2 &lt; 64)
+&gt;&gt;&gt; # matshow(circle)
+&gt;&gt;&gt; print('\n'.join(''.join(map(str, 0 + row)) for row in circle))
+00000000000000000
+00000111111100000
+00011111111111000
+00111111111111100
+00111111111111100
+01111111111111110
+01111111111111110
+01111111111111110
+01111111111111110
+01111111111111110
+01111111111111110
+01111111111111110
+00111111111111100
+00111111111111100
+00011111111111000
+00000111111100000
+00000000000000000
+</code></pre>
+<p>Let’s generate an image to convolve with that circle kernel — all zero
+except for a couple of bright points at (2, 2) and (8, 13).  Numpy
+array coordinates are in (row, column) order, which is to say, (y, x).</p>
+<pre><code>&gt;&gt;&gt; p = numpy.zeros((16, 16))
+&gt;&gt;&gt; p[2, 2] = 3
+&gt;&gt;&gt; p[8, 13] = 2
+&gt;&gt;&gt; # matshow(p)
+&gt;&gt;&gt; p
+array([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 3., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 2., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+       [0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
+</code></pre>
+<p>We can do the convolution with brute force using
+scipy.signal.convolve2d:</p>
+<pre><code>&gt;&gt;&gt; perfect = scipy.signal.convolve2d(p, circle)
+&gt;&gt;&gt; # matshow(perfect)
+&gt;&gt;&gt; print('\n'.join(''.join(map(str, row.astype(int))) for row in perfect))
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000003333333000000000000000000
+00000333333333330000000000000000
+00003333333333333000000000000000
+00003333333333333000000000000000
+00033333333333333300000000000000
+00033333333333333300000000000000
+00033333333333333322222220000000
+00033333333333335522222222200000
+00033333333333355522222222220000
+00033333333333355522222222220000
+00033333333333555522222222222000
+00003333333333555222222222222000
+00003333333333555222222222222000
+00000333333333552222222222222000
+00000003333333222222222222222000
+00000000000000222222222222222000
+00000000000000222222222222222000
+00000000000000022222222222220000
+00000000000000022222222222220000
+00000000000000002222222222200000
+00000000000000000022222220000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+&gt;&gt;&gt; perfect.max(axis=0)
+array([0., 0., 0., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 3., 5., 5., 5.,
+       5., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 2., 0., 0., 0.])
+</code></pre>
+<p>Now let’s compute the same result using SVD convolution instead.</p>
+<p>As it happens, at 17×17, the circle only has four distinct nonzero
+columns, so, considered as a matrix, its rank is 4.  Consequently, it
+has four nonzero singular values, not counting rounding errors:</p>
+<pre><code>&gt;&gt;&gt; u, s, v = numpy.linalg.svd(circle)
+&gt;&gt;&gt; s
+array([1.33371921e+01, 3.01484321e+00, 2.04182621e+00, 1.36417508e+00,
+       3.34375584e-16, 1.28668530e-16, 7.48637395e-17, 3.74505958e-17,
+       5.96041076e-32, 4.06050202e-33, 3.67797309e-33, 5.31269989e-34,
+       2.72274806e-49, 1.79207201e-49, 1.91581056e-50, 0.00000000e+00,
+       0.00000000e+00])
+</code></pre>
+<p>numpy.linalg.svd gives us <strong>Σ</strong> as a vector, as seen above, and <strong>V</strong>
+in its transposed form ready to multiply.  So we can, for example,
+reconstruct a rank-3 approximation of the circle and measure its error
+as follows:</p>
+<pre><code>&gt;&gt;&gt; circle3 = (u[..., :3] * s[:3]).dot(v[:3, ...])
+&gt;&gt;&gt; # matshow(circle3)
+&gt;&gt;&gt; ((circle3 - circle)**2).sum(), (circle**2).sum()
+(1.8609736397047545, 193)
+</code></pre>
+<p>We can use the same brute-force approach to convolve this
+approximation with the image, which doesn’t save us any computation
+time, but does validate that the low-rank approximation, this sum of
+three separable kernels, does some kind of a reasonable approximation:</p>
+<pre><code>&gt;&gt;&gt; approx3 = scipy.signal.convolve2d(p, circle3)
+&gt;&gt;&gt; # matshow(approx3)
+&gt;&gt;&gt; approx3.max(axis=1)
+array([0.        , 0.        , 0.        , 2.96621523, 3.09214447,
+       3.28014338, 3.28014338, 3.09214447, 3.09214447, 3.23906193,
+       4.69144233, 5.27890672, 5.27890672, 5.06351288, 5.34157302,
+       5.34157302, 4.46037644, 2.96621523, 2.06142965, 2.06142965,
+       2.18676225, 2.18676225, 2.06142965, 1.97747682, 0.        ,
+       0.        , 0.        , 0.        , 0.        , 0.        ,
+       0.        , 0.        ])
+&gt;&gt;&gt; print('\n'.join(''.join(map(str, (row + 0.5).astype(int))) # rounding
+                    for row in approx3))
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000003333333000000000000000000
+00001223333333221000000000000000
+00002333333333332000000000000000
+00002333333333332000000000000000
+00033333333333333300000000000000
+00033333333333333300000000000000
+00033333333333333322222220000000
+00033333333333345522222222210000
+00033333333333355522222222220000
+00033333333333355522222222220000
+00033333333333555522222222222000
+00002333333333554222222222222000
+00002333333333554222222222222000
+00001223333333443122222222222000
+00000003333333221222222222222000
+00000000000000222222222222222000
+00000000000000222222222222222000
+00000000000000022222222222220000
+00000000000000022222222222220000
+00000000000000012222222222210000
+00000000000000000022222220000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+00000000000000000000000000000000
+</code></pre>
+<p>So now let’s try the algorithm more or less for real.  First, we
+convolve each column of <strong>U</strong> with each row of our picture <code>p</code>, thus
+getting one horizontally-convolved intermediate image for each term of
+our approximation.  There’s probably a way to do this purely with
+Numpy without using Python interpretive <code>for</code> looping:</p>
+<pre><code>&gt;&gt;&gt; hterms = numpy.array([[s[j] * numpy.convolve(u[..., j], p[i])
+                       for i in range(len(p))]
+                      for j in range(len(u[0]))])
+&gt;&gt;&gt; #matshow(hterms[0])
+</code></pre>
+<p>Here are a couple of rows from the first approximation term:</p>
+<pre><code>&gt;&gt;&gt; hterms[0][1:3]
+array([[  0.        ,   0.        ,   0.        ,   0.        ,
+          0.        ,   0.        ,   0.        ,   0.        ,
+          0.        ,   0.        ,   0.        ,   0.        ,
+          0.        ,   0.        ,   0.        ,   0.        ,
+          0.        ,   0.        ,   0.        ,   0.        ,
+          0.        ,   0.        ,   0.        ,   0.        ,
+          0.        ,   0.        ,   0.        ,   0.        ,
+          0.        ,   0.        ,   0.        ,   0.        ],
+       [  0.        ,   0.        ,   0.        ,  -6.00495857,
+         -9.16629667, -10.54084337, -10.54084337, -11.44132655,
+        -11.44132655, -11.44132655, -11.44132655, -11.44132655,
+        -11.44132655, -11.44132655, -10.54084337, -10.54084337,
+         -9.16629667,  -6.00495857,   0.        ,   0.        ,
+          0.        ,   0.        ,   0.        ,   0.        ,
+          0.        ,   0.        ,   0.        ,   0.        ,
+          0.        ,   0.        ,   0.        ,   0.        ]])
+</code></pre>
+<p>Then we can convolve each row of <code>v</code> (<strong>V*</strong>) with each <em>column</em> of
+its corresponding intermediate image, thus generating a stack of
+images that are the terms of our approximation; the sum of the first
+three of these is equal to the result of our brute-force convolution
+with the approximation from earlier, except for rounding error:</p>
+<pre><code>&gt;&gt;&gt; terms = numpy.array([numpy.array([numpy.convolve(v[j], hterm.T[i])
+                         for i in range(len(hterm.T))]).T
+                        for j, hterm in enumerate(hterms)])
+&gt;&gt;&gt; approx3_fast = terms[0:3].sum(axis=0)
+&gt;&gt;&gt; # matshow(approx3_fast)
+&gt;&gt;&gt; abs(approx3_fast - approx3).max()
+4.884981308350689e-15
+</code></pre>
+<p>And, because our kernel in this case is only of rank 4, the rank-4
+approximation, summing four separable kernels, is exactly equal to the
+correct convolution result, again except for rounding error:</p>
+<pre><code>&gt;&gt;&gt; abs(terms[0:4].sum(axis=0) - perfect).sum()
+4.3509640335059885e-13
+</code></pre>
+<p>I say that was <em>more or less</em> for real because I calculated all the
+terms, not just the first four terms that I used, and I was using
+interpretive loops rather than trying to get <code>convolve2d</code> to do
+one-dimensional convolutions, so running it exactly as above on a
+larger image would be <em>slower</em> than the brute-force approach.</p>
+<h2>Direct applications</h2>
+<p>SVD convolution can be applied directly to sharpening and blurring
+images, to Wiener filtering of images that have been corrupted by
+suboptimal optics, to object recognition and convolutional feature
+extraction in images, and to computing approximations of the
+performance of optical systems.  In the context of mathematical
+optimization, for example of simulated optical systems, a
+computationally inexpensive approximation is immensely valuable,
+because it allows many more optimization cycles to run.</p>
+<p>For applications like object recognition in images, it’s common to
+have many more candidate filter kernels than images.  In this case, it
+might be more productive to use a low-rank approximation of the
+original image rather than of the filter kernels, which is guaranteed
+to work because convolution is commutative.</p>
+<h2>Extensions</h2>
+<p>What useful extensions of SVD convolution might be possible, but
+aren’t simply straightforward applications of it?</p>
+<h3>To more dimensions</h3>
+<p>The <em>D</em>-dimensional equivalent problem is well-posed: find <em>N</em>
+sequences of <em>D</em> vectors whose <em>D</em>-dimensional outer products sum to
+form the optimal approximation to the original <em>D</em>-dimensional
+convolution kernel.  It can’t be solved directly with SVD, but maybe
+there’s a way to apply SVD more indirectly to a couple of dimensions
+at a time, or maybe you could use a recursive iterative-approximation
+algorithm that subtracts off the <em>D</em>-dimensional outer product of the
+average vectors of the residual along each dimension.  If not, I’m
+optimistic that, e.g., gradient-descent variants like Adam or
+quasi-Newton methods are sufficiently powerful to find a good
+solution.</p>
+<p>I ran across a 2009 paper by Oseledets and Tyrtyshnikov, “Breaking the
+curse of dimensionality, or how to use SVD in many dimensions”, which
+explains something called “the <em>Tree-Tucker</em> format” using “Tucker
+decomposition”; this sounds similar to the above.  I haven’t finished
+reading it.</p>
+<h3>To one dimension</h3>
+<p>If <em>D</em> = 1, then the problem as posed above is trivial: the
+convolution kernel is a vector, and it is its own best vector
+approximation, <em>N</em> = 1.  To get a more useful result, we would need to
+find a way of somehow approximating the convolution with shorter
+vectors.</p>
+<p>One possibility is to “word-wrap” or “raster” a one-dimensional
+time-domain sequence of <em>a</em>·<em>b</em> points into a two-dimensional signal
+of dimensions <em>a</em> × <em>b</em> where <em>a</em> is small compared to the size of our
+desired kernel, ideally close to its square root.  Then you raster the
+kernel analogously into an <em>a</em> × <em>c</em> shape.  If you do wraparound onto
+the previous and next <em>a</em>-element “scan line”, a two-dimensional
+convolution on these two-dimensional signals is precisely the same
+thing as the original one-dimensional convolution.  If the kernel has
+substantial periodicity, the way bandpass convolution filters do, SVD
+may yield a good low-rank approximation if <em>a</em> is a multiple of its
+period.  But if the columns of the kernel are perfectly uncorrelated,
+no good low-rank approximation will exist.</p>
+<p>So, computing the original time-domain convolution by brute force
+required <em>ac</em> multiply-accumulates per sample, and now we can do it in
+<em>a</em> + <em>c</em> multiply-accumulates per sample per term — if we’re using a
+rank-3 approximation, 3(<em>a</em> + <em>c</em>) multiply-accumulates per sample.
+This is a win if 3(<em>a</em> + <em>c</em>) &lt; <em>ac</em> — if <em>a</em> ≈ <em>c</em>, that’s roughly
+6<em>a</em> &lt; <em>a</em>², which is true if <em>a</em> &gt; 6, or more generally, is more than
+twice the rank of the approximation.</p>
+<p>Unwrapping the above computation back into one dimension, we can view
+each term of this algorithm as first doing a size-<em>a</em> one-dimensional
+convolution, then a <em>sparse</em> size-<em>ac</em> one-dimensional convolution,
+with <em>c</em> taps at intervals of <em>a</em>.</p>
+<p>(I think all of the above is in the Atkins et al. paper from 2013 that
+I mentioned above, but I haven’t really read it yet.)</p>
+<p>A key observation here is that there’s no particular reason for these
+terms to use the same value of <em>a</em>, and in fact it’s probably
+advantageous for them to use <em>different</em> values of <em>a</em>, because the
+first pass using <em>a</em>₀ will probably suck up most of the energy at
+frequencies that fit neatly into <em>a</em>₀ — the residual error will be
+particularly low around those frequencies.  So it might be a good idea
+to use a sequence of strides <em>a</em>₁, <em>a</em>₂, etc., zero-padding the kernel
+if necessary, to get a better “low-rank” approximation.  The
+autocorrelation function of the residual kernel is probably a good
+guide to picking those strides, although this greedy algorithm might
+not produce optimal results.</p>
+<p>Also, since this reduces one linear convolution to two or more cheaper
+linear convolutions, it can be applied recursively — for example, you
+could reduce a 1000-tap kernel to a 10-tap kernel and a 100-tap
+kernel, then reduce the 100-tap kernel to two 10-tap kernels.  This is
+clearly cheaper to compute if you’re only using the first vector from
+the SVD, but you might need more than one!  If you use more, we’re not
+talking about <em>two</em> 10-tap kernels in the final stage, but about
+<em>many</em> final 10-tap kernels — 4 of them if you use two components each
+time.  Still a big win — 2·10 + 4·10 + 4·10 = 100, much less than
+1000 — but less so.</p>
+<p>If you do this kind of recursive decomposition (which, incidentally,
+can also be used on the one-dimensional kernels that result from the
+two-dimensional algorithm), the SVD no longer gives you fully optimal
+results, because you aren’t precisely using the first principal
+components — you’re using some approximation to them, leaving some
+extra error.  This suggests that some kind of iterative algorithm like
+the greedy algorithm described above will probably produce better
+results.</p>
+<p>(I think you can probably approximate the first principal component
+reasonably efficiently by using the PageRank algorithm on <strong>M*M</strong> and
+<strong>MM*</strong> to get their largest eigenvectors, rather than computing the
+full SVD.)</p>
+<h3>On prefix-sum images (uh, probably not)</h3>
+<p>One of the annoying features of the low-rank approximations produced
+by SVD is that they don’t deal very well with diagonal edges or
+gradients in the kernel.  I wonder if you could “precondition” the
+image by running horizontal and vertical prefix sums on it (allowing
+wraparound on overflow) and apply compensating finite-difference
+operators <em>on the kernel</em> before computing the SVD approximation.
+Without the approximation step, this would be precisely equivalent,
+because the integration and differentiation operators cancel, and
+convolution is associative.  But perhaps by removing the large-scale
+structure from the kernel, leaving more local differences, the SVD
+approximation would have less error.</p>
+<p>As an extreme example, consider a kernel like this contrived rank-5
+specimen:</p>
+<pre><code> 1  2  3  4  5
+ 2  4  6  8 10
+ 3  6  9 12 15
+ 4  8 12 16 20
+ 5 10 15 20 25
+</code></pre>
+<p>Upon applying a horizontal backward differences operator to it (the
+inverse of horizontal prefix sum), you get this rank-1 result:</p>
+<pre><code> 1  1  1  1  1
+ 2  2  2  2  2
+ 3  3  3  3  3
+ 4  4  4  4  4
+ 5  5  5  5  5
+</code></pre>
+<p>And on differencing that vertically, you get this singular matrix:</p>
+<pre><code> 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  1  1  1
+ 1  1  1  1  1
+</code></pre>
+<p>This kernel is clearly much easier to represent.</p>
+<p>I’m very much not sure that this would help, though; I think it
+depends on the kinds of features you find in kernels.</p>
+<p>(P.S. I tried it on a kernel like the circle bokeh kernel above.  It
+made the approximation enormously worse.)</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/dsp.html">Digital signal processing (DSP)</a> (60 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/prefix-sums.html">Prefix sums</a> (18 notes)
+</li><li><a href="../topics/convolution.html">Convolution</a> (15 notes)
+</li><li><a href="../topics/sparse-filters.html">Sparse filters</a> (11 notes)
+</li><li><a href="../topics/linear-algebra.html">Linear algebra</a> (4 notes)
+</li><li>Singular-value decomposition</li></ul></div></html>

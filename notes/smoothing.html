@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html><title>Additive smoothing for Markov models ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Additive smoothing for Markov models</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009 (updated 2019-05-19)
+(11 minutes)</div><p>So when you estimate the probability of an event from a sample, you
+have to “smooth”, which is to say that you have to increase your
+estimate of the probability a little bit so that it is never zero,
+since concluding that the probability of any event is zero based only
+on a sample is clearly wrong.  The most common way is to add 1 to both
+the sample size and the number of observed events, and I think that
+this is in fact an unbiased estimator.</p>
+<p>But if you have more information, maybe you can do better.  In
+particular, I was thinking about estimating the statistical likelihood
+of a particular word being the next word in a sentence.  This is
+useful, for example, for travesty generators like <a href="http://www.pennandteller.com/sincity/penn-n-teller/pcc/shaney.html" title="I Spent an Interesting Evening Recently with a Grain of Salt, by Penn Jillette">Mark V. Shaney</a>.</p>
+<h2>Zeroth-Order Markov Models</h2>
+<p>You can use a “zeroth-order [Markov model][]”, and just figure that
+the probability that the next word is, say, “figure” is the
+probability of “figure” being any particular word --- regardless of
+context.  That is, it’s the number of occurrences of “figure” in your
+training corpus (plus one), divided by the total number of words in
+your training corpus (plus one).</p>
+<p>That gives you some information, for sure.  But if you use that model
+to generate text, it doesn’t look much like real text.</p>
+<h2>First-Order Markov Models</h2>
+<p>If you use a first-order Markov model, you use the previous word,
+say, “just”.  And you look for the number of occurrences of “just
+figure” in your corpus (plus one) and divide that by the number of
+occurrences of “just” (followed by any word) (plus one) in the
+training corpus.  And you use that for your estimate.</p>
+<p>Text generated from a first-order Markov model tends to look like
+relatively real text.  If you don’t smooth the probabilities, then you
+only ever get word pairs that occurred in the real text, so the text
+minimally conforms to a [regular-language][] approximation of the
+[grammar][] that generated your corpus, and if the model is
+[ergodic][], the frequencies of the words will additionally be about
+right.  (See also the Jargon File entry on <a href="http://www.catb.org/~esr/jargon/html/D/Dissociated-Press.html">Dissociated Press</a>.)</p>
+<h2>Second-Order Markov Models</h2>
+<p>You can use a second-order Markov model and look at the two words, say
+“and just”, and then divide the number of occurrences of “and just
+figure” (plus one) by the number of occurrences of “and just *” (plus
+one) in the corpus.  This generates even more realistic text, because
+although it’s still using a regular-language approximation, the
+[DFA][] (a Markov model is a DFA augmented with transition
+probabilities) can now have N² states instead of N states, where N is
+the number of distinct words in the corpus.  So it can be a better
+approximation.</p>
+<p>However, now you run into a problem.  The number of states in a
+second-order Markov model can be greater than the number of words in
+your text.  For example, before I wrote this sentence, this note
+contained 475 words, of which 162 were unique.  That means that a
+second-order Markov model built from its vocabulary would contain
+26244 states, only 474 of which, at most, could contain any sample
+information!</p>
+<p>So if you smooth in the way I suggested above, by adding one to the
+counts of both “and just figure” and “and just *”, you probably wind
+up with a gross overestimate of the probability of “and just 26244”
+and a gross underestimate of the probability of “and just the”, and so
+in fact the output can look less realistic than the output from a
+“zeroth-order Markov model”.  The usual way to deal with this in
+Dissociated Press is to not smooth at all; most of the transitions
+have zero probability.  Unfortunately this often results in repeating
+long passages from the training corpus, especially once you go to
+third- and higher-order Markov models.</p>
+<p>Essentially, such higher-order models are almost inevitably
+[overfitted][] --- they are so flexible that they end up learning the
+detailed structure of their training set, and if you try to compensate
+by smoothing, they don’t learn anything.</p>
+<h2>How to Fix the Problem</h2>
+<p>However, it seems to me that you could do the smoothing in a more
+effective way, by using first-order and “zeroth-order” Markov models
+from the same training corpus to fill the gap.</p>
+<p>Effectively, when you’re spewing out randomly generated text, the
+smoothing amounts to adding one extra occurrence of, say, “and just”.
+The standard way of smoothing amounts to assuming that all words that
+haven’t been seen after “and just” are equally likely.</p>
+<p>If instead you use your first-order Markov model to decide on that
+distribution --- in this case, the smoothed probability distribution
+of words following “just” --- you’ll do much better.</p>
+<p>And, of course, you can smooth the first-order Markov model using the
+observed word frequencies (the “zeroth-order model”), instead of
+assuming that all words in the vocabulary are equally likely.</p>
+<p>When you’re generating random text, there’s no obvious way to smooth
+the zeroth-order Markov model; you can’t straightforwardly generate an
+arbitrary word you’ve never seen before.  But in some other
+applications of Markov models, such as data compression, OCR, speech
+recognition, and entropy estimation, you only have to deal with things
+that are actually found in the input text.</p>
+<p>Note that in the case that the word pair in the current state does not
+occur in the training set, this reduces to a first-order Markov model.
+This suggests that it is the Right Thing.</p>
+<h2>Data Structures</h2>
+<p>If you want to implement this algorithm, you can use a [suffix
+array][] or [suffix tree][] on the training set.  This allows you to
+efficiently answer questions like “how many times does ‘model, and
+just’ occur in the input, and what is the distribution of what occurs
+next?” without storing an excessive amount of data.  Suffix trees take
+up an awful lot of space, but Udi Manber and XXX Myers discovered a
+<a href="http://webglimpse.net/pubs/suffix.pdf">reasonably efficient algorithm</a>
+for constructing suffix arrays in 1989-1991
+(or was it Manber and Wu in the 1990s?), 
+and it’s used as the basis for the [Glimpse][] search
+engine.  The suffix array merely needs space for one pointer per
+<a href="http://www.cs.uwaterloo.ca/~fwtompa/.papers/oed-91-01.ps" title="Lexicographical Indices for Text, by Gonnet, Baeza-Yates, and Snider, 1991">index point</a> in the original text.</p>
+<p>If you want to know
+what words occurred 
+somewhere preceding a given word or phrase
+you really want a “prefix tree”,
+which is a suffix tree
+built on a reversed version of the input corpus.
+...</p>
+<h2>Other Applications</h2>
+<p>It occurred to me that if you wanted to know what words to boldface in
+an English text, you might have some success highlighting the
+lowest-probability words.  This could also be useful in source code
+highlighting: figuring out which tokens are most informative and which
+are just noise.</p>
+<h2>References</h2>
+<p><a href="http://www.catb.org/~esr/jargon/html/D/Dissociated-Press.html">Dissociated Press</a> correctly describes Markov-chain random text generation, but incorrectly claims that Emacs’s “dissociated press” is an example thereof.  According to the Emacs manual:</p>
+<blockquote>
+<p>Dissociated Press produces results fairly like those of a Markov
+chain based on a frequency table constructed from the sample text.
+It is, however, an independent, ignoriginal invention.  Dissociated
+Press techniquitously copies several consecutive characters from the
+sample between random choices, whereas a Markov chain would choose
+randomly for each word or character.  This makes for more plausible
+sounding results, and runs faster.</p>
+<p>It is a mustatement that too much use of Dissociated Press can be a
+developediment to your real work, sometimes to the point of
+outragedy. And keep dissociwords out of your documentation, if you
+want it to be well userenced and properbose.  Have fun.  Your
+buggestions are welcome.</p>
+</blockquote>
+<hr />
+<p>Penn Jillette wrote a lovely explanation of Markov-chain travesty
+generation in his article on <a href="http://www.pennandteller.com/sincity/penn-n-teller/pcc/shaney.html" title="I Spent an Interesting Evening Recently with a Grain of Salt, by Penn Jillette">Mark V. Shaney</a>, “I Spent an
+Interesting Evening Recently with a Grain of Salt”, published in PC
+Computing volume 4, number 7, July, 1991, p.282.</p>
+<hr />
+<p>The idea of an <a href="http://www.cs.uwaterloo.ca/~fwtompa/.papers/oed-91-01.ps" title="Lexicographical Indices for Text, by Gonnet, Baeza-Yates, and Snider, 1991">index point</a> is explained in Gonnet, Baeza-Yates, and
+Snider’s 1991 paper, “Lexicographical Indices for Text: Inverted
+Indices vs. PAT trees”.  They had been working on putting the Oxford
+English Dictionary on CD-ROM, and so they’d done a bunch of work on
+full-text indexing.  Gonnet was at ETH at the time, and Baeza-Yates
+was already at the Universidad de Chile.  The paper is mostly devoted
+to advocacy of suffix arrays (called PAT arrays in the article) rather
+than inverted indices.  They explain:</p>
+<blockquote>
+<p>An index point is the beginning of a word or a piece of text which
+is indexable.  Usually such points are preceded by space...</p>
+</blockquote>
+<p>I am a little bit puzzled about this paper; it says the PAT tree data
+structure “was originally described by Gonnet in the paper
+‘Unstructured Data Bases’ [Gon83]”.  But the PAT tree is “a Patricia
+tree constructed over all the possible sistrings [suffixes] of a
+text,” citing Donald R. Morrison’s 1968 CACM paper on <a href="http://www.csse.monash.edu.au/~lloyd/tildeAlgDS/Tree/PATRICIA/" title="Lloyd Allison’s page on PATRICIA at Monash">PATRICIA</a>,
+which I believe describes constructing PATRICIA trees over all the
+possible suffixes of a text.  But I don’t have the paper handy to
+check.</p>
+<p>Tim Bray, who also worked on the OED project, recently wrote a series
+of articles about the technical aspects of full-text indexing.  He
+also worked for some years at a startup called Open Text whose main
+product used suffix arrays for its searching.  His analysis of <a href="???">why
+suffix arrays are not widely used today</a> is very interesting.</p>
+<hr />
+<p><a href="http://www.csse.monash.edu.au/~lloyd/tildeAlgDS/Tree/PATRICIA/" title="Lloyd Allison’s page on PATRICIA at Monash">PATRICIA</a> has been explained in a lot of places, but unfortunately I
+don’t know where to find the original paper online.</p>
+<hr />
+<p><a href="http://en.wikipedia.org/wiki/Overfitting" title="Wikipedia article on overfitting">Overfitting</a> is a problem with statistical models generally.
+Sometimes with neural networks and other machine-learning systems,
+it’s called “overtraining”.</p>
+<p>Hey, maybe I should look at <a href="http://www.stat.cmu.edu/~cshalizi/754/">http://www.stat.cmu.edu/~cshalizi/754/</a>.</p>
+<hr />
+<p>Perry Lorier tells me that this is how the PPM* algorithm models;
+IIRC that’s what’s used in the champion PAQ family of compressors.  I
+should look into it.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/ai.html">Artificial intelligence</a> (8 notes)
+</li></ul></div></html>

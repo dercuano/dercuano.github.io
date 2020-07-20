@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html><title>Trellis-coded buttons to run a whole keyboard off two microcontroller pins ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Trellis-coded buttons to run a whole keyboard off two microcontroller pins</h1><div class="metadata">Kragen Javier Sitaker, 2013-05-17 (updated 2019-06-13)
+(30 minutes)</div><p>(I think this was published previously on kragen-tol, but this version
+has been improved somewhat.)</p>
+<p>Based on some discussions with Nick Johnson,
+I was thinking about a “downloadable tinkerer’s tricorder”, software
+that would turn a commodity microcontroller into a powerful LCR meter,
+and an additional application occurred to me: a keyboard with up to
+several dozen keys, supporting N-key rollover (“NKRO”), using only two
+microcontroller pins, one with ADC and the other with digital output,
+or even a single pin,
+and a couple of dirt-cheap passive components per key, with latency of
+a few milliseconds or even down into the submillisecond range.</p>
+<p>This represents an order-of-magnitude reduction in cost for NKRO
+keyboards, which are essential for some kinds of video games and for
+advanced chording input methods.</p>
+<h2>Background: relative cost of different parts</h2>
+<p>Pins on chips are among the most expensive resource in modern
+circuitry.  A small diode, resistor, or capacitor, with no special
+requirements, will cost between a sixth of a cent and a whole cent
+(diodes are the expensive items here), but going from an 8-pin chip to
+a 14-pin chip will cost you at least a dollar; each pin, in effect,
+costs as much as 20 to 100 resistors!  And adding another 8-pin chip
+will cost you about 50 cents, but at least three of those pins will be
+tied up with power and communication, costing you ten cents per pin,
+or more.</p>
+<p>Pushbutton switches cost nearly 10 cents if you buy them as separate
+components, but they’re cheaper if you make an assembly with many of
+them built into a single component.  As a result, if you dedicate a
+microcontroller pin to each pushbutton, you nearly double the cost of
+the pushbutton, and maybe much more if your keyswitches are really
+cheap.</p>
+<h2>More than one key per pin</h2>
+<p>So, in addition to the standard matrix multiplexing approach,
+designers occasionally hang several pushbutton switches off one I/O
+pin on a microcontroller, each controlling a different resistance.
+Then you can use a voltage divider so that each pushbutton creates a
+separate voltage, which you can measure with an analog-to-digital
+converter.</p>
+<p>It sounds crazy to use an ADC and some resistors to save an I/O pin or
+two, but the fact is, lots of microcontrollers have one or more ADCs
+built in already, and you can time-share it between different uses on
+different pins.  So it doesn’t cost you anything extra.</p>
+<p>The most famous design that does this is probably Limor Fried’s
+<a href="http://www.ladyada.net/make/monochron/design.html">Monochron</a>.  A variant that avoids the need for an
+analog-to-digital converter is the <a href="http://txapuzas.blogspot.com/2010/09/papertecladorc-varios-pulsadores.html">PaperTecladoRC</a>, which charges
+up a capacitor (“condensador”) and then measures its time to discharge
+to logic zero through the resistor network, rather than making an
+analog voltage measurement.</p>
+<p>(In the standard matrix multiplexing approach, which is how basically
+all but the most expensive keyboards work on everything from pocket
+calculators to Macbook Airs, you make an N×M matrix where each
+keyswitch connects one of the N rows to one of the M columns, and you
+alternately energize each row to see which columns get energized.  You
+can get two-key rollover with this approach, but not NKRO, and you
+still need a substantial number of I/O pins, typically around 20.)</p>
+<h2>Trellis-coding your keys to get N-key rollover on a huge number of keys</h2>
+<p>It occurred to me that you can do much better than this.  Rather than
+merely discriminating between different <em>resistances</em> attached to each
+button, you could discriminate between different <em>complex impedances</em>:
+connect each button through not only a resistor but also a capacitor.
+Now we can subject the pin to a time-varying signal, such as a
+transient pulse, and watch its response.</p>
+<p>To consider one possible concrete realization of this approach,
+consider this layout:</p>
+<pre><code>GPIO __/\  /\  ____/___/\  /\R1___GND
+         \/  \/ | S1 |   \/  \/
+         R0     |    |
+                |    |___||_______GND
+ADC ____________|        ||
+                |  S2    C1
+                |__/__...
+</code></pre>
+<p>Your GPIO pin, a switchable voltage source, connects through a
+resistor R0 to a common bus to which all the pushbuttons connect.
+Your ADC is also connected to this common bus.  Each pushbutton Si
+connects the bus to a resistor Ri and a capacitor Ci, each of which is
+grounded on the other side; that is to say, they’re in parallel.</p>
+<p>This is more or less the configuration of a <em>single</em> AVR I/O pin in
+input mode: you can either connect the pullup resistor R0, which is an
+imprecise and nonlinear resistance in the 20kΩ–50kΩ to VCC, or leave
+it in a high-impedance mode where it won’t source or sink more than a
+few microamps.  However, it’s convenient to us to use <em>two</em> pins, both
+because it lets us use a higher-resistance pullup resistor and
+correspondingly lower-capacitance capacitors, and because it makes our
+pullup resistor much more precise.</p>
+<p>Suppose one of the pushbutton switches S1..SN is pressed; let’s say
+S1.  Now, if we bring the pullup high, the voltage measured by the ADC
+will rise eventually to VCC R1/(R0+R1).  If the various Ri are
+sufficiently different, we can use the ADC to distinguish which of
+them it was.  Indeed, if they’re sufficiently different that the sum
+of each subset of their conductances is sufficiently different to be
+distinguished by the ADC, we can distinguish <em>any subset</em> of them,
+which is to say that our keyboard has “N-Key Rollover”, or NKRO, an
+advanced gaming keyboard selling point.  (According to the
+documentation for Plover, a Stenotype input method that can get 250
+words per minute on a regular NKRO keyboard, you can’t find a
+full-size NKRO keyboard for less than US$50.)</p>
+<p>If you have a 10-bit ADC, you could conceivably distinguish 1023
+different keys merely by their resistances by this method, but you
+can’t distinguish more than 10 of them if you want to be able to
+distinguish all of the possible chords (that is, get NKRO).  Also,
+your resistances need to really be distinct, which is difficult: we’re
+talking about 1023 different resistances, with better than 0.1%
+tolerances here for the highest resistances, which is hard to find.
+(From browsing Digi-key, it seems like regular sixth-of-a-cent
+resistors these days are ±1%; regular antediluvian resistors are ±20%;
+±0.5% resistors cost half a cent; the resistance of the same resistor
+normally varies by more than 0.1% with temperature.)</p>
+<p>Worse, the resistances need to be precisely aligned with the bit
+transitions of the ADC, and the top one needs to have 1022 times
+higher resistance than the pullup.  So in practice I think you’d be
+lucky to distinguish 8 different keys on resistance alone with NKRO
+unless you trim each resistor after assembly.</p>
+<p>But that’s what the capacitances are for!  If you have two different
+keys with the same resistance to ground, but different capacitances,
+they’ll both eventually arrive at the same steady-state voltage — but
+they’ll take different amounts of time to get there.  Better yet, you
+can measure the charging speed with greater precision than you can the
+final voltage, and taking multiple measurements as the capacitor
+charges can give you better than 10 bits of precision by averaging
+over time.</p>
+<p>(In effect, you’re using trellis-coding: the complex impedances of
+each key at a given arbitrary frequency are a sort of exponentially
+distributed lattice in one quadrant of the complex plane.  Although
+we’re actually adding the <em>reciprocals</em> of the impedances (we’re
+adding the complex analogues of conductance; maybe there’s a word for
+this), those are also exponentially distributed such that every subset
+of them has a unique complex sum, and all of these complex sums are
+far enough apart that we can distinguish them despite measurement
+error.)</p>
+<p>Suppose tracing the curve over time gives us 12 bits of precision on
+the resistance (by averaging 16 samples) and 12 bits of precision on
+the RC time constant.  Intuitively I think it should be easy, then, to
+distinguish 6 different resistances and 9 different capacitances, for
+a total of 54 keys with NKRO, on a single ADC pin!</p>
+<p>To be slightly more precise, we probably want the largest resistance
+value to be somewhat larger than the pullup resistor value. Suppose we
+choose 220kΩ for our pullup.  We want the smallest resistance value to
+be less than the error in the largest; and we want all the sums of
+resistance values to differ by more than the sums of their errors.
+This suggests using resistances of 500kΩ, 220kΩ, 100kΩ, 50kΩ, 22kΩ,
+and 10kΩ; if they, improbably, all had an error of 1%, that would be
+5kΩ+2.2kΩ+1kΩ+500Ω+220Ω+100Ω = 9020Ω, which is less than 1kΩ.  A
+seven-bit ADC measurement would probably be enough to distinguish
+between them, and 10 bits definitely will.  IIRC, experiments have
+shown that the nominally 10-bit successive-approximation ADC on the
+ATMega328 and friends can still give you an effective number of bits
+(“ENOB”) of 7 at about 1Msps, which is to say a microsecond per
+measurement.  In the “worst case”, you’d need about 11 bits’ worth,
+which I think is about 600 microseconds (four successive measurements)
+on the ATMegas.</p>
+<p>(I’m a little fuzzy on the exact ADC numbers, unfortunately, but I
+think they may actually be significantly better than the above.)</p>
+<p>Then we need to do the same trick for the capacitors.  The smallest
+capacitance we can reasonably measure will be one that charges fully
+through the pullup in a single 600-μs measurement, so the RC time
+constant should be around, I don’t know, 50μs.  If the pullup is
+220kΩ, that puts it at 227pF (say 220pF for practicality). Then you
+could use nine capacitances of 220pF, 470pF, 1000pF; 2200pF, 4700pF,
+10000pF; and .022μF, .047μF, and 0.1μF.</p>
+<p>The slowest RC constant, then, should be 0.1μF × 220kΩ, or 22
+milliseconds.  But since you’re using an ADC, you don’t need to wait
+for the capacitor to charge fully, just enough that you can accurately
+measure its rate of charging — say, ten samples or ten out of 1024 ADC
+counts, whichever is faster.  In the worst case, the 0.1μF capacitor
+will be in parallel with a 10kΩ resistor, which means its final
+charged voltage would be 10/(220+10) of the 1023-count max: 45 counts.
+Charging 10/45 of the way will then take 1.25 time constants, or 28
+milliseconds.</p>
+<p>That’s only marginally acceptable, so it’s probably worthwhile to
+blacklist the one, three, or six slowest combinations.  The two
+next-worst are 0.1μF in parallel with a 22kΩ resistor, which will have
+the same RC constant, but the final voltage is almost twice as high,
+so you’ll rise by 10 counts in only 14 milliseconds; and 0.047μF in
+parallel with 10kΩ, which will have less than half the RC time
+constant and the same asymptotic voltage, so will also need only 13
+milliseconds.  The next three worst are 0.1μF with 47kΩ, .047μF with
+22kΩ, and .022μF with 10kΩ, all of which need about 7ms.  So if you
+eliminate these six keys, you can measure any keychord in under 4ms.</p>
+<p>(Another way to improve this: on the AVRs, there’s the possibility of
+using an internal 1.1V bandgap voltage reference instead of VCC.  At a
+typical 5 volts, this will increase the precision of the measurement
+of this initial voltage rise by a factor of almost five, and thus
+decrease that 28ms to some 6ms.)</p>
+<p>So that gives you a 48-key NKRO keyboard with worst-case 4ms latency
+for the cost of two microcontroller pins (20¢), 49 1% resistors of six
+values (10¢), 48 1% ceramic capacitors of nine values (25¢†), and 48
+keyswitches (480¢ if discrete, much less if made as one piece, much
+more if you use Cherry high-end mechanical keyswitches) for a total of
+some US$5.35, or US$0.55 as the cost of the keyswitches themselves
+approaches zero.</p>
+<p>This is an order of magnitude cheaper than the US$50 cost of existing
+NKRO keyboards, or two orders of magnitude cheaper if the keyswitches
+are free.</p>
+<p>† I’m actually having a hard time finding cheap capacitors with
+reasonably precise capacitances.  This could limit the effectiveness
+of the idea — but see the section at the end for how to fix this.</p>
+<h2>Information theory shows it won’t work quite that well</h2>
+<p>There’s some kind of problem with my calculations, though.  You need
+48 bits of entropy to get NKRO on a 48-key keyboard.  If you have an
+estimate of the RC time constant with a precision of 50μs with an
+upper limit of 3ms, as I’ve postulated above, that’s almost 6 bits of
+entropy.  That, combined with a 12-bit measurement of voltage at some
+known point in the charging curve (the result of averaging some 16
+samples) gives you 18 bits.  That’s less than half of what you need.
+In the absence of nonlinear components such as diodes, those two
+parameters will be able to predict any further measurements down to
+the limit of measurement noise.  So at best you can get 18-key
+rollover — and that’s ignoring that many of the combinations of final
+voltage and RC time constant are outside of the feasible region!</p>
+<p>In practice, I think that given 18 bits of data like that, you can
+probably identify a unique RC time constant and asymptotic voltage for
+each key, even if the nominal values of the resistors and capacitors
+were equal.  (Precision of ±1% steals the top 6 bits of each
+parameter, leaving 6; using lower-quality, more-variable components
+would help by adding more randomness.)  If you train the
+microcontroller for a given keyboard, storing calibration constants
+for each key and then adjusting them with a linear correction for an
+estimated temperature (assumed to be constant across the keyboard),
+you could probably reliably distinguish several thousand keys — but
+without NKRO.</p>
+<h2>Ways to improve performance</h2>
+<p>If the problem is that we only get 18 bits of entropy and we need 48,
+here are some approaches.</p>
+<p>The most glaring problem is that we need at least 9 bits of precision
+on the capacitance measurement, but our hypothesis above is that we’re
+only getting about 6 bits of RC time constant, which represents the
+contribution of C.  Maybe my calculation is off: maybe from a series
+of 10-bit voltage measurements, even over only a maximum of some 60
+sample times, we can extract some 9, 10, or even 11 bits of precision
+for RC.  Maybe use a least-squares fit in some kind of transformed
+space.</p>
+<p>But that only gets us to, like, 23 bits, when we need 48!  We need
+more entropy!  (Even an ADM-3A had 59 keys.) Unless we just want a
+Stenotype, which has exactly 23 keys.</p>
+<p>A second approach, as mentioned earlier, is to incorporate
+nonlinearity.  For example, if you add a diode somewhere in the
+network for each switch, your RC time constant changes with voltage,
+according to the diode’s characteristics.  This might provide another
+12 bits of entropy, if you have diodes with enough variability whose
+voltage drop is comparable to that of the resistor at comparable
+currents.  By itself, that could get us to maybe 30 bits, at a cost of
+another 24¢ at half a cent per each of 48 keys.</p>
+<p>A third approach is to use another ADC pin and pullup resistor from
+the same GPIO pin, giving you, in essence, a second separate keyboard,
+at a cost of some 10¢.  This approach scales linearly to as many ADC
+pins as you have available on your microcontroller, at some cost to
+sampling rate per pin and therefore necessitating somewhat larger
+capacitors.  If this is the only approach you take to improve
+performance over the basic approach, so that you can only handle about
+18 keys per ADC pin, then one GPIO pin and three ADC pins (40¢ of
+pins) should get you to 54 keys, or maybe a bit more if you push it.
+That’s enough for a full compact keyboard, at a cost of 75¢
+(55¢ - 20¢ + 40¢) of electronics, plus the keyswitches.</p>
+<p>If we combined all three of the above approaches, you’d be getting 35
+bits on each of three input pins, for 105 bits in all: enough for a
+full keyboard with keypad, at a cost of, I don’t know, a dollar or two
+of electronics, plus the keyswitches.</p>
+<p>However, there’s also a solution that works with <em>no extra hardware</em>!
+Since we’re able to scan the entire keyboard at 250Hz, it’s really
+completely unnecessary to consider all possible new keyboard states as
+equally likely.  An actual human being won’t be able to press and
+release more than one or two keys in any 4ms interval.  So of all the
+candidate new keyboard states, we can take the one with the smallest
+hamming distance from the current keyboard state, and we’ll
+essentially always be correct.</p>
+<p>(That insight is from reading posts by Talkingjazz about their rotary
+switch decoding problem:
+<a href="http://www.arduino.cc/forum/index.php/topic,20125.0.html">http://www.arduino.cc/forum/index.php/topic,20125.0.html</a>.)</p>
+<h2>Yeah, or use a shift register like a normal person</h2>
+<p>You could use a ten-cent 74HC165 shift registers and eight pullup
+resistors for each set of eight keyswitches, and chain them all
+together in a long line feeding into one pin on your microcontroller.
+You need two more microcontroller pins to clock the shift registers
+and to enable them.  Cost for 48 keys: 30¢ for the microcontroller
+pins, 60¢ for the shift registers, 24¢ for the pullup resistors, total
+of US$1.14, plus the keyswitches themselves.  This is maybe more
+expensive than the trellis-coding approach, but it sure is a lot
+simpler.</p>
+<h2>The improved single-pin trellis-coding approach</h2>
+<p>Here’s a better version.  In the simplified form I analyze here, it
+doesn’t support NKRO, but although I haven’t analyzed the more-complex
+NKRO variant, I anticipate that hacking NKRO in will be feasible.</p>
+<p>The entire keyboard has two connections: the probe/power/sense
+connection and ground.  Each (logical) row is connected to the sense
+connection through a different-value resistor; each column is
+connected to ground through a different-value resistor in parallel
+with a same-value capacitor.  The microcontroller charges the sense
+connection for different periods of time and then switches its pin to
+analog input mode to measure the decay curve, then repeats the
+process.</p>
+<pre><code>GPIO __/\  /\  ____/___/\  /\R7___GND
+ADC  |   \/  \/ | S1 |   \/  \/
+     |   R0     |    |
+     |          |    |___||_______GND
+     |          |    |   ||
+     |          |    |   C0
+     |          | S2 |
+     |          |__/_)______/\  /\R8___GND
+     |               |    |   \/  \/
+     |               |    |
+     |_/\  /\  ___/__|    |___||_______GND
+     |   \/  \/ | S3 |    |   ||
+     |   R1     |    |    |   C1
+     |          |    |    | 
+     |          |    |    |
+     |          | S4 |    |
+     |          |__/_)____|
+     :               :    :
+     :               :    :
+</code></pre>
+<p>(Here in this diagram we have two rows and two columns; the first row
+charges through R0 and contains S1 and S2, while the second row
+charges through R1 and contains S3 and S4. The first column charges C0
+through S1 or S3 and discharges it through C7, while the second column
+charges C1 through S2 or S4 and discharges it through R8.)</p>
+<p>Let’s be concrete.  Consider a US$1.30 48MHz STM32F031C4 with its
+1Msps 12-bit ADC, running at 3.3 volts.  (See <a href="../notes/stm32.html">Notes on the STM32 microcontroller family</a> for more
+details.)  It’s driving a 7×7 keyboard, which is missing 12 of its
+potentially 49 keys in the corners, leaving 37 keys; row 0 has 4 keys
+(missing columns 4, 5, and 6), row 1 has 5 keys (missing columns 5 and
+6), row 2 has 6 keys (missing column 6), row 4 has 6 keys (missing
+column 0), row 5 has 5 keys (missing columns 0 and 1), and row 6 has 4
+keys (missing columns 0, 1, and 2.)  All the capacitors are 0.001-μF
+MLCCs.  The resistors for row and column 0 are 1 kΩ; for row and
+column 1, 2.2 kΩ; for row and column 2, 4.7 kΩ; for row and column 3,
+10 kΩ; and thus 22 kΩ, 47 kΩ, and 100 kΩ for the remaining three rows
+and columns.</p>
+<p>Column 0 discharges with a time constant of 1 μs; column 2 discharges
+with a time constant of 2.2 μs; and so on, until column 6 discharges
+with a time constant of 100 μs.  This is true regardless of which row
+it was charged by.  During the discharge cycle, the only voltage
+across the row resistor comes from the I/O pin’s input leakage
+current, specified in the datasheet as ±0.2 μA, thus producing an
+error of ±20 mV across row 6’s 100 kΩ resistor, and proportionally
+less on the other rows, so the microcontroller can sense the column
+voltage with quite adequate precision.  That is, the discharge time
+constants vary like this across the keys:</p>
+<pre><code>[   1.     2.2    4.7   10.                      ]
+[   1.     2.2    4.7   10.    22.               ]
+[   1.     2.2    4.7   10.    22.    47.        ]
+[   1.     2.2    4.7   10.    22.    47.   100. ]  μs
+[          2.2    4.7   10.    22.    47.   100. ]
+[                 4.7   10.    22.    47.   100. ]
+[                       10.    22.    47.   100. ]
+</code></pre>
+<p>The timing precision needed to distinguish these columns is thus only
+about a factor of 2.</p>
+<p>The voltage from which the discharge curve is falling depends on the
+charging time, asymptotically approaching the voltage in the middle of
+the voltage divider formed by the row and column resistors.  So it
+ranges from 3.00 volts for r0c3, r1c4, r2c5, and r3c6 to 0.30 volts
+for r3c0, r4c1, r5c2, and r6c3.  The other voltages, though they vary
+slightly, are around 0.60 volts, 1.06 volts, 1.65 volts, 2.27 volts,
+and 2.72 volts.  Note that errors in the capacitance do not affect
+these asymptotic voltages at all.  Here’s the full table of asymptotic
+voltages for each key:</p>
+<pre><code>[ 1.65  2.27  2.72  3.                    ]
+[ 1.03  1.65  2.25  2.7   3.              ]
+[ 0.58  1.05  1.65  2.24  2.72  3.        ]
+[ 0.3   0.6   1.06  1.65  2.27  2.72  3.  ]  V
+[       0.3   0.58  1.03  1.65  2.25  2.7 ]
+[             0.3   0.58  1.05  1.65  2.24]
+[                   0.3   0.6   1.06  1.65]
+</code></pre>
+<p>However, a third parameter also distinguishes the rows: the charging
+time constant.  If the charging time is short enough, the voltage will
+not quite reach the asymptotic voltage described above, which can be
+ascertained by doing multiple measurement cycles with different
+charging times.  The charging time constant is the RC product of the
+1-nF column capacitor and the parallel combination of the column
+discharge capacitor and the row charge capacitor.  The microcontroller
+cannot directly observe the charging curve, since during the charge
+cycle it sees 3.3 volts on its I/O pin (an unknown fraction of which
+is dropped across the row charging resistor), although perhaps it
+could pause the charging periodically to take a sample.</p>
+<p>The charging time constant ranges from 0.5 μs (r0c0, each with a 1-kΩ
+resistor) to 50 μs (r6c6, each with a 100-kΩ resistor).  The whole
+array of charging time constants is as follows:</p>
+<pre><code>[  0.5     0.69    0.82    0.91                        ]
+[  0.69    1.1     1.5     1.8     2.                  ]
+[  0.82    1.5     2.35    3.2     3.87                ]
+[  0.91    1.8     3.2     5.      6.88    8.25        ]  μs
+[          2.      3.87    6.88   11.     14.99   18.03]
+[                  4.27    8.25   14.99   23.5    31.97]
+[                          9.09   18.03   31.97   50.  ]
+</code></pre>
+<p>Note that the contours of this time-constant table run nearly at right
+angles to the contours of the asymptotically-approached voltage; that
+is, where the asymptotic voltage provides the least information, the
+charging time constant provides the most information.  Avoiding zones
+where this charging-time-constant information is weakest is the reason
+for omitting the corners where the resistance values are too far apart.</p>
+<p>Since these charging time constants are using the same capacitance as
+the discharge time constants, over the same range of voltages even,
+errors in the capacitance will affect them both by the same factor.
+However, if we treat the capacitance as entirely unknown, we entirely
+lose the information about the magnitude of the resistances — the
+ratios of the charge and discharge times follow the same diagonal
+pattern as the asymptotic voltages.</p>
+<p>You <em>could</em> recover some of that resistor-magnitude information by
+doing a charge cycle through on-chip pullup resistors, as suggested
+for the earlier-outlined design, or the pulldown resistors the STM32
+also has (making it a sort of discharge cycle instead — you’d want
+things to be charged first).  The pullup and pulldown resistors are
+not very precise, and their values probably vary widely with the chip
+temperature, since they’re presumably polysilicon and not, you know,
+metal film or carbon or something.  But they might be good enough to
+help you compensate for capacitor errors.</p>
+<p>So this design gives you 37 keys for the cost of one microcontroller
+pin (which I said earlier was 10¢), 14 resistors of 7 values (2.3¢),
+7 ceramic capacitors (3¢), and 37 keyswitches (370¢ if discrete, much
+less if made as one piece, much more if you use Cherry high-end
+mechanical keyswitches) for a total of some US$3.85, or US$0.15 as the
+cost of the keyswitches themselves approaches zero — two thirds of
+which is the imputed cost of the microcontroller pin!  None of the
+components need to have a precision of better than 10%, but it’s
+particularly insensitive to the values of the capacitors, which could
+easily have capacitance errors of a factor of 2 or 3 without doing
+much harm.  And that’s good, because (as I mentioned earlier but
+didn’t fully appreciate at the time) ceramic capacitors, which are the
+cheap ones, have pretty imprecise capacitances which vary a lot by
+voltage.</p>
+<p>Earlier I priced the pin at 10¢, but perhaps on an STM32 I should
+lower that cost; the STM32F031x4 has 39 GPIOs and only costs US$1.30,
+so maybe its GPIO pins only cost 3¢.  On the other hand, it wouldn’t
+be surprising if you had to dedicate the entire STM32 computer to the
+keyboard-processing task.</p>
+<p>How much measurement error are we going to have on these charge and
+discharge curves?  Let’s suppose the ADC is using the μC’s internal
+bandgap reference, which is specified as 1.2–1.25 V.  This gives us
+plenty of sensitivity for even the 0.3-volt signals: those start out
+as a third of full scale, 983 LSBs.  The ADC’s total unadjusted error
+is specified as ±4 LSBs, or ±1.22 mV.</p>
+<p>The hardest measurement to take might be a 3.0-volt signal with a
+100-μs discharge time constant — if we let it charge fully, it’ll be
+out of range for the first 92 samples.  (I’m assuming that’ll just
+give us a full-scale reading, not a blown chip.  Also I’m ignoring the
+issue of charging the 8-pF sample-and-hold capacitor in the ADC’s
+frontend, which could add a significant error to quickly-changing
+signals when the input impedance is high.)</p>
+<p>So we have about ±2% error from the bandgap reference, ±0.1% error
+from the ADC, ±1% from the resistors, and probably ×/÷ 2 from the
+capacitors — an error I’m optimistic we can calibrate out.</p>
+<p>Every millisecond of measuring the charge/discharge waveforms gives us
+close to 1000 samples of data.  In theory, two samples are enough to
+fit an exponential decay toward a known zero voltage, and three
+samples are enough to fit an exponential increase towards an unknown
+asymptotic voltage, so these 1000 samples should give us about 23 dB
+of noise immunity — an ENOB increase of 4, giving us effectively
+16-bit precision on the measurements of the three components we’re
+trying to measure.</p>
+<p>This suggests to me that 37 keys is really aiming low, and we could
+potentially do orders of magnitude more.</p>
+<p>What about NKRO?  As described, the circuit topology has a really
+serious key-ghosting problem: there’s no way to distinguish the sets
+of keys {r2c2, r4c2, r4c4} from {r2c2, r2c4, r4c4} because they both
+connect exactly the same sets of wires together.  The simplest
+solution to that aspect of the problem is to put a different precision
+resistor in series with each keyswitch.  Additional measures that
+might help include adding capacitors to ground from the row lines,
+providing a pair of capacitances to come into equilibrium through the
+keyswitch resistor during the discharge cycle, and giving every
+component a slightly perturbed value, rather than having many
+resistors and many capacitors of the same value, which produces
+ambiguity.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/electronics.html">Electronics</a> (138 notes)
+</li><li><a href="../topics/pricing.html">Pricing</a> (89 notes)
+</li><li><a href="../topics/microcontrollers.html">Microcontrollers</a> (29 notes)
+</li><li><a href="../topics/information-theory.html">Information theory</a> (9 notes)
+</li><li><a href="../topics/keyboards.html">Keyboards</a> (5 notes)
+</li><li><a href="../topics/input-devices.html">Input devices</a> (5 notes)
+</li><li><a href="../topics/tinkerers-tricorder.html">The Tinkerer’s Tricorder</a> (2 notes)
+</li></ul></div></html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html><title>Robust local search in vector spaces using adaptive step sizes, and thoughts on extending quasi-Newton methods ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Robust local search in vector spaces using adaptive step sizes, and thoughts on extending quasi-Newton methods</h1><div class="metadata">Kragen Javier Sitaker, 2019-08-17 (updated 2019-09-15)
+(15 minutes)</div>
+<p>(Probably nothing in here is novel; it just documents my own
+exploration of the space of local search algorithms in vector spaces,
+which is well known, but not to me.)</p>
+<p>When writing <a href="../notes/rubber-wheel-pinch-drive.html">Rubber wheel pinch drive</a> I got confused with some
+basic trigonometry, trying to solve a triangle with the law of
+cosines† to find the intersection of two circles.  So, impatient, I
+figured I’d solve the problem with brute force instead, so I wrote the
+following implementation of local search with random restarts for
+scalar functions of general vector spaces:</p>
+<pre><code>def search(f, p, restarts=30, steps=30):
+    best = None
+    for start in range(restarts):
+        current = p()
+        current_badness = f(current)
+
+        for size in range(20):
+            for i in range(steps):
+                new = current + p() * 4**(4-size)
+                new_badness = f(new)
+                if new_badness &lt; current_badness:
+                    current, current_badness = new, new_badness
+
+        if best is None or best[1] &gt; current_badness:
+            best = current, current_badness
+</code></pre>
+<p>Here <code>p</code> is a function that yields a vector from the domain of <code>f</code>,
+which returns a real.</p>
+<p>At first this didn’t work very well because I had erroneously provided
+a guess function <code>p</code> that was always non-negative, so each restart
+would progressively step from the neighborhood of 0 to the
+neighborhood of the correct solution and then get stuck.
+Nevertheless, it was able to find a reasonably good solution (and then
+I realized how to solve the problem in closed form without
+trigonometry).</p>
+<p>† The law of cosines is <em>c</em>² = <em>a</em>² + <em>b</em>² - 2<em>ab</em> cos γ, where γ is
+the angle opposite the side with length <em>c</em>.</p>
+<h2>Making local search in vector spaces more robust</h2>
+<p>Random restarts in general make metaheuristic search algorithms more
+robust; indeed, even the simplest possible metaheuristic search
+algorithm, “choose a random point”, becomes workable with random
+restarts.</p>
+<p>In this implementation, the restarts aren’t very random.</p>
+<p>I tried to make the implementation somewhat robust against <code>p</code>
+functions of the wrong magnitude, as you can see; the algorithm tries
+a range of different exponentially-spaced sizes.  Now that I’m using a
+non-broken <code>p</code>, this results in finding a solution correct to ten
+decimal places, which is pretty good for such a simple local search algorithm.  But the
+particular orders of magnitude I chose are kind of arbitrary;
+basically I was just hoping they’d cover the right range.</p>
+<p>It occurred to me that you can make it more robust against <code>p</code> guesses
+of the wrong order of magnitude by updating <code>size</code> incrementally,
+using a procedure like the following: when you find a step that
+improves the guess, try half that same step or twice that same step.
+If that improves the guess further, then multiply <code>size</code> by 2 or ½,
+respectively, before the next iteration.  This way, if your step size
+is about right, <code>size</code> will experience a random walk around it, but if
+it’s much too small (you’re stepping around a locally flat linear
+region of the cost function) then <code>size</code> will grow exponentially,
+while if it’s much too large (you’re rocketing out of the basin with
+all the solutions in it) it will diminish exponentially.</p>
+<p>By the same token, you could make it robust against a <code>p</code> function
+like the one I provided by trying a step of -<em>p</em> when <em>p</em> makes the
+situation worse.  That way, if you’re in a relatively non-curved region, you
+can make progress by just shifting into reverse.  Trying this actually
+gives you another crucial piece of information: if going both ways
+makes it worse, there’s a good chance you’re in a local optimum, using a
+step size that is too big to have a good chance of improving your position.</p>
+<p>You could implement this as follows, though this code is a bit
+repetitive:</p>
+<pre><code>def climb(f, step):
+    size, growth, here = 1, 2, step()
+    cost = f(here)
+
+    while True:
+        yield here, cost  # This may be the same as last time
+
+        where = size * step()
+        new = here + where
+        new_cost = f(new)
+        if new_cost &gt; cost:
+            where = -1 * where
+            new = here + where
+            new_cost = f(new)
+
+        if new_cost &gt; cost:
+            size /= 2
+            continue
+
+        where *= growth
+        grown_new = here + where
+        grown_new_cost = f(grown_new)
+        if grown_new_cost &lt; new_cost:
+            new, new_cost = grown_new, grown_new_cost
+            size *= growth
+        else:
+            growth = 1/growth
+
+        here, cost = new, new_cost
+</code></pre>
+<p>This is able to find a good approximation of the intersection of two
+circles in “only” 128 iterations, using the following definitions,
+even when the answer is several orders of magnitude away from the
+starting step size:</p>
+<pre><code>def distance(p1, p2):
+    return ((p1 - p2)**2).sum()**0.5
+
+def circles(c1, r1, c2, r2):
+    def badness(guess):
+        return ((distance(guess, c1) - r1)**2 +
+                (distance(guess, c2) - r2)**2)
+    return badness
+
+step = lambda: numpy.random.rand(2) - 0.5
+</code></pre>
+<h3>Handling valleys (ridges), saddles, and higher-dimensional spaces</h3>
+<p>However, its adaptive step size will screw it in higher-dimensionality
+spaces, since when it’s in a valley or saddle point where most
+directions are bad, it will tend to diminish the step size and find a
+point on the valley floor very precisely.  Perhaps a better approach
+would be to diminish step sizes by a smaller amount that depends on
+the dimensionality, so that if there’s at least one good direction,
+the step size will remain constant on average.</p>
+<p>(“Valleys” here are “ridges” in the usual hill-climbing metaphor,
+because here we’re trying to <em>minimize</em> a cost function, while “hill
+climbing” is trying to <em>maximize</em> your altitude.)</p>
+<p>To escape this trap, you could have different behavior when expanding
+the step size than when reducing it: keep increasing the step size
+without changing the step direction until the situation stops
+getting better.  That is, walk along the line of the step by 2, 4, 8,
+16, 32, etc., times the size of the initial step, rather than just 2
+times, doing a crude line search once a promising direction is found.
+This will tend to ricochet you between the walls of a canyon,
+and eliminates the bias in the step-size random walk toward smallness,
+since any single lucky step in the right direction can increase the
+step size arbitrarily.</p>
+<p>This is similar to the three-dimensional optimization strategy Dave
+Long tells me some bacteria use: flagella forward while things are
+improving, flagella backward (resulting in random tumbling) while
+things are getting worse.</p>
+<p>In cases like those Adam and AdaGrad and the like are designed for,
+where the best step size varies enormously among different dimensions,
+you might want to use <em>hill climbing</em> — searching along one dimension at a time, so that
+you can use a separate step size for each dimension.  This also
+potentially permits the use of Acar’s “self-adjusting computation” and
+similar generic incrementalization algorithms to speed up function
+evaluation.  (See the section in <a href="../notes/powerful-primitives.html">More thoughts on powerful primitives for simplified computer systems architecture</a> on
+incremental or self-adjusting computation.)  Unfortunately, this means
+that you’ll never make any further progress once you reach the floor
+of a diagonal valley.  In <em>n</em> dimensions, there are 2<em>n</em>
+dimension-aligned directions a valley can descend in, but 2<em>ⁿ</em>
+precisely diagonal orientations, so in some sense that’s a much harder
+problem.</p>
+<p>As an example of how relative scales on different dimensions matter,
+the above routine handles the following somewhat pathological
+problem reasonably well, although it takes it several hundred
+iterations; note the incorrect step function:</p>
+<pre><code>c = (3, 1e10, 4, 17, -5)
+climb(lambda g: ((g-c)**2).sum(), lambda: numpy.random.random(5))
+</code></pre>
+<p>But it handles the following version much worse, requiring hundreds of
+thousands or possibly millions of iterations to solve it — it
+gradually exponentially converges on the right answer, but taking
+about 80'000 iterations per order of magnitude:</p>
+<pre><code>climb(lambda g: (((g-c)*(1,1,100,1,1))**2).sum(),
+      lambda: numpy.random.random(5))
+</code></pre>
+<p>This induces a steep valley along the third dimension, and so the
+deltas in the other dimensions like the second and fourth dimensions
+suffer a drastically reduced step size, slowing their convergence
+enormously (from the outlandish values they took to get close to the
+optimum along the second dimension).</p>
+<p>On one run, it finally found a solution accurate to two decimals on every
+dimension in iteration 886'803, after about 15 or 20 minutes of
+CPython interpretation:</p>
+<pre><code>886803 [  3.00416293e+00   1.00000000e+10   3.99999237e+00   1.70599240e+01
+  -4.95000939e+00] 0.0177569891399
+</code></pre>
+<p>It goes about four times as fast with a non-buggy step function,
+converging to that same precision in only 207'804 generations:</p>
+<pre><code>207804 [  3.02129932e+00   1.00000000e+10   3.99999109e+00   1.70184720e+01
+  -5.04976604e+00] 0.021740755647
+</code></pre>
+<p>The flagella-style variant described above improves on this by about a
+factor of 7:</p>
+<pre><code>28607 [  2.96086659e+00   1.00000000e+10   4.00023842e+00   1.69373547e+01
+  -4.95732860e+00] 0.0155987598959
+</code></pre>
+<p>That’s using the following implementation, which additionally is
+slightly simpler and only does one loss-function evaluation per
+iteration, instead of up to three:</p>
+<pre><code>def climb(f, step):
+    size, here = 1, step()
+    cost = f(here)
+
+    while True:
+        yield here, cost
+
+        where = size * step()
+        new = here + where
+        new_cost = f(new)
+        if new_cost &gt; cost:
+            size /= -2
+            continue
+
+        # We found a promising direction; swim!
+        while True:
+            yield new, new_cost
+            where *= 2
+            new_new = here + where
+            new_new_cost = f(new_new)
+            if new_new_cost &lt; new_cost:
+                new, new_cost = new_new, new_new_cost
+                size *= 2
+            else:
+                break
+
+        here, cost = new, new_cost
+</code></pre>
+<p>And this harness code:</p>
+<pre><code>from __future__ import division, print_function
+import numpy
+
+if __name__ == '__main__':
+    c = (3, 1e10, 4, 17, -5)
+    for i, (x, q) in enumerate(climb(lambda g: (((g-c)*(1,1,100,1,1))**2).sum(),
+                                     lambda: numpy.random.random(5) - 0.5)):
+        print(i, x, q)
+</code></pre>
+<p>As before, it takes four times as long if we leave out the <code>- 0.5</code>:</p>
+<pre><code>92241 [  3.04962626e+00   1.00000000e+10   3.99985342e+00   1.69648044e+01
+  -4.97438500e+00] 0.00457665876023
+</code></pre>
+<p>Applied to the circle-intersection problem from before, it typically
+takes more iterations, like around 30 instead of around 10.  (This is
+probably a somewhat smaller penalty than it sounds like, since the
+circle-intersection code from earlier is often doing two or three
+loss-function evaluations per iteration.)</p>
+<p>It solves this geometric square model to a precision of 1e-6 typically
+in 1000 to 3000 iterations:</p>
+<pre><code>def square_constraints(points):
+    p1, p2, p3, p4 = points[0:2], points[2:4], points[4:6], points[6:]
+    side1 = p2 - p1
+    side2 = p3 - p2
+    side3 = p4 - p3
+    side4 = p1 - p4
+    return (side1.dot(side2)**2 + side2.dot(side3)**2 + side3.dot(side4)**2
+            + side4.dot(side1)**2
+            + ((side1**2).sum() - 5**2)**2
+            + ((side2**2).sum() - (side3**2).sum())**2
+    )
+
+climb(square_constraints, lambda: 10 * (numpy.random.rand(8) - 0.5))
+</code></pre>
+<p>Without the fourth perpendicularity constraint, though, it converges
+very slowly, and the things it converges to don’t look like squares.
+One sample result with the fourth perpendicularity constraint left
+out:</p>
+<pre><code>141071 [ 2.76119227 -2.36547768 -1.36787743  0.45423421 -1.35017868  0.48015388
+ -1.33188753  0.50622078] 9.99823404211e-07
+</code></pre>
+<p>This has minuscule and nearly equal <code>side2</code> and <code>side3</code> (lengths about
+0.032), whose dot product is consequently also very small even though
+they’re very nearly parallel, being perpendicular to the
+nearly-parallel <code>side1</code> and <code>side4</code>.  This allows <code>side1</code> and <code>side4</code>
+to minimize the function by becoming more and more nearly equal and
+opposite.  It pays to be cautious when defining cost functions, since
+optimization algorithms will exploit whatever vulnerabilities they can
+find!</p>
+<p>I haven’t tried the per-dimension step-size approach above yet, though
+it would surely help for these examples.</p>
+<h2>Relationship to other kinds of optimization algorithms</h2>
+<p>See also <a href="../notes/genetic-secants.html">Using the method of secants for general optimization</a> for a different generic
+derivative-free solver for scalar functions of general vector spaces,
+that one for zeroes instead of minima.  I think both of these are only
+going to be reasonably fast for problems of low dimensionality, but I
+think hill-climbing suffers exponentially from high dimensionality,
+while the method of secants (like gradient-descent variants) will
+suffer only linearly from it.</p>
+<p>Of course, you can find local minima of a computable continuous
+function by using automatic differentiation on it and using the method
+of secants to find a zero of its derivative.</p>
+<p>Although the above implementations are not, hill-climbing
+and other kinds of local search are
+applicable to functions on discrete spaces without any kind of
+comparability between elements, such as graphs or strings of symbols.
+(That’s the domain.  The range still needs to be comparable.)  The
+method of secants requires divisibility and zeroes.  Hill-climbing
+also only requires comparability from its cost function — it takes no
+notice of its absolute magnitudes, just which values are higher and
+lower — and this <em>is</em> true of the implementations above.</p>
+<h2>Thoughts on quasi-Newton methods</h2>
+<p>For <em>regular</em> problems like the examples above, quasi-Newton methods
+would probably work better, but require differentiating the cost
+function.  With the advent of automatic differentiation, this is no
+longer a lot of work, but doing automatic differentiation on
+pure-Python functions like the above generally requires using
+forward-mode automatic differentiation, which is painfully slow.
+Reverse-mode automatic differentiation is dramatically faster for this
+sort of thing, but generally requires your program to be written
+differently.</p>
+<p>As I said in <a href="../notes/genetic-secants.html">Using the method of secants for general optimization</a>, quasi-Newton methods require the
+maintenance of an approximation of the Hessian, and for functions of
+high-dimensional spaces, the Hessian is fucking humongous.  A thing
+that has surely been tried, but that I haven't seen discussed, and
+which intuitively seems like it should work better for
+high-dimensional optimization problems, is using automatic
+differentiation to compute the gradient of the function to get a
+<em>direction</em> to move in, but then, rather than moving in that direction
+by an amount proportional to the <em>magnitude</em> of the gradient (as
+gradient-descent methods do), use automatic differentiation to compute
+the <em>second</em> derivative of the loss function <em>along that line</em>, which
+is a single number rather than a matrix of <em>N</em>² values (for a domain
+of dimensionality <em>N</em>) like the Hessian.  Then you can use a
+Newton–Raphson step to figure out how far to move along that line:
+divide the first derivative (the dot product of the gradient and the
+direction) by the second derivative, thus extrapolating the distance
+to the point at which the gradient would fall to zero if the Hessian
+were constant over that region.  (Alternatively, use affine arithmetic
+or reduced affine arithmetic to track down a precise zero along that
+line — see <a href="../notes/affine-arithmetic-newton.html">Fast mathematical optimization with affine arithmetic</a> for details.)</p>
+<p>The appealing thing here is that gradient descent has linear
+convergence (i.e., the logarithm of the approximation error falls
+linearly with the number of iterations) while under appropriate
+circumstances Newton’s method has quadratic convergence (i.e., the
+logarithm of the approximation error falls proportional to the square
+of the number of iterations).  I’m not entirely sure whether Nesterov
+accelerated gradient descent, gradient descent with momentum, Adam,
+etc., achieve a better order of convergence, but I think they don’t.</p>
+<p>This would be big if true (see <a href="../notes/big-if-true.html">Things in Dercuano that would be big if true</a> and <a href="../notes/top-algorithms.html">Top algorithms</a>) which means that it, given how obvious it is, it
+probably doesn’t work, or else I’m misunderstanding how quasi-Newton
+methods work, and they already do this.  But it will be interesting to
+find out why not.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/optimization.html">Mathematical optimization</a> (29 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/incremental-computation.html">Incremental computation</a> (24 notes)
+</li><li><a href="../topics/self-adjusting-computation.html">Umut Acar’s “self-adjusting computation”</a> (6 notes)
+</li><li><a href="../topics/newton-raphson.html">Newton–Raphson iteration (“Newton’s method”)</a> (6 notes)
+</li><li><a href="../topics/automatic-differentiation.html">Automatic differentiation</a> (6 notes)
+</li><li><a href="../topics/method-of-secants.html">Method of secants</a> (4 notes)
+</li><li><a href="../topics/gradient-descent.html">Gradient descent</a> (3 notes)
+</li></ul></div></html>

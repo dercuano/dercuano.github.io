@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html><title>A sketch of a minimalist bytecode for object-oriented languages ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>A sketch of a minimalist bytecode for object-oriented languages</h1><div class="metadata">Kragen Javier Sitaker, 2017-03-20 (updated 2017-06-20)
+(13 minutes)</div><p>Suppose you have a programming system with a garbage-collected
+object-graph memory where objects are type-tagged immutable vectors of
+fields.  You really only need two stack-bytecode operations for the
+object memory:</p>
+<pre><code>NEW ( class [ val0 val1 ... -- ref )
+AT ( ref idx -- val )
+</code></pre>
+<p>Here <code>[</code> is a PostScript-style stack mark for variadic function
+invocation.</p>
+<p><code>AT</code> fetches a field value, and <code>NEW</code> creates an object containing the
+given fields.  Alternatively, you could bake <code>idx</code> into AT’s bytecode
+and have it always operate on <code>self</code>, the receiver containing the
+executing method, and NEW could be an ordinary method call on <code>class</code>
+which is implemented with magical native code.  Either way, you need
+bounds-checking either at compile-time or run-time.</p>
+<p>With a reasonable generational garbage collector, this can be the most
+efficient way to do many things.  Other algorithms, however, also need
+mutation, so you need a third operation to mutate fields: ATPUT.</p>
+<p>For a Pythonish language (see <a href="../notes/thredsnek.html">Thredsnek: a tiny Python-flavored programming language</a>) you need built-in
+dict, list, int, float, and probably string classes, plus reflection,
+dynamic dispatch of variadic method calls, an iterator protocol, and
+exceptions; and, of course, control flow.</p>
+<p>So a minimal OO Pythonish bytecode might need INVOKE, AT, ATPUT, VAR,
+VARPUT, LIT, IF, GOTO, LOOP, [, and RET: 11 operations.  I’m not quite
+sure how to implement exceptions; catch and finally blocks are rare
+enough in garbage-collected languages (unlike in C++ or Rust, where
+every new variable sort of introduces one) that doing it the
+straightforward way with PUSHJMPBUF and POPJMPBUF opcodes might be
+adequate.</p>
+<p>An alternative block-structured design might unify method scope,
+object scope, and global scope as simply being three arbitrary levels
+of an arbitrary set of nested scopes, and this does have benefits to
+recommend it.  However, this requires recovering at compile-time or
+even run-time further information that was available in the
+programmer’s mind: in particular, which blocks might become closures
+(i.e. when objects are created) and which variables are captured by
+those blocks (i.e. the instance variables of the implicitly created
+objects).</p>
+<p>Looking at existing bytecode may be instructive.  Here’s disassembly
+of the CPython bytecode for a somewhat arbitrarily chosen Python
+library function, the <code>difference_update</code> method of the deprecated
+<code>sets</code> module.</p>
+<pre><code>Disassembly of difference_update:
+479           0 LOAD_FAST                0 (self)
+              3 LOAD_ATTR                0 (_data)
+              6 STORE_FAST               2 (data)
+
+480           9 LOAD_GLOBAL              1 (isinstance)
+             12 LOAD_FAST                1 (other)
+             15 LOAD_GLOBAL              2 (BaseSet)
+             18 CALL_FUNCTION            2
+             21 POP_JUMP_IF_TRUE        39
+
+481          24 LOAD_GLOBAL              3 (Set)
+             27 LOAD_FAST                1 (other)
+             30 CALL_FUNCTION            1
+             33 STORE_FAST               1 (other)
+             36 JUMP_FORWARD             0 (to 39)
+
+482     &gt;&gt;   39 LOAD_FAST                0 (self)
+             42 LOAD_FAST                1 (other)
+             45 COMPARE_OP               8 (is)
+             48 POP_JUMP_IF_FALSE       64
+
+483          51 LOAD_FAST                0 (self)
+             54 LOAD_ATTR                4 (clear)
+             57 CALL_FUNCTION            0
+             60 POP_TOP             
+             61 JUMP_FORWARD             0 (to 64)
+
+484     &gt;&gt;   64 SETUP_LOOP              33 (to 100)
+             67 LOAD_GLOBAL              5 (ifilter)
+             70 LOAD_FAST                2 (data)
+             73 LOAD_ATTR                6 (__contains__)
+             76 LOAD_FAST                1 (other)
+             79 CALL_FUNCTION            2
+             82 GET_ITER            
+        &gt;&gt;   83 FOR_ITER                13 (to 99)
+             86 STORE_FAST               3 (elt)
+
+485          89 LOAD_FAST                2 (data)
+             92 LOAD_FAST                3 (elt)
+             95 DELETE_SUBSCR       
+             96 JUMP_ABSOLUTE           83
+        &gt;&gt;   99 POP_BLOCK           
+        &gt;&gt;  100 LOAD_CONST               1 (None)
+            103 RETURN_VALUE
+</code></pre>
+<p>The original source code:</p>
+<pre><code>def difference_update(self, other):
+    """Remove all elements of another set from this set."""
+    data = self._data
+    if not isinstance(other, BaseSet):
+        other = Set(other)
+    if self is other:
+        self.clear()
+    for elt in ifilter(data.__contains__, other):
+        del data[elt]
+</code></pre>
+<p>Here’s a longer method, from another obscure standard library module,
+<code>netrc.netrc.__repr__</code>:</p>
+<pre><code>Disassembly of __repr__:
+130           0 LOAD_CONST               1 ('')
+              3 STORE_FAST               1 (rep)
+
+131           6 SETUP_LOOP             137 (to 146)
+              9 LOAD_FAST                0 (self)
+             12 LOAD_ATTR                0 (hosts)
+             15 LOAD_ATTR                1 (keys)
+             18 CALL_FUNCTION            0
+             21 GET_ITER            
+        &gt;&gt;   22 FOR_ITER               120 (to 145)
+             25 STORE_FAST               2 (host)
+
+132          28 LOAD_FAST                0 (self)
+             31 LOAD_ATTR                0 (hosts)
+             34 LOAD_FAST                2 (host)
+             37 BINARY_SUBSCR       
+             38 STORE_FAST               3 (attrs)
+
+133          41 LOAD_FAST                1 (rep)
+             44 LOAD_CONST               2 ('machine ')
+             47 BINARY_ADD          
+             48 LOAD_FAST                2 (host)
+             51 BINARY_ADD          
+             52 LOAD_CONST               3 ('\n\tlogin ')
+             55 BINARY_ADD          
+             56 LOAD_GLOBAL              2 (repr)
+             59 LOAD_FAST                3 (attrs)
+             62 LOAD_CONST               4 (0)
+             65 BINARY_SUBSCR       
+             66 CALL_FUNCTION            1
+             69 BINARY_ADD          
+             70 LOAD_CONST               5 ('\n')
+             73 BINARY_ADD          
+             74 STORE_FAST               1 (rep)
+
+134          77 LOAD_FAST                3 (attrs)
+             80 LOAD_CONST               6 (1)
+             83 BINARY_SUBSCR       
+             84 POP_JUMP_IF_FALSE      114
+
+135          87 LOAD_FAST                1 (rep)
+             90 LOAD_CONST               7 ('account ')
+             93 BINARY_ADD          
+             94 LOAD_GLOBAL              2 (repr)
+             97 LOAD_FAST                3 (attrs)
+            100 LOAD_CONST               6 (1)
+            103 BINARY_SUBSCR       
+            104 CALL_FUNCTION            1
+            107 BINARY_ADD          
+            108 STORE_FAST               1 (rep)
+            111 JUMP_FORWARD             0 (to 114)
+
+136     &gt;&gt;  114 LOAD_FAST                1 (rep)
+            117 LOAD_CONST               8 ('\tpassword ')
+            120 BINARY_ADD          
+            121 LOAD_GLOBAL              2 (repr)
+            124 LOAD_FAST                3 (attrs)
+            127 LOAD_CONST               9 (2)
+            130 BINARY_SUBSCR       
+            131 CALL_FUNCTION            1
+            134 BINARY_ADD          
+            135 LOAD_CONST               5 ('\n')
+            138 BINARY_ADD          
+            139 STORE_FAST               1 (rep)
+            142 JUMP_ABSOLUTE           22
+        &gt;&gt;  145 POP_BLOCK
+
+137     &gt;&gt;  146 SETUP_LOOP              85 (to 234)
+            149 LOAD_FAST                0 (self)
+            152 LOAD_ATTR                3 (macros)
+            155 LOAD_ATTR                1 (keys)
+            158 CALL_FUNCTION            0
+            161 GET_ITER            
+        &gt;&gt;  162 FOR_ITER                68 (to 233)
+            165 STORE_FAST               4 (macro)
+
+138         168 LOAD_FAST                1 (rep)
+            171 LOAD_CONST              10 ('macdef ')
+            174 BINARY_ADD          
+            175 LOAD_FAST                4 (macro)
+            178 BINARY_ADD          
+            179 LOAD_CONST               5 ('\n')
+            182 BINARY_ADD          
+            183 STORE_FAST               1 (rep)
+
+139         186 SETUP_LOOP              31 (to 220)
+            189 LOAD_FAST                0 (self)
+            192 LOAD_ATTR                3 (macros)
+            195 LOAD_FAST                4 (macro)
+            198 BINARY_SUBSCR       
+            199 GET_ITER            
+        &gt;&gt;  200 FOR_ITER                16 (to 219)
+            203 STORE_FAST               5 (line)
+
+140         206 LOAD_FAST                1 (rep)
+            209 LOAD_FAST                5 (line)
+            212 BINARY_ADD          
+            213 STORE_FAST               1 (rep)
+            216 JUMP_ABSOLUTE          200
+        &gt;&gt;  219 POP_BLOCK
+
+141     &gt;&gt;  220 LOAD_FAST                1 (rep)
+            223 LOAD_CONST               5 ('\n')
+            226 BINARY_ADD          
+            227 STORE_FAST               1 (rep)
+            230 JUMP_ABSOLUTE          162
+        &gt;&gt;  233 POP_BLOCK
+
+142     &gt;&gt;  234 LOAD_FAST                1 (rep)
+            237 RETURN_VALUE
+</code></pre>
+<p>Here’s the original source code:</p>
+<pre><code>def __repr__(self):
+    """Dump the class data in the format of a .netrc file."""
+    rep = ""
+    for host in self.hosts.keys():
+        attrs = self.hosts[host]
+        rep = rep + "machine "+ host + "\n\tlogin " + repr(attrs[0]) + "\n"
+        if attrs[1]:
+            rep = rep + "account " + repr(attrs[1])
+        rep = rep + "\tpassword " + repr(attrs[2]) + "\n"
+    for macro in self.macros.keys():
+        rep = rep + "macdef " + macro + "\n"
+        for line in self.macros[macro]:
+            rep = rep + line
+        rep = rep + "\n"
+    return rep
+</code></pre>
+<p>I feel like these two functions are relatively typical Python code.</p>
+<p>From a few arbitrary files including the above, I disassembled about
+2650 bytecodes.  The top ops are:</p>
+<pre><code>LOAD_FAST (630 bytecodes),
+CALL_FUNCTION (242 bytecodes),
+LOAD_GLOBAL (238 bytecodes, usually in order to call a global),
+LOAD_ATTR (228 bytecodes, largely split between
+    self attributes (preceded by a LOAD_FAST of self) and
+    method calls (followed by a CALL_FUNCTION)),
+LOAD_CONST (179 bytecodes),
+STORE_FAST (150 bytecodes),
+RETURN_VALUE (132 bytecodes),
+POP_JUMP_IF_FALSE (95 bytecodes),
+POP_TOP (89 bytecodes), and
+COMPARE_OP (80 bytecodes).
+</code></pre>
+<p>These add up to 2063 bytecodes, about 78% of the total.  COMPARE_OP
+makes it there because it’s a catchall for a variety of comparison
+operators, including exception-matching, <code>==</code>, and <code>is</code>, but also
+<code>in</code>, <code>&gt;</code>, and the like.  Most other binary operators have their own
+bytecode, like <code>[]</code> (BINARY_SUBSCR, 30 occurrences), and <code>+</code>
+(BINARY_ADD, 26 occurrences).</p>
+<h2>Stack operation density</h2>
+<p>I’ve tried a number of things, but so far I haven’t been able to find
+a way to get tighter code than with a stack machine.  On average, a
+binary operation (two inputs and one output) on a stack machine has
+about one associated stack manipulation operation, which is typically
+between 5 and 8 bits.</p>
+<p>Typical two-register code has a 3- or 4-bit field for each operand, so
+6–8 bits, and sometimes has an additional MOV instruction associated
+to prevent one of the inputs from being clobbered; three-register code
+avoids that at the cost of a third operand field, which in extreme
+cases (like Lua bytecode) means 24 bits of operands per operation, but
+is more typically 12–18 bits.</p>
+<p>The Mill architecture’s “belt” is a third alternative; like stack
+machines, the output of each instruction is implicit, but unlike them,
+inputs are not consumed.  Consequently operands must be implicit.  I
+did some speculative analysis (<a href="../notes/golomb-coded-belt.html">Golomb-coding operands as belt offsets likely won’t increase code density much</a>) of
+variable-length encoding of a two-address belt code and found that in
+the code I looked at, the spans were very nearly geometrically
+distributed, so nearly the optimum was Golomb coding with a bin size
+of 1, which reduces to unary coding, and this works out to a bit over
+5 bits of operand information per two-operand computational
+instruction (would be 4 if the geometric distribution was exactly
+correct), which is essentially exactly the same code density as the
+stack code, just much more expensive to decode.</p>
+<p>(An encoding variation I haven’t explored in more detail: since about
+half of the operands are the output of the immediately previous
+instruction, make that implicit for two-operand instructions, and
+insert an extra copy instruction in the other cases.  It probably
+won’t work to improve density further, but it might.)</p>
+<p>The TRIPS or EDGE (“explicit data graph execution”) architecture is
+sort of a mirror image of the “belt”, where instruction inputs are
+implicit, but outputs are explicit, and point to other instructions in
+the same block.  Presumably this works out about the same.</p>
+<p>So I think that probably stack code is the best approach; it typically
+uses about 10–12 bits per binary computational operation, of which
+about 5–6 bits is operand information (in the form of stack
+manipulation operations), which is comparable to the other
+alternatives; I'm not yet convinced that anything is better.  It’s
+faster to decode and interpret than variable-length instructions,
+though slower than fixed-width register-based instruction sets.  And
+it easily accommodates operations that consume or produce unusual
+numbers of values.</p>
+<h2>Truncation and Packing</h2>
+<p>The F18A core in the GreenArrays GA4 and GA144 chips has four 5-bit
+instructions per 18-bit memory word (when there are no jump targets;
+immediate literal constants are pushed on the stack by a <code>@p</code>
+instruction anywhere in the previous instruction word).  This means
+two bits are missing from the last word; the instruction encoding is
+designed so that among the 8 expressible instructions for this last
+slot are <code>;</code> (return), <code>.</code> (nop), <code>dup</code>, <code>+</code>, and <code>unext</code> (which loops
+back to the beginning of the instruction word a number of times stored
+in the R register).</p>
+<p>In this way, you can always NOP out the truncated instruction slot if
+you can’t do anything useful with it, but you <em>can</em> fit many of the
+most common instructions — including particularly the ones that are
+most likely to be useful at the end of an instruction word.  If you
+can do this ¾ of the time, you can fit 15 instructions into four
+18-bit words, an average of 4.8 bits per instruction — and, as I
+suggested earlier, typically you need about two instructions per
+computational operation, giving 9.6 bits per computational operation,
+not counting jump targets.</p>
+<p>You could use a similar approach with 32-bit words of bytecode on a
+32-bit or 64-bit machine.  If each opcode is 6 bits, for example, you
+can fit 5 whole ones and one 2-bit truncated one into a 32-bit word,
+or 4 whole ones and two 3-bit truncated ones.</p>
+<p>However, jumps will use up the rest of the instruction word; the above
+<strong>repr</strong> example code contains 99 bytecodes, of which 4 were
+<code>FOR_ITER</code> or <code>JUMP_FORWARD</code>, for an average of about 24 bytecodes
+between jumps.  This is probably roughly typical, or slightly high, so
+a substantial fraction of words will be taken up with such things.</p>
+<p>I’m not counting method invocation as a jump (though it is on the
+F18A), because I propose to carry it out in a different way, as
+explained below about “Facets and Dispatch”.</p>
+<h2>Type tagging</h2>
+<p>For a Pythonish language, we really need some kind of dynamic dispatch
+that allows us to use the same bytecodes to operate on native integers
+as on, for example, rational numbers.  One way to do this — the
+approach CPython takes — is to make integers heap-allocated objects
+too.  But it really helps performance, not to mention reliability and
+timing data leaks, if ordinary integers don’t need to be stored in
+memory like that.</p>
+<p>The standard approach to support runtime polymorphism between integers
+(held in registers) and pointers is to use one to four bits of the
+address word as type tags.  On byte-addressed machines with four-byte
+alignment for objects, the lowest two bits of a valid object pointer
+are always 00, so you can set them to, for example, 01 to indicate
+integers.  Then </p>
+<p>64-bit machines with byte-addressed memory have </p>
+<h2>Facets and Dispatch</h2>
+<h2>Constant literals</h2>
+<h2>Static Checking</h2><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/instruction-sets.html">Instruction sets</a> (40 notes)
+</li><li><a href="../topics/compression.html">Compression</a> (28 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/stacks.html">Stacks</a> (21 notes)
+</li><li><a href="../topics/oo.html">Object-oriented programming</a> (10 notes)
+</li><li><a href="../topics/mill.html">Mill</a> (7 notes)
+</li><li><a href="../topics/bytecode.html">Bytecode</a> (6 notes)
+</li><li><a href="../topics/misc.html">Minimal Instruction Set Computing</a> (3 notes)
+</li></ul></div></html>

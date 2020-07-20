@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html><title>Applying FM synthesis to natural sounds such as voices ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Applying FM synthesis to natural sounds such as voices</h1><div class="metadata">Kragen Javier Sitaker, 2019-11-12
+(2 minutes)</div><p>A common technique in modern music (going back to the Beatles) is to
+sweep a comb filter over the frequencies.  One variant of this is for
+no particularly good reason called “flanging”, but there are others.</p>
+<p>Another common technique is to use FM synthesis, in which the time
+axis is distorted according to a modulator waveform.  Typically this
+differs from the kind of FM used in FM radio in that, in FM radio, the
+modulator is many octaves lower than the carrier, while in FM
+synthesis, typically they are the same frequency or an octave or two
+apart, so the waveform repeats with the same period as the
+carrier — so the FM distortion merely produces harmonic distortion,
+rather than inharmonic sidebands.  A typical technique is to gradually
+reduce the “depth of modulation” down to zero, thus causing the
+harmonics thus produced to die away, just as the overtones of a string
+or a bell do.</p>
+<p>An interesting thing about FM synthesis is that the carrier wave being
+distorted is almost invariably a simple sinewave.  It would be
+interesting to use some kind of frequency and phase tracking to apply
+the same kind of “FM” periodic time-domain distortion to a wave from
+some other source, such as a singer’s voice.</p>
+<p>Most children in the rich world have done something similar by talking
+or singing through the blades of a spinning box fan to make a “robot
+voice”, which provides a sawtooth “FM” distortion of time at
+frequencies somewhat lower than voice frequencies, perhaps 50–100 Hz,
+and without phase tracking of them.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/dsp.html">Digital signal processing (DSP)</a> (60 notes)
+</li><li><a href="../topics/audio.html">Audio</a> (40 notes)
+</li><li><a href="../topics/music.html">Music</a> (18 notes)
+</li></ul></div></html>

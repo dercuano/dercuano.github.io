@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html><title>Using the method of secants for general optimization ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Using the method of secants for general optimization</h1><div class="metadata">Kragen Javier Sitaker, 2019-07-22 (updated 2019-11-26)
+(13 minutes)</div>
+<p>The <a href="https://en.wikipedia.org/wiki/Secant_method">method of secants</a> is an algorithm the humans have been using for some
+3000 years to solve a fairly wide variety of inverse problems, or, to
+their modern way of thinking, find zeroes of a fairly large class of
+functions.  Given a function <em>f</em> from some vector <em>x</em> to the
+underlying field of that vector, such as ℂ or ℝ, we compute a sequence
+of iterative approximations:</p>
+<blockquote>
+<p><em>xₙ</em> = <em>xₙ</em>₋₁ - <em>f</em>(<em>xₙ</em>₋₁) · (<em>xₙ</em>₋₁ - <em>xₙ</em>₋₂) / (<em>f</em>(<em>xₙ</em>₋₁) - <em>f</em>(<em>xₙ</em>₋₂))</p>
+</blockquote>
+<p>You can think of this as a variant of Newton–Raphson iteration, using
+the secant approximation to the tangent line.</p>
+<p>Unlike Newton–Raphson iteration, it doesn’t require computing the
+derivative of the function, and it has slightly faster convergence
+under the usual assumptions used to prove the convergence of
+Newton–Raphson iteration — under those circumstances, the error after
+each iteration is the previous error to the power φ ≈ 1.618, but each
+iteration only requires computing a single new value of the function
+being solved for, while Newton–Raphson iteration requires computing a
+new value of the function and also of its derivative, which is usually
+about twice as much work.  So in some sense it converges about 31%
+faster.</p>
+<p>However, it needs two guesses to get started instead of one, which
+makes its convergence conditions somewhat more complicated to
+describe.</p>
+<p>Some ideas occurred to me about how to use the method of secants, so I
+thought I’d write them down.</p>
+<p>I used the method of secants as an extended example in <a href="../notes/implementation-separation.html">Separating implementation, optimization, and proofs</a>.</p>
+<p>(This is probably crushingly naïve compared to all the work out there
+on optimization methods I don’t understand yet, like Nelder–Mead,
+Broyden’s method, and the Levenberg–Marquardt algorithm, not to
+mention the stunning successes in recent years with variants of
+gradient descent; but I thought it would be worth writing down.)</p>
+<blockquote>
+<p>(Unrelated: the Method of Wecants, a technique for declining to do
+something you don’t want to do while blaming someone else.)</p>
+</blockquote>
+<h2>Vector-domain functions</h2>
+<p>The method of secants is normally described as a one-dimensional
+root-finding method, but above, I said that you can generalize the
+domain of the function to be a vector, as suggested by the form of its
+recurrence relation.  What happens in practice if you try that?</p>
+<p>Consider <em>f</em> : ℝ² → ℝ = λ(<em>a</em>, <em>b</em>).<em>a</em>² + <em>b</em>² - 1, a paraboloid
+which is zero everywhere along the unit circle.  If our initial
+starting guesses are <em>x</em>₀ = (1, 1) and <em>x</em>₁ = (2, 0), the values just
+sort of randomly oscillate:</p>
+<ul>
+<li>1, 1</li>
+<li>2,  0</li>
+<li>0.5,  1.5</li>
+<li>-1,  3</li>
+<li>0.8,  1.2</li>
+<li>1.04545455,  0.95454545</li>
+<li>4.29411765, -2.29411765</li>
+<li>0.89511609,  1.10488391</li>
+</ul>
+<p>That’s because each <em>x</em> value in the method of secants is an affine
+combination of the previous two values, so there’s no way for them to
+get off the line <em>b</em> = 2 - <em>a</em>; and, as it happens, that line doesn’t
+intersect the unit circle.  If you’re looking for an intersection of
+that line with the circle, or more likely some hairy implicit
+function, that might be great — although, if there are multiple
+intersections, there’s no guarantee about which one you’ll get, unlike
+with signed-distance-function raytracing.  But if you’re trying to
+find <em>any</em> solution, it’s not so great that you need to start by
+picking two points that are collinear with it.</p>
+<p>Other pairs of starting points converge just fine for the same
+function:</p>
+<ul>
+<li>1, 0.5</li>
+<li>2, 0</li>
+<li>0.90909091,  0.54545455</li>
+<li>0.86206897,  0.56896552</li>
+<li>0.80697224,  0.59651388</li>
+<li>0.80049797,  0.59975101</li>
+<li>0.80000430,  0.59999785</li>
+<li>0.8,  0.6</li>
+</ul>
+<p>There are different approaches to solving this problem.  Perhaps the
+simplest possible one is to use a secant, not through the last two
+points, but through the first and last of the last <em>m</em> points:</p>
+<blockquote>
+<p><em>xₙ</em> = <em>xₙ</em>₋₁ - <em>f</em>(<em>xₙ</em>₋₁) · (<em>xₙ</em>₋₁ - <em>xₙ</em>₋<em>ₘ</em>) / (<em>f</em>(<em>xₙ</em>₋₁) - <em>f</em>(<em>xₙ</em>₋<em>ₘ</em>))</p>
+</blockquote>
+<p>In theory this should allow the last <em>m</em> points to be a simplex of an
+<em>m</em>-1-dimensional space, so their affine combinations would be that
+<em>m</em>-1-dimensional space, at the expense of somewhat slower
+convergence.  This seems too dumb to work, but it does seem to.
+Here’s a Python implementation:</p>
+<pre><code>def secnd_seq(f, x):
+    x = list(x)
+    y = [f(xi) for xi in x]
+
+    while True:
+        yield x[-1], y[-1]
+
+        div = y[-1] - y[0]
+        if not div:
+            return
+
+        x.append(x[-1] - y[-1] * (x[-1] - x[0]) / div)
+        y.append(f(x[-1]))
+        x.pop(0)
+        y.pop(0)
+</code></pre>
+<p>Given random points from [-5, 5]², this converges to a point on the
+unit circle about ¼ of the time with 2 starting points (the orthodox
+method of secants), but almost always with 3 or more starting points,
+because three points is enough to span the whole 2-D parameter space
+almost surely.  However, the algorithm frequently takes several
+thousand iterations to converge!  Increasing the number of starting
+points to 4, 5, or 6 makes it less frequently need more than 100
+iterations or more than 1000 iterations, but since it usually
+converges in less than 50 iterations with 3 points, it might make just
+as much sense to do a random restart if the algorithm is failing to
+converge.  Still, increasing the number of points more makes the
+completion time more consistent.</p>
+<pre><code>unit_circle = lambda (x, y): x**2 + y**2 - 1
+
+def test_nd(d=3, n=1000, maxiter=100, eps=1e-15, f=unit_circle):
+    ok = not_ok = 0
+
+    for i in range(n):
+        x = [numpy.random.random(2) * 10 - 5 for j in range(d)]
+        items = list(itertools.islice(secnd_seq(f, x), maxiter))
+        if abs(items[-1][-1]) &lt; eps:
+            print "ok:", x, items[-1][0], len(items)
+            ok += 1
+        else:
+            print "not ok", x, items[-d:]
+            not_ok += 1
+
+    return ok, not_ok
+</code></pre>
+<p>(After several thousand trials, it did find a three-starting-point
+state from which convergence failed after 10000 iterations: three
+points reported as [array([-2.57650664, -4.90971528]),
+array([-0.17240513, -3.30215595]), array([-4.9655625 , 3.50688737])].
+Unfortunately, that point converges in 82 iterations; like Lorentz’s,
+my attempt at reproducibility has apparently been defeated by
+rounding.)</p>
+<p>This experimental result suggests that this approach may be usable in
+high-dimensionality spaces to find zeroes, perhaps, like gradient
+descent is for finding minima.  But I wonder how it compares to
+running gradient descent, or one of its modern variants like AdaGrad
+or Adam, on the square of a function?</p>
+<h2>Finding a zero of a vector-valued function</h2>
+<p>Suppose you want to find an intersection (<em>x</em>, <em>y</em>) of two circles:
+(<em>x</em> - <em>x</em>₀)² + (<em>y</em> - <em>y</em>₀)² - <em>r</em>₀² = 0 ∧ (<em>x</em> - <em>x</em>₁)² + (<em>y</em> -
+<em>y</em>₁)² - <em>r</em>₁² = 0.  You could think of this as finding a zero of a
+vector-valued function <em>f</em>(<em>x</em>, <em>y</em>) : ℝ² → ℝ² = ((<em>x</em> - <em>x</em>₀)² + (<em>y</em>
+- <em>y</em>₀)² - <em>r</em>₀², (<em>x</em> - <em>x</em>₁)² + (<em>y</em> - <em>y</em>₁)² - <em>r</em>₁²).  But we
+can’t directly apply the method of secants, because we need to divide
+by the difference of two function outputs, and you can’t divide
+vectors.</p>
+<p>However, we can take a norm of the result vector to get a scalar which
+will only be 0 when the vector is 0; for example, the <strong>L₁</strong> norm:
+|(<em>x</em> - <em>x</em>₀)² + (<em>y</em> - <em>y</em>₀)² - <em>r</em>₀²| + |(<em>x</em> - <em>x</em>₁)² + (<em>y</em> -
+<em>y</em>₁)² - <em>r</em>₁²|.  Or, in Python:</p>
+<pre><code>def circle_intersection(x0, y0, r0, x1, y1, r1):
+    def f(xv):
+        x, y = xv
+        return (abs((x - x0)**2 + (y - y0)**2 - r0**2) +
+                abs((x - x1)**2 + (y - y1)**2 - r1**2))
+
+    return f
+</code></pre>
+<p>This of course has a discontinuous derivative whenever we cross one of
+the circles, and so although the procedure above is able to find
+intersections successfully, it takes several hundred iterations to do
+so.  But, surprisingly, things get even worse if we try to use the
+<strong>L₂</strong> norm:</p>
+<pre><code>def circle_intersection_L2(x0, y0, r0, x1, y1, r1):
+    def f(xv):
+        x, y = xv
+        return (((x - x0)**2 + (y - y0)**2 - r0**2)**2 +
+                ((x - x1)**2 + (y - y1)**2 - r1**2)**2)
+
+    return f
+</code></pre>
+<p>I think this is because the quadratic convergence condition of both
+Newton–Raphson iteration and the method of secants requires the
+function to have a nonzero derivative in the neighborhood of its root,
+and the <strong>L₂</strong> norm instead has a zero derivative.  Still, by using
+enough initial points, we can usually get to the solutions this way;
+this converges on 997 out of 1000 attempts, but usually takes between
+1000 and 2000 iterations:</p>
+<pre><code>test_nd(d=20, maxiter=10000,
+        f=circle_intersection_L2(0, 0, 1, 1, 0, 1),
+        eps=1e-13)
+</code></pre>
+<p>The <strong>L<sup>∞</sup></strong> norm is just as bad.</p>
+<h2>Optimization</h2>
+<p>Thomas Simpson pointed out that, if you can compute the first and
+second derivatives of a function, you can use Newton–Raphson iteration
+to numerically approximate its critical points — saddle points, local
+minima, and local maxima.  Its global minimum must be one of these or,
+if its domain is compact, a point on the boundary of the domain.  (If
+its domain is finite and open it may not have a minimum, just an
+infimum.)  In low dimensionalities with sufficiently polite functions,
+this can enable you to quickly find the global minimum, even by manual
+computation.  This approach has expanded into a whole field of
+“quasi-Newton methods”, but these involve maintaining an approximation
+of the Hessian matrix of the function being optimized — and in <em>n</em>
+dimensions, the Hessian has <em>n</em>² elements.</p>
+<p>Similarly, you can use the method of secants to numerically
+approximate a critical point of a function if you can compute the
+function’s derivative — for example, using automatic differentiation.
+Earlier, I suggested that maybe you could square a function, at least
+a real one, and use generic optimization algorithms to find its
+zeroes.  Now I’m suggesting almost the opposite: differentiate a
+function and use generic root-finding algorithms to find the zeroes of
+its derivative, then test them to see which one is lowest.</p>
+<p>If we are attempting to find a minimum of a function <em>f</em> : ℝ<em>ⁿ</em> → ℝ,
+we can start by using automatic differentiation to compute points of
+∇<em>f</em>, which are in ℝ<em>ⁿ</em>.  Then we can, perhaps, use the extended
+method of secants in the way described above — taking some norm of
+that gradient and attempting to extrapolate to where it becomes zero,
+using something like 2<em>n</em> or 3<em>n</em> points — with only on the order of
+3<em>n</em> + O(1) operations per iteration, rather than the O(<em>n</em>²) required
+by quasi-Newton methods.  (However, I suspect that convergence, if it
+happens at all, may be slower per iteration with this approach, so
+overall it may be faster or slower than quasi-Newton methods.)</p>
+<h2>Genetic algorithms</h2>
+<p>“Genetic algorithms” is a catchy name for a popular metaheuristic
+based on Darwinian and Mendelian metaphors.  You have a “population”
+of “chromosomes” over which you compute “fitnesses”; then, to create a
+new “generation”, you “crossbreed” members of the population chosen
+randomly (with higher probability increasing with fitness) by
+combining their “genes” with “crossover” and apply “mutations” to the
+results.  As long as the crossover and mutation operations aren’t too
+destructive to fitness, each generation of the population will tend to
+have higher and higher “fitness”.</p>
+<p>It occurred to me that the method of secants sort of fits into this
+mold, but with an especially powerful “crossover” mechanism — it
+attempts to extrapolate from the differences between the two “genomes”
+it’s crossbreeding to find the optimum.  The offspring is necessarily
+within the space of affine combinations of the two parents, but its
+fitness may be much higher than theirs.  (But sometimes it’s not.)</p>
+<p>The above approach of just drawing secants from further back in the
+history of approximations, in order to handle higher dimensionality,
+can be seen as a sort of degenerate genetic algorithm in which we only
+crossbreed two individuals at a time, and they’re always the oldest
+and youngest.  Presumably more judicious choice of parents would yield
+faster convergence.</p>
+<p>As an example, I was thinking of approximating an image (see <a href="../notes/image-approximation.html">Image approximation</a>) with a set of Lambertian spheres of the same
+color and some lighting, and using the method of secants as above to
+generate new combinations of spheres.  The function being optimized
+would be a combination of the difference between an image rendered
+from a given configuration of spheres and a penalty for the complexity
+of the configuration; the configuration would consist of an (<em>x</em>, <em>y</em>,
+<em>z</em>) direction for the directional light, an (<em>r</em>, <em>g</em>, <em>b</em>) color for
+the ambient light, and parameters (<em>xᵢ</em>, <em>yᵢ</em>, <em>zᵢ</em>, <em>Rᵢ</em>, <em>rᵢ</em>, <em>gᵢ</em>,
+<em>bᵢ</em>) for each sphere in the configuration.  Mutation operations would
+add noise to everything and occasionally clone a sphere.  Initial
+renderings would be low in resolution to speed up the initial search.</p>
+<p>Dunno, maybe something like that could work for the
+structure-from-shading or even structure-from-motion problem, though
+in the second case you additionally have to estimate the camera path
+relative to the object.  And maybe gradient descent and its variants
+are better fits.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/optimization.html">Mathematical optimization</a> (29 notes)
+</li><li><a href="../topics/3d-modeling.html">3-D modeling</a> (9 notes)
+</li><li><a href="../topics/anytime-algorithms.html">Anytime algorithms</a> (7 notes)
+</li><li><a href="../topics/newton-raphson.html">Newton–Raphson iteration (“Newton’s method”)</a> (6 notes)
+</li><li><a href="../topics/image-approximation.html">Image approximation</a> (5 notes)
+</li><li><a href="../topics/method-of-secants.html">Method of secants</a> (4 notes)
+</li></ul></div></html>

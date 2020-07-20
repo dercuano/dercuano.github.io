@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html><title>Performance properties of sets of bitwise operations ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Performance properties of sets of bitwise operations</h1><div class="metadata">Kragen Javier Sitaker, 2018-11-06 (updated 2018-11-07)
+(16 minutes)</div><p>For <a href="../notes/bootstrapping-instruction-set.html">Bootstrapping instruction set</a>, I did some studies of
+different possible sets of bitwise operations using
+<a href="http://canonical.org/~kragen/sw/dev3/abjsearch.py">http://canonical.org/~kragen/sw/dev3/abjsearch.py</a>.  Of the
+Boolean-complete sets, abjunction alone and NAND alone had nearly the
+worst worst case; computing <code>x ^ y</code> with them requires 5 operations,
+not counting the constant all-ones -1 (which it needs because it’s
+falsehood-preserving): -1 &amp;^ ((-1 &amp;^ (x &amp;^ y)) &amp;^ (y &amp;^ x)) for
+abjunction, (y &amp;̄ (x &amp;̄ x)) &amp;̄ (x &amp;̄ (x &amp;̄ y)) for NAND.</p>
+<p>Considering the case with only abjunction, which is to say, set
+subtraction or ANDNOT, which Golang spells <code>&amp;^</code>.</p>
+<pre><code>r[ 0] = x (truth table 0011, cost 0) = x
+r[ 1] = y (truth table 0101, cost 0) = y
+r[ 2] = 0 (truth table 0000, cost 1) = 0
+r[ 3] = -1 (truth table 1111, cost 1) = -1
+r[ 4] = r[0] &amp;^ r[1] (truth table 0010, cost 1) = x &amp;^ y
+r[ 5] = r[1] &amp;^ r[0] (truth table 0100, cost 1) = y &amp;^ x
+r[ 6] = r[3] &amp;^ r[0] (truth table 1100, cost 2) = -1 &amp;^ x
+r[ 7] = r[3] &amp;^ r[1] (truth table 1010, cost 2) = -1 &amp;^ y
+r[ 8] = r[0] &amp;^ r[4] (truth table 0001, cost 2) = x &amp;^ (x &amp;^ y)
+r[ 9] = r[3] &amp;^ r[4] (truth table 1101, cost 3) = -1 &amp;^ (x &amp;^ y)
+r[10] = r[3] &amp;^ r[5] (truth table 1011, cost 3) = -1 &amp;^ (y &amp;^ x)
+r[11] = r[6] &amp;^ r[1] (truth table 1000, cost 3) = (-1 &amp;^ x) &amp;^ y
+r[12] = r[3] &amp;^ r[8] (truth table 1110, cost 4) = -1 &amp;^ (x &amp;^ (x &amp;^ y))
+r[13] = r[3] &amp;^ r[11] (truth table 0111, cost 4) = -1 &amp;^ ((-1 &amp;^ x) &amp;^ y)
+r[14] = r[9] &amp;^ r[5] (truth table 1001, cost 5) = (-1 &amp;^ (x &amp;^ y)) &amp;^ (y &amp;^ x)
+r[15] = r[3] &amp;^ r[14] (truth table 0110, cost 6) = -1 &amp;^ ((-1 &amp;^ (x &amp;^ y)) &amp;^ (y &amp;^ x))
+</code></pre>
+<p>With only binary NAND, the situation is almost as bad, but without
+needing -1, and with more reuse:</p>
+<pre><code>r[ 0] = x (truth table 0011, cost 0) = x
+r[ 1] = y (truth table 0101, cost 0) = y
+r[ 2] = r[0] &amp;̄ r[0] (truth table 1100, cost 1) = x &amp;̄ x
+r[ 3] = r[0] &amp;̄ r[1] (truth table 1110, cost 1) = x &amp;̄ y
+r[ 4] = r[1] &amp;̄ r[1] (truth table 1010, cost 1) = y &amp;̄ y
+r[ 5] = r[0] &amp;̄ r[2] (truth table 1111, cost 2) = x &amp;̄ (x &amp;̄ x)
+r[ 6] = r[0] &amp;̄ r[3] (truth table 1101, cost 2) = x &amp;̄ (x &amp;̄ y)
+r[ 7] = r[1] &amp;̄ r[2] (truth table 1011, cost 2) = y &amp;̄ (x &amp;̄ x)
+r[ 8] = r[2] &amp;̄ r[4] (truth table 0111, cost 3) = (x &amp;̄ x) &amp;̄ (y &amp;̄ y)
+r[ 9] = r[3] &amp;̄ r[3] (truth table 0001, cost 2) = a &amp;̄ a where a = x &amp;̄ y
+r[10] = r[3] &amp;̄ r[8] (truth table 1001, cost 5) = (x &amp;̄ y) &amp;̄ ((x &amp;̄ x) &amp;̄ (y &amp;̄ y))
+r[11] = r[5] &amp;̄ r[5] (truth table 0000, cost 3) = a &amp;̄ a where a = x &amp;̄ b and b = x &amp;̄ x
+r[12] = r[6] &amp;̄ r[6] (truth table 0010, cost 3) = a &amp;̄ a where a = x &amp;̄ b and b = x &amp;̄ y
+r[13] = r[7] &amp;̄ r[7] (truth table 0100, cost 3) = a &amp;̄ a where a = y &amp;̄ b and b = x &amp;̄ x
+r[14] = r[8] &amp;̄ r[8] (truth table 1000, cost 4) = a &amp;̄ a where a = c &amp;̄ b and b = y &amp;̄ y and c = x &amp;̄ x
+r[15] = r[6] &amp;̄ r[7] (truth table 0110, cost 5) = (x &amp;̄ (x &amp;̄ y)) &amp;̄ (y &amp;̄ (x &amp;̄ x))
+</code></pre>
+<p>If we have 2-, 3-, and 4-input NANDs, the situation is pretty much
+exactly the same as with just 2-input NANDs.</p>
+<p>Actually, though, separate <code>&amp;</code> and <code>~</code> operations (or equivalently <code>|</code>
+and <code>~</code>) are even worse:</p>
+<pre><code>r[ 0] = x (truth table 0011, cost 0) = x
+r[ 1] = y (truth table 0101, cost 0) = y
+r[ 2] = ~r[0] (truth table 1100, cost 1) = ~x
+r[ 3] = ~r[1] (truth table 1010, cost 1) = ~y
+r[ 4] = r[0] &amp; r[1] (truth table 0001, cost 1) = x &amp; y
+r[ 5] = r[0] &amp; r[2] (truth table 0000, cost 2) = x &amp; (~x)
+r[ 6] = r[0] &amp; r[3] (truth table 0010, cost 2) = x &amp; (~y)
+r[ 7] = r[1] &amp; r[2] (truth table 0100, cost 2) = y &amp; (~x)
+r[ 8] = r[2] &amp; r[3] (truth table 1000, cost 3) = (~x) &amp; (~y)
+r[ 9] = ~r[4] (truth table 1110, cost 2) = ~(x &amp; y)
+r[10] = ~r[5] (truth table 1111, cost 3) = ~(x &amp; (~x))
+r[11] = ~r[6] (truth table 1101, cost 3) = ~(x &amp; (~y))
+r[12] = ~r[7] (truth table 1011, cost 3) = ~(y &amp; (~x))
+r[13] = ~r[8] (truth table 0111, cost 4) = ~((~x) &amp; (~y))
+r[14] = r[9] &amp; r[13] (truth table 0110, cost 7) = (~(x &amp; y)) &amp; (~((~x) &amp; (~y)))
+r[15] = r[11] &amp; r[12] (truth table 1001, cost 7) = (~(x &amp; (~y))) &amp; (~(y &amp; (~x)))
+</code></pre>
+<p>Darius Bacon suggests considering the bitwise ternary operator
+<code>(x &amp; y | ~x &amp; z)</code> as a primitive operation.</p>
+<p>The bitwise ternary operator is almost as universal as abjunction,
+which is to say that, since it’s falsehood-preserving, it requires
+access to a constant -1 to be universal, and since it’s also
+truth-preserving, it also requires a constant 0; but it’s somewhat
+more efficient.  It computes <code>x ^ y</code> in two operations plus a constant
+0 as <code>x ? (y ? 0 : x) : y</code>, and reaching the negating operations NAND
+and NOR is barely more difficult.  NAND is <code>x ? (y ? 0 : x) : -1</code> and
+NOR is <code>x ? 0 : y ? x : -1</code>.</p>
+<pre><code>r[ 0] = x (truth table 0011, cost 0) = x
+r[ 1] = y (truth table 0101, cost 0) = y
+r[ 2] = 0 (truth table 0000, cost 1) = 0
+r[ 3] = -1 (truth table 1111, cost 1) = -1
+r[ 4] = r[0] ? r[0] : r[1] (truth table 0111, cost 1) = x ? x : y
+r[ 5] = r[0] ? r[1] : r[0] (truth table 0001, cost 1) = x ? y : x
+r[ 6] = r[0] ? r[1] : r[3] (truth table 1101, cost 2) = x ? y : -1
+r[ 7] = r[0] ? r[2] : r[1] (truth table 0100, cost 2) = x ? 0 : y
+r[ 8] = r[0] ? r[2] : r[3] (truth table 1100, cost 3) = x ? 0 : -1
+r[ 9] = r[1] ? r[0] : r[3] (truth table 1011, cost 2) = y ? x : -1
+r[10] = r[1] ? r[2] : r[0] (truth table 0010, cost 2) = y ? 0 : x
+r[11] = r[1] ? r[2] : r[3] (truth table 1010, cost 3) = y ? 0 : -1
+r[12] = r[0] ? r[1] : r[9] (truth table 1001, cost 3) = x ? y : (y ? x : -1)
+r[13] = r[0] ? r[2] : r[9] (truth table 1000, cost 4) = x ? 0 : (y ? x : -1)
+r[14] = r[0] ? r[10] : r[1] (truth table 0110, cost 3) = x ? (y ? 0 : x) : y
+r[15] = r[0] ? r[10] : r[3] (truth table 1110, cost 4) = x ? (y ? 0 : x) : -1
+</code></pre>
+<p>The negated version of the bitwise ternary operator is even more
+expressive in this sense, as it has no need for constants; it reaches
+NAND, NOR, constant 0, constant -1, and the negation of either input
+in a single application, and needs only a single additional
+application to reach the rest of the binary boolean functions,
+including AND, OR, XOR, and XNOR. OR is <code>~(x ? a : a) where a = ~(x ?
+x : y)</code>, AND is <code>~(x ? a : a) where a = ~(x ? y : x)</code>, XOR is <code>~(x ? y
+: (~(x ? x : y)))</code>, and XNOR is <code>~(x ? (~(x ? y : x)) : y)</code>.</p>
+<pre><code>r[ 0] = x (truth table 0011, cost 0) = x
+r[ 1] = y (truth table 0101, cost 0) = y
+r[ 2] = ~(r[0] ? r[0] : r[0]) (truth table 1100, cost 1) = ~(x ? x : x)
+r[ 3] = ~(r[0] ? r[0] : r[1]) (truth table 1000, cost 1) = ~(x ? x : y)
+r[ 4] = ~(r[0] ? r[1] : r[0]) (truth table 1110, cost 1) = ~(x ? y : x)
+r[ 5] = ~(r[0] ? r[1] : r[1]) (truth table 1010, cost 1) = ~(x ? y : y)
+r[ 6] = ~(r[0] ? r[0] : r[2]) (truth table 0000, cost 2) = ~(x ? x : (~(x ? x : x)))
+r[ 7] = ~(r[0] ? r[0] : r[3]) (truth table 0100, cost 2) = ~(x ? x : (~(x ? x : y)))
+r[ 8] = ~(r[0] ? r[1] : r[2]) (truth table 0010, cost 2) = ~(x ? y : (~(x ? x : x)))
+r[ 9] = ~(r[0] ? r[1] : r[3]) (truth table 0110, cost 2) = ~(x ? y : (~(x ? x : y)))
+r[10] = ~(r[0] ? r[2] : r[0]) (truth table 1111, cost 2) = ~(x ? (~(x ? x : x)) : x)
+r[11] = ~(r[0] ? r[2] : r[1]) (truth table 1011, cost 2) = ~(x ? (~(x ? x : x)) : y)
+r[12] = ~(r[0] ? r[3] : r[3]) (truth table 0111, cost 2) = ~(x ? a : a) where a = ~(x ? x : y)
+r[13] = ~(r[0] ? r[4] : r[0]) (truth table 1101, cost 2) = ~(x ? (~(x ? y : x)) : x)
+r[14] = ~(r[0] ? r[4] : r[1]) (truth table 1001, cost 2) = ~(x ? (~(x ? y : x)) : y)
+r[15] = ~(r[0] ? r[4] : r[4]) (truth table 0001, cost 2) = ~(x ? a : a) where a = ~(x ? y : x)
+</code></pre>
+<p>Similarly, the closely-related AOI and-or-invert function of four
+bits, sometimes realized as a single gate, can also reach all of the
+binary boolean functions in only two applications.</p>
+<pre><code>r[ 0] = x (truth table 0011, cost 0) = x
+r[ 1] = y (truth table 0101, cost 0) = y
+r[ 2] = ~(r[0] &amp; r[0] | r[0] &amp; r[0]) (truth table 1100, cost 1) = ~(x &amp; x | x &amp; x)
+r[ 3] = ~(r[0] &amp; r[0] | r[1] &amp; r[1]) (truth table 1000, cost 1) = ~(x &amp; x | y &amp; y)
+r[ 4] = ~(r[0] &amp; r[1] | r[0] &amp; r[1]) (truth table 1110, cost 1) = ~(x &amp; y | x &amp; y)
+r[ 5] = ~(r[0] &amp; r[1] | r[1] &amp; r[1]) (truth table 1010, cost 1) = ~(x &amp; y | y &amp; y)
+r[ 6] = ~(r[0] &amp; r[0] | r[2] &amp; r[2]) (truth table 0000, cost 2) = ~(x &amp; x | a &amp; a) where a = ~(x &amp; x | x &amp; x)
+r[ 7] = ~(r[0] &amp; r[0] | r[3] &amp; r[3]) (truth table 0100, cost 2) = ~(x &amp; x | a &amp; a) where a = ~(x &amp; x | y &amp; y)
+r[ 8] = ~(r[0] &amp; r[1] | r[2] &amp; r[2]) (truth table 0010, cost 2) = ~(x &amp; y | a &amp; a) where a = ~(x &amp; x | x &amp; x)
+r[ 9] = ~(r[0] &amp; r[1] | r[3] &amp; r[3]) (truth table 0110, cost 2) = ~(x &amp; y | a &amp; a) where a = ~(x &amp; x | y &amp; y)
+r[10] = ~(r[0] &amp; r[2] | r[0] &amp; r[2]) (truth table 1111, cost 2) = ~(x &amp; a | x &amp; a) where a = ~(x &amp; x | x &amp; x)
+r[11] = ~(r[0] &amp; r[4] | r[0] &amp; r[4]) (truth table 1101, cost 2) = ~(x &amp; a | x &amp; a) where a = ~(x &amp; y | x &amp; y)
+r[12] = ~(r[0] &amp; r[2] | r[1] &amp; r[2]) (truth table 1011, cost 2) = ~(x &amp; a | y &amp; a) where a = ~(x &amp; x | x &amp; x)
+r[13] = ~(r[0] &amp; r[3] | r[3] &amp; r[3]) (truth table 0111, cost 2) = ~(x &amp; a | a &amp; a) where a = ~(x &amp; x | y &amp; y)
+r[14] = ~(r[0] &amp; r[4] | r[4] &amp; r[4]) (truth table 0001, cost 2) = ~(x &amp; a | a &amp; a) where a = ~(x &amp; y | x &amp; y)
+r[15] = ~(r[0] &amp; r[4] | r[1] &amp; r[4]) (truth table 1001, cost 2) = ~(x &amp; a | y &amp; a) where a = ~(x &amp; y | x &amp; y)
+</code></pre>
+<p>These exotic three- and four-input Boolean functions, despite their
+attractive formal properties, are probably not ideal for a virtual
+machine design in practice; they are generally not provided by CPUs,
+so in a naïve implementation, they probably need to be emulated by a
+few instructions, possibly increasing register pressure.</p>
+<p>If we limit ourselves to the full set provided by any CPU I’m familiar
+with — <code>&amp;</code>, <code>|</code>, <code>~</code>, <code>^</code>, and <code>&amp;^</code> — we never need more than two ops
+to reach any binary Boolean function:</p>
+<pre><code>r[ 0] = x (truth table 0011, cost 0) = x
+r[ 1] = y (truth table 0101, cost 0) = y
+r[ 2] = r[0] &amp; r[1] (truth table 0001, cost 1) = x &amp; y
+r[ 3] = r[0] | r[1] (truth table 0111, cost 1) = x | y
+r[ 4] = ~r[0] (truth table 1100, cost 1) = ~x
+r[ 5] = ~r[1] (truth table 1010, cost 1) = ~y
+r[ 6] = ~r[2] (truth table 1110, cost 2) = ~(x &amp; y)
+r[ 7] = ~r[3] (truth table 1000, cost 2) = ~(x | y)
+r[ 8] = r[0] ^ r[0] (truth table 0000, cost 1) = x ^ x
+r[ 9] = r[0] ^ r[1] (truth table 0110, cost 1) = x ^ y
+r[10] = r[0] &amp;^ r[1] (truth table 0010, cost 1) = x &amp;^ y
+r[11] = r[1] &amp;^ r[0] (truth table 0100, cost 1) = y &amp;^ x
+r[12] = r[0] ^ r[4] (truth table 1111, cost 2) = x ^ (~x)
+r[13] = r[0] ^ r[5] (truth table 1001, cost 2) = x ^ (~y)
+r[14] = r[1] | r[4] (truth table 1101, cost 2) = y | (~x)
+r[15] = r[0] | r[5] (truth table 1011, cost 2) = x | (~y)
+</code></pre>
+<p>Removing <code>&amp;^</code> does not worsen the situation in that sense, although <code>x
+&amp;^ y</code> and <code>y &amp;^ x</code> become two ops instead of one:</p>
+<pre><code>r[ 0] = x (truth table 0011, cost 0) = x
+r[ 1] = y (truth table 0101, cost 0) = y
+r[ 2] = r[0] &amp; r[1] (truth table 0001, cost 1) = x &amp; y
+r[ 3] = r[0] | r[1] (truth table 0111, cost 1) = x | y
+r[ 4] = ~r[0] (truth table 1100, cost 1) = ~x
+r[ 5] = ~r[1] (truth table 1010, cost 1) = ~y
+r[ 6] = ~r[2] (truth table 1110, cost 2) = ~(x &amp; y)
+r[ 7] = ~r[3] (truth table 1000, cost 2) = ~(x | y)
+r[ 8] = r[0] ^ r[0] (truth table 0000, cost 1) = x ^ x
+r[ 9] = r[0] ^ r[1] (truth table 0110, cost 1) = x ^ y
+r[10] = r[0] ^ r[2] (truth table 0010, cost 2) = x ^ (x &amp; y)
+r[11] = r[0] ^ r[3] (truth table 0100, cost 2) = x ^ (x | y)
+r[12] = r[0] ^ r[4] (truth table 1111, cost 2) = x ^ (~x)
+r[13] = r[0] ^ r[5] (truth table 1001, cost 2) = x ^ (~y)
+r[14] = r[1] | r[4] (truth table 1101, cost 2) = y | (~x)
+r[15] = r[0] | r[5] (truth table 1011, cost 2) = x | (~y)
+</code></pre>
+<p>If we leave <code>&amp;^</code> in, it’s also possible to remove <code>|</code> without the
+worst case getting any worse, and indeed the only impact is that we
+need two ops to compute <code>|</code> as <code>x ^ (y &amp;^ x)</code>:</p>
+<pre><code>r[ 0] = x (truth table 0011, cost 0) = x
+r[ 1] = y (truth table 0101, cost 0) = y
+r[ 2] = r[0] &amp; r[1] (truth table 0001, cost 1) = x &amp; y
+r[ 3] = ~r[0] (truth table 1100, cost 1) = ~x
+r[ 4] = ~r[1] (truth table 1010, cost 1) = ~y
+r[ 5] = ~r[2] (truth table 1110, cost 2) = ~(x &amp; y)
+r[ 6] = r[0] ^ r[0] (truth table 0000, cost 1) = x ^ x
+r[ 7] = r[0] ^ r[1] (truth table 0110, cost 1) = x ^ y
+r[ 8] = r[0] &amp;^ r[1] (truth table 0010, cost 1) = x &amp;^ y
+r[ 9] = r[0] ^ r[3] (truth table 1111, cost 2) = x ^ (~x)
+r[10] = r[0] ^ r[4] (truth table 1001, cost 2) = x ^ (~y)
+r[11] = ~r[8] (truth table 1101, cost 2) = ~(x &amp;^ y)
+r[12] = r[1] &amp;^ r[0] (truth table 0100, cost 1) = y &amp;^ x
+r[13] = ~r[12] (truth table 1011, cost 2) = ~(y &amp;^ x)
+r[14] = r[3] &amp;^ r[1] (truth table 1000, cost 2) = (~x) &amp;^ y
+r[15] = r[0] ^ r[12] (truth table 0111, cost 2) = x ^ (y &amp;^ x)
+</code></pre>
+<p>This is not true of <code>&amp;</code>, <code>~</code>, and <code>^</code>; removing any of them causes
+some binary Boolean functions to require three ops.  If we remove both
+<code>|</code> and <code>&amp;^</code>, then we also get some Boolean operations requiring three
+ops:</p>
+<pre><code>r[ 0] = x (truth table 0011, cost 0) = x
+r[ 1] = y (truth table 0101, cost 0) = y
+r[ 2] = r[0] &amp; r[1] (truth table 0001, cost 1) = x &amp; y
+r[ 3] = ~r[0] (truth table 1100, cost 1) = ~x
+r[ 4] = ~r[1] (truth table 1010, cost 1) = ~y
+r[ 5] = ~r[2] (truth table 1110, cost 2) = ~(x &amp; y)
+r[ 6] = r[0] ^ r[0] (truth table 0000, cost 1) = x ^ x
+r[ 7] = r[0] ^ r[1] (truth table 0110, cost 1) = x ^ y
+r[ 8] = r[0] ^ r[2] (truth table 0010, cost 2) = x ^ (x &amp; y)
+r[ 9] = r[0] ^ r[3] (truth table 1111, cost 2) = x ^ (~x)
+r[10] = r[0] ^ r[4] (truth table 1001, cost 2) = x ^ (~y)
+r[11] = r[0] ^ r[5] (truth table 1101, cost 3) = x ^ (~(x &amp; y))
+r[12] = r[1] ^ r[2] (truth table 0100, cost 2) = y ^ (x &amp; y)
+r[13] = r[1] ^ r[5] (truth table 1011, cost 3) = y ^ (~(x &amp; y))
+r[14] = r[3] &amp; r[4] (truth table 1000, cost 3) = (~x) &amp; (~y)
+r[15] = r[0] ^ r[12] (truth table 0111, cost 3) = x ^ (y ^ (x &amp; y))
+</code></pre>
+<p>So reasonable minimal sets
+for implementation on existing hardware
+include <code>&amp;</code>, <code>~</code>, <code>^</code>, and <code>&amp;^</code>; and <code>&amp;</code>,
+<code>~</code>, <code>^</code>, and <code>|</code>.  The former is more widely supported, and it’s hard
+to argue that the latter is even more convenient.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/electronics.html">Electronics</a> (138 notes)
+</li><li><a href="../topics/instruction-sets.html">Instruction sets</a> (40 notes)
+</li></ul></div></html>

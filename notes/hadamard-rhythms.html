@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html><title>Hadamard rhythms ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Hadamard rhythms</h1><div class="metadata">Kragen Javier Sitaker, 2019-11-01
+(6 minutes)</div><p>I was thinking about synthesizing drum loops and it occurred to me
+that Hadamard bases might be an interesting way to do it.</p>
+<p>A simple approach to synthesizing a drum loop with a single instrument
+and up to 8 beats is to just have 16 variables for the volume and
+timing offset of each of the 8 beats.  Some of the volumes might be 0,
+silencing those beats; some of the offsets might be nonzero, swinging
+those beats a bit.</p>
+<p>A problem with this representation is that usually you don’t want to
+adjust just one beat at a time; you might want to do something to all
+the odd beats, for example, or all the even beats.  A possible
+solution to this is to transform 8 volume variables and 8
+timing-offset variables each through a 8x8 Walsh matrix, here given in
+“sequency order” rather than as a Hadamard matrix:</p>
+<pre><code> 1  1  1  1  1  1  1  1
+ 1  1  1  1 -1 -1 -1 -1
+ 1  1 -1 -1 -1 -1  1  1
+ 1  1 -1 -1  1  1 -1 -1
+ 1 -1 -1  1  1 -1 -1  1
+ 1 -1 -1  1 -1  1  1 -1
+ 1 -1  1 -1 -1  1 -1  1
+ 1 -1  1 -1  1 -1  1 -1
+</code></pre>
+<p>Given an appropriate constant scaling factor, this is an orthonormal
+basis for 8-vectors.</p>
+<p>A more convenient form might be the ReLU of the same matrix, which you
+will note is still symmetric though no longer normalized:</p>
+<pre><code> 1  1  1  1  1  1  1  1
+ 1  1  1  1  0  0  0  0
+ 1  1  0  0  0  0  1  1
+ 1  1  0  0  1  1  0  0
+ 1  0  0  1  1  0  0  1
+ 1  0  0  1  0  1  1  0
+ 1  0  1  0  0  1  0  1
+ 1  0  1  0  1  0  1  0
+</code></pre>
+<p>So, for example with volumes, the first variable is a master volume
+control; the last variable is a master volume control for the major
+beats (assuming we’re in 4/4 time); the second variable controls the
+volume on the first half of the measure; the fourth variable controls
+the first and third beats (the “on” beats, giving you a backbeat if
+you turn them down); the fifth variable controls the first halves of
+the first and third beats, and the second halves of the second and
+fourth beats; and so on.  It might make the most sense to have scale
+values that extend from zero amplitude to somewhere above 1.0, but do
+the matrix-multiply in decibels, so any single slider is capable of
+silencing either half or all the beats, and can either attenuate or
+amplify those beats from the overall reference volume level.</p>
+<p>In this way you can adjust the volumes of the 8 beats to any desired
+combination of volumes, but every slider affects half the beats in
+what I speculate will be a more musically appealing way.</p>
+<p>The same scheme can be used for adjusting timing, though perhaps there
+is no need for the first variable in that case.  If the last timing
+variable (10101010) is pushed to an extreme, it could perhaps push the
+eighth notes to coincide with the quarter notes.</p>
+<p>Here’s the corresponding 4x4 binary matrix:</p>
+<pre><code>1 1 1 1
+1 1 0 0
+1 0 0 1
+1 0 1 0
+</code></pre>
+<p>And the corresponding 16x16 binary matrix:</p>
+<pre><code>1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0
+1 1 1 1 0 0 0 0 0 0 0 0 1 1 1 1
+1 1 1 1 0 0 0 0 1 1 1 1 0 0 0 0
+1 1 0 0 0 0 1 1 1 1 0 0 0 0 1 1
+1 1 0 0 0 0 1 1 0 0 1 1 1 1 0 0
+1 1 0 0 1 1 0 0 0 0 1 1 0 0 1 1
+1 1 0 0 1 1 0 0 1 1 0 0 1 1 0 0
+1 0 0 1 1 0 0 1 1 0 0 1 1 0 0 1
+1 0 0 1 1 0 0 1 0 1 1 0 0 1 1 0
+1 0 0 1 0 1 1 0 0 1 1 0 1 0 0 1
+1 0 0 1 0 1 1 0 1 0 0 1 0 1 1 0
+1 0 1 0 0 1 0 1 1 0 1 0 0 1 0 1
+1 0 1 0 0 1 0 1 0 1 0 1 1 0 1 0
+1 0 1 0 1 0 1 0 0 1 0 1 0 1 0 1
+1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0
+</code></pre>
+<p>This was derived as follows:</p>
+<pre><code>def hadamard(n):
+    return ([[1]] if n &lt; 1 else
+            [xs + xs               for xs in hadamard(n-1)] +
+            [xs + [-x for x in xs] for xs in hadamard(n-1)])
+
+def walsh(n):
+    return sorted(hadamard(n),
+        key=lambda xs: sum(1 for i in range(1, len(xs))
+                           if xs[i] != xs[i-1]))
+
+def walsh_order(n):  # bit-reversed reflected binary Gray code
+    return ([0] if n &lt; 1 else
+            [x * 2     for x in          walsh_order(n-1) ] +
+            [x * 2 + 1 for x in reversed(walsh_order(n-1))])
+
+def binrow(row):
+    return ('1' if x &gt; 0 else '0' for x in row)
+
+if __name__ == '__main__':
+    for row in walsh(4):
+        print(' '.join(binrow(row)))
+</code></pre>
+<p>It is possible to use the fast Hadamard transform to efficiently
+transform between the two representations — the set of user
+parameters and the set of music parameters — but that isn’t really
+important in this case.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/audio.html">Audio</a> (40 notes)
+</li><li><a href="../topics/music.html">Music</a> (18 notes)
+</li><li><a href="../topics/hadamard-matrices.html">Hadamard matrices</a> (2 notes)
+</li></ul></div></html>

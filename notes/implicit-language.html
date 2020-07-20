@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html><title>A formal language for defining implicitly parameterized functions ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>A formal language for defining implicitly parameterized functions</h1><div class="metadata">Kragen Javier Sitaker, 2019-09-05 (updated 2019-09-30)
+(29 minutes)</div>
+<p>In <a href="../notes/dercuano-plotting.html">Dercuano plotting</a> I talked about the need for a linguistic
+model of describing calculations to plot, that is, a programming
+language.  I think the ideas I’m describing here are finally
+crystallizing, but I wrote about them previously in <a href="../notes/typed-apl.html">APL with typed indices</a>,
+<a href="../notes/principled-apl.html">A principled rethinking of array languages like APL</a>, <a href="../notes/relational-modeling-and-apl.html">Relational modeling and APL</a>; additional
+sources of inspiration have been <a href="../notes/micro-math-plus.html">First impressions on using the μMath+ calculator program for Android</a>,
+Adam N. Rosenberg’s “A Description of
+One Programmer’s Programming Style”, Darius Bacon, and the ZIMPL and
+GNU MathProg languages discussed in <a href="../notes/linear-optimization-landscape.html">Some notes on the landscape of linear optimization software and applications</a>, with the relationship explored in
+<a href="../notes/principled-apl.html">A principled rethinking of array languages like APL</a>.</p>
+<p>I’m pretty sure I’ll have to rework some of this, but I feel like at
+this point I have not only something implementable but also a concrete
+use case where I can see how the existing designs are suboptimal.</p>
+<p>The basic idea is that every expression evaluates not to an atomic
+value like 37 or 2.5 but to (looking at it in five different ways) a
+table or an array or an N-ary relation or conditional or function; and
+the particular atomic values we get out of it depend on the
+<em>circumstances</em> that obtain when we happen to look at it; and under
+some circumstances it may fail to have a value entirely.  We can
+inspect these tables to see which circumstances are the relevant ones,
+and when the possibilities are finite, we can enumerate all the
+possible sets of circumstances and the corresponding atomic values,
+which is to say that we can reason counterfactually about what values
+the expression <em>would have had</em> under circumstances that do not in
+fact obtain at the moment.</p>
+<p>Even if the possibilities are infinite, by stipulating all the
+relevant circumstances, we can reason counterfactually about what
+atomic value the expression would have had under those hypothetical
+circumstances.</p>
+<p>As a very concrete example relevant to my plotting problem, given some
+value representing a function <em>y</em> that depends on an argument <em>x</em>, we
+can ask what value <em>y</em> would have if <em>x</em> were 0, or if <em>x</em> were a
+member of the list [-1, -0.5, 0, 0.5, 1]; in the latter case, the
+result is a finite table of five values that tell us what value <em>y</em>
+would have for each value of the index into the list.  If <em>y</em>
+additionally depends on a parameter <em>p</em>, we can stipulate that <em>p</em>
+belongs to some other list, and <em>y</em> will provide a potentially larger
+table of results.  This provides a strategy for getting good
+efficiency out of even a naive interpreter implementation, much like
+Numpy, Pandas, APL, Octave, or R; but it should be much easier to
+write correct code with, because of the rigorous logical underpinning.</p>
+<h2>Syntax</h2>
+<p>Because I’m planning to use a non-textual user interface, I’m not
+going to design a syntax; instead, I’ll just use Lisp S-expression
+syntax in this document.  It’s not very readable syntax but it’s
+adequately formal and flexible.  Its execution semantics are not Lisp
+execution semantics; it just represents an ordered-tree structure.</p>
+<h2>Semantic model</h2>
+<p>The main objects of interest are atomic values, atomic types,
+aggregates, variables, environments, and expressions.  The following
+is full of forward references, unfortunately; I should see if there’s
+a better order to put things in.</p>
+<h3>Atomic values</h3>
+<p>Atomic values are things like 4 or -2.5 or 4+1j or :London or possibly
+‘w’; they correspond to values in many normal programming languages,
+but do not include any kind of aggregate data structure such as
+arrays, structs, dictionaries, sets, lists, tuples, or ML-style
+constructors.  Like quarks, they are never observed alone; they are
+always part of an aggregate.  There are different kinds of atomic
+values: integers, real numbers, opaque symbols like :London (which I
+will write with a leading <code>:</code> to distinguish them from variables), and
+maybe characters.</p>
+<h3>Atomic types</h3>
+<p>XXX confused ideas about what goes here: discrete vs. continuous?
+Finite vs. infinite?  Bound vs. unbound?  Bounded vs. unbounded?
+Nominal, ordinal, interval, and rational levels of measurement?  Units
+of measurement?  Can a single aggregate contain values of different
+types?</p>
+<h3>Aggregates</h3>
+<p>Aggregates are tables of atomic values, in the sense that they have
+rows and columns.  The number of rows may be zero, any natural number,
+or infinite; there is always one “result” column, but there can be
+zero or more “key” columns.  Each “key” column is associated with a
+variable, but the “result” column is not; it is only associated with
+the tuple of key-column variable values in its row.  Conceptually
+neither rows nor columns have order, although by necessity they will
+be in some order when we serialize them.  Aggregates are what
+expressions evaluate to, and what environments bind variables to.
+Here is an example aggregate:</p>
+<pre><code>(agg      (month oils)
+          (1    :VEG1  110)
+          (1    :VEG2  120)
+          (1    :OIL1  130)
+          (2    :VEG1  130))
+</code></pre>
+<p>This aggregate has two key columns, associated with the variables
+<code>month</code> and <code>oils</code>, and four rows, the first of which associates the
+atomic value 110 with the situation where the variable <code>month</code> has the
+atomic value <code>1</code> and the variable <code>oils</code> has the atomic value :VEG1, a
+symbol.  A useful way of reading this is “110 if month == 1 and oils
+== :VEG1, else 120 if month == 1 and oils == :VEG2, else 130 if month
+== 1 and oils == :OIL1, else 130 if month == 2 and oils == :VEG1.”</p>
+<p>Here is an aggregate with no key columns, a <em>constant</em>, which
+associates the atomic value 4 with all possible states of the
+universe:</p>
+<pre><code>(agg () 4)
+</code></pre>
+<p>The key columns of an aggregate are its free variables.</p>
+<p>XXX Should we remove infinite aggregates?  They are the only way to
+represent things like “matrix-vector multiplication” as values, but
+they seem significantly different from other kinds of values.</p>
+<h3>Variables</h3>
+<p>Variables are opaque, indivisible names, like <code>x</code>, <code>VC</code>, <code>month</code>, or
+<code>oils</code>.  In themselves they serve only to be distinguished from one
+another, but they are crucial links between aggregates, expressions,
+environments, and atomic values.</p>
+<h3>Environments</h3>
+<p>Environments are sets of key-value pairs in which the keys are
+variables and the values are aggregates.  Here is an example
+environment:</p>
+<pre><code>(env (month (agg () 1))
+     (oils (agg () :VEG1))
+     (oilhardness (agg (oils) (:VEG1 8.8) (:VEG2 6.1))))
+</code></pre>
+<p>This associates the variables <code>month</code> and <code>oils</code> with constant
+aggregates and the variable <code>oilhardness</code> with an aggregate with two
+rows and two columns.  You might think that this second aggregate
+contains some extraneous data, describing as it does the <code>oilhardness</code>
+of a situation that we know is not currently the case (when <code>oils</code> is
+<code>:VEG2</code>), but as we will see, this counterfactual data can be very
+useful.</p>
+<h3>Expressions</h3>
+<p>Expressions describe computable functions; given some input data, in
+the form of an environment, they evaluate to output data, in the form
+of an aggregate.  But there are other things we can do with
+expressions other than evaluate them; we can query them to find out
+what free variables they require in a given environment and what they
+require of those free variables.</p>
+<p>Here is an example expression:</p>
+<pre><code>(+ (* x y)
+   (let (oils (agg () :VEG2)) oilhardness)
+   (sum (month) production))
+</code></pre>
+<p>XXX should we require an explicit “in months” in case production fails
+to depend on month in a useful way so we don’t know what to sum over?
+Should there be some kind of explicit or implicit association between
+domains and variables, to allow inferring a universe in the absence of
+an explicit value?</p>
+<p>XXX I’m being a bit fast and loose including an aggregate literal
+inside the expression.  I might not want that to be legal.</p>
+<p>It has the free variables <code>x</code>, <code>y</code>, <code>oilhardness</code>, <code>month</code>, and
+<code>production</code>, so it cannot be evaluated in an environment without an
+aggregate associated with each of these variables.  Also, it may
+inherit some free variables from the aggregates associated with those
+variables; for example, if <code>production</code> is associated with an
+aggregate that depends on the variable <code>city</code>, then the expression as
+a whole also has <code>city</code> as a free variable.  However, there are two
+binding constructs in this expression, <code>let</code> and <code>sum</code>, which bind the
+variables <code>oils</code> and <code>month</code> in their respective argument expressions
+<code>oilhardness</code> and <code>production</code>, which prevents those free variables
+from bubbling up further.  Indeed, if the expression is evaluated in
+an environment that provides values for these free variables, these
+binding constructs will prevent those values from penetrating.</p>
+<p>This sort of bubbling up is why the set of free variables of an
+expression depends on the environment; it amounts to a sneaky sort of
+dynamic scoping.  XXX can this dependency be expressed in a usefully
+simple way to satisfy the needs of plotting to figure out what kind of
+creature it’s going to have to plot?</p>
+<p>The aggregate that results from evaluating an expression in an
+environment has the same set of free variables the expression had in
+that environment, and the tuples taken from its key columns will be
+some subset of the cross-product of the result columns of the
+aggregates supplied for those free variables in that environment.
+However, the expression may produce some arbitrary subset of those
+rows rather than all of them.</p>
+<p>XXX could it be that the expression had free variables that aren’t
+used?</p>
+<h2>Expression types</h2>
+<h3>Literal aggregates</h3>
+<p>Although I’m not sure if this is the right thing, for the moment I’m
+going to allow literal aggregates as expressions.  Moreover, constants
+such as 4 and <code>:VEG1</code> are also valid; they represent constant
+aggregates like <code>(agg () 4)</code> and <code>(agg () :VEG1)</code></p>
+<h3>Arithmetic</h3>
+<p>The standard set of computer arithmetic operations are provided with
+their usual meanings: +, -, * for multiplication, / for division, %
+for remainder, ** for exponentiation, &gt;&gt;, &lt;&lt;, abs, exp, ln, pow,
+sin, cos, tan, asin, acos, atan, ceil, floor, round, bitand, bitor,
+bitnot, and bitxor.  I mean this might change a bit but that’s what I
+think right now.</p>
+<p>These operations take one or more arguments, which are evaluated in
+the same environment the arithmetic operation is, and the aggregates
+thus produced are passed to the arithmetic operation as actual
+parameters.  Their free variables are the union of the free variables
+of their operands.</p>
+<p>These operations operate purely pointwise and generate a full
+Cartesian product output.  In any environment, <code>(+ 3 4)</code>, syntactic
+sugar for <code>(+ (agg () 3) (agg () 4))</code>, will produce <code>(agg () 7)</code>.  In
+an environment lacking <code>x</code>, <code>(+ (agg (x) (1 3) (2 5)) 4)</code> will produce
+<code>(agg (x) (1 7) (2 9))</code>, and</p>
+<pre><code>(+ (agg (x) (1 3) (2 5))
+   (agg (x) (1 4) (2 10)))
+</code></pre>
+<p>will produce <code>(agg (x) (1 7) (2 15))</code>.  In an environment lacking both
+<code>x</code> and <code>y</code>,</p>
+<pre><code>(+ (agg (x) (1 3) (2 5))
+   (agg (y) (:a 4) (:b 10)))
+</code></pre>
+<p>will produce <code>(agg (x y) (1 :a 7) (1 :b 13) (2 :a 9) (2 :b 15))</code>.  (At
+this point a reminder seems in order that the sequence of rows and
+columns in the aggregate is arbitrary and insignificant.)</p>
+<p>XXX note that this contradicts the note earlier saying that
+expressions could not be evaluated in an environment that didn’t
+provide aggregates for all their free values.</p>
+<p>XXX rename ‘aggregate’ to ‘table’?  It’s too long and operations like
+“sum” and “min” are usually called “aggregate operations”.</p>
+<p>The expression <code>(+ x y)</code> cannot be evaluated to a finite aggregate if
+either <code>x</code> or <code>y</code> is missing from the environment, but consider the
+environment</p>
+<pre><code>(env (x (agg (p) (0 3) (-1 5)))
+     (y (agg (q r) (20 30 4))))
+</code></pre>
+<p>in which <code>(+ x y)</code> will evaluate to <code>(agg (p q r) (0 20 30 7) (-1 20
+30 9))</code>, with three free variables bubbling up from the bindings of
+<code>x</code> and <code>y</code>.  If we further augment the environment, we can prevent
+<code>q</code> from remaining free:</p>
+<pre><code>(env (x (agg (p) (0 3) (-1 5)))
+     (y (agg (q r) (20 30 4)))
+     (q (agg () 20)))
+</code></pre>
+<p>This causes <code>(+ x y)</code> to evaluate to <code>(agg (p r) (0 30 7) (-1 30 9))</code>.</p>
+<p>It will be seen that an arithmetic expression containing free
+variables defines a function taking those variables as arguments.</p>
+<h3><code>let</code>-expressions</h3>
+<p>The expression <code>(let assignments expr)</code> allows invoking a function
+with specific arguments or composing two (or more!) functions.  During
+evaluation, it constructs an environment by augmenting its own
+evaluation environment with new associations taken from <code>assignments</code>,
+which is a list of alternating variables and expressions.  These
+expressions are evaluated in the outer environment, and each one is
+associated with its corresponding variable in the new environment.</p>
+<p>The let-expression’s free variables are the free variables of <code>expr</code>,
+minus the variables assigned to in <code>assignments</code>, plus the free
+variables of the expressions in <code>assignments</code>, which might reasonably
+add variables back in that were dropped in the second step.</p>
+<p>So, for example, <code>(let (x 3 y 4) (+ x y))</code> evaluates as before to
+<code>(agg () 7)</code>, because whatever the outer environment is like, the
+inner environment has <code>x</code> bound to <code>(agg () 3)</code> and <code>y</code> bound to <code>(agg
+() 4)</code>; and it has no free variables.</p>
+<p>A more interesting example is <code>(- x (let (i (- i 1)) x))</code>.  If <code>x</code> has
+<code>i</code> as a free variable and is defined for <code>i</code> integer, the inner <code>x</code>
+can evaluate to different atomic values from the outer <code>x</code>, and you
+get the backward differences of <code>x</code> along the <code>i</code> axis.  (I said at
+the top that I wouldn’t invent syntax, but if I were inventing syntax,
+I might write this as <code>x - x[i=i-1]</code>.)</p>
+<h3>Conditional expressions</h3>
+<p>The expression <code>(if x y)</code> operates very similarly to the arithmetic
+expressions, in that its free variables are the union of the free
+variables of expression <code>x</code> and those of expression <code>y</code>, it evaluates
+them both in its own environment, and it combines the <code>x</code> and <code>y</code>
+results pointwise.  However, it produces, in general, less than the
+full Cartesian product of their results; the rows where <code>x</code> produced
+false are removed.</p>
+<p>So, for example, <code>(if (&gt; x 1) (if (&lt; x 3) (* x x)))</code> is the function
+<em>x</em><sup>2</sup> limited to the domain (1, 3).</p>
+<p>The expression <code>(case e1 e2 e3 ...)</code> evaluates all the expressions
+<code>e1</code>, <code>e2</code>, <code>e3</code>, etc., in the same environment it was invoked in, but
+then combines them in the fashion of SQL’s <code>coalesce</code> or the <code>|</code>
+alternation operator in Icon or Unicon: rows are taken from <code>e2</code> only
+for the case where <code>e1</code> did not produce a value, from <code>e3</code> only where
+<code>e2</code> failed, and so on.  This means that you could write the
+absolute-value operator, for example, as</p>
+<pre><code>(case (if (&gt; x 0) x)
+      (- x))
+</code></pre>
+<p>The first expression produces <code>x</code> whenever <code>x</code> is greater than 0, but
+for x less than or equal to zero, it produces no value, so <code>case</code>
+fills in the empty space with the result of the <code>-</code> operator.</p>
+<p>Note that this can be misleading; if you write <code>(case (if p q) r)</code>,
+even if <code>p</code> is always true, that is no guarantee that you will never
+see values from <code>r</code>, because <code>q</code> might fail of its own accord, aside
+from getting externally failed by <code>p</code>.</p>
+<p>(Again, if I were inventing syntax, I’d want to write that as <code>x &gt; 0
+-&gt; x | -x</code>.)</p>
+<p>Another use of <code>case</code> is augmenting the first-differences example
+above with the initial value of the sequence <code>x</code>:</p>
+<pre><code>(case (- x (let (i (- i 1)) x)) x)
+</code></pre>
+<p>Here we suppose that when <code>i</code> is at its minimum valid value, such as
+0, then <code>(let (i (- i 1)) x)</code> will fail, leaving a hole that can be
+filled with <code>x</code>.</p>
+<p>XXX for efficient evaluation we need to be able to tell which
+dimensions are going to stay rectangular.</p>
+<h3>iota</h3>
+<p>The expression <code>(iota var expr)</code> evaluates to <code>(agg (var) (0 0) (1 1)
+(2 2) ... (n n))</code>, where <code>n</code> is one less than the value to which the
+expression <code>expr</code> evaluated.</p>
+<p>XXX this sucks compared to writing <code>1:10</code> in Octave or R.  You have to
+name a variable!  Moreover you still have to index it.</p>
+<h3>Standard reductions</h3>
+<p>The expression <code>(sum (month) production)</code> produces a result that is
+the same as the result of evaluating <code>production</code> except that all the
+rows differing only by <code>month</code> have been summed together, and the
+<code>month</code> key column has been removed.  This generalizes in obvious ways
+to multiple key columns and to the other standard reductions
+<code>product</code>, <code>min</code>, <code>max</code>, and <code>mean</code>.</p>
+<p>XXX this means that <code>month</code> does escape as a free variable, but the
+result won’t depend on it, and there’s no way to get a sum over more
+months than you have some other iteration variable to throw away; this
+is surely the wrong semantics, and the one explained earlier is surely
+better.  Given some of the evaluation semantics explored above, it
+could probably get the valid months out of <code>production</code>.  But then how
+do you get a sum over only certain months?  Maybe <code>(sum (mi) (let
+(month (agg (mi) (1 3) (2 5) (3 11))) production))</code>, maybe with some
+syntactic sugar like <code>sum{mi} production[month[mi]=[3 5 11]]</code>?</p>
+<h3>Monoidal prefix sums</h3>
+<p>XXX</p>
+<h3>Non-monoidal reduction</h3>
+<p>The expression <code>(for var1 seq var2 start var3 reducer)</code> expresses a
+general definite loop.  It evaluates <code>seq</code> in its surrounding
+environment and produces an aggregate “the sequence” with, hopefully,
+the variable <code>var1</code> free.  It also evaluates <code>start</code> in its
+surrounding environment and produces “the initial state”.  Then it
+proceeds sequentially along the sorted values of <code>var1</code> in the domain
+of the sequence, evaluating <code>reducer</code> once for each sequence item, in
+an environment with <code>var2</code> bound to the sequence item and <code>var3</code> bound
+to the previous result of <code>reducer</code> or, on the first iteration, the
+initial state.</p>
+<p>XXX wait, the loop state has to be a single atomic value?</p>
+<p>XXX “domain” and “range” are better than “key” and “result” column;
+“domain variable” is maybe better than “free variable” for aggregates.</p>
+<h2>Variable capture</h2>
+<p>As described above, the model has the same variable capture problem as
+Lisp macros, only much worse.</p>
+<p>Consider this expression for describing the <em>L<sub>p</sub></em> norm of a
+vector:</p>
+<pre><code>(** (sum (i) (** x p)) (/ 1 p))
+</code></pre>
+<p>This relies on the fact that the <code>i</code> introduced by the <code>sum</code> is
+visible to <code>x</code> so that it can select the elements of <code>x</code>.  Similarly,
+consider this code to evaluate a polynomial at a point
+(inefficiently):</p>
+<pre><code>(sum (i) (* a (** x i)))
+</code></pre>
+<p>This relies on implicitly indexing <code>a</code> with <code>i</code>.  But consider this
+expression for describing matrix-vector multiplication:</p>
+<pre><code>(sum (k) (* (let (j k) a) (let (i k) x)))
+</code></pre>
+<p>This has a free variable <code>i</code> which ranges over the columns of <code>a</code> (or
+rather its <code>j</code>-indices).  To do the summation, we need to introduce a
+new, fresh loop variable <code>k</code>; it is our intention that the only two
+uses of <code>k</code> be indexing the <code>i</code>-indices of <code>x</code> and indexing the
+<code>j</code>-indices of <code>a</code>.</p>
+<p>But what happens if <code>a</code> or <code>x</code> internally has a free variable, which
+is to say an argument, <code>k</code>?  Disaster strikes!  Instead of bubbling up
+to the sum expression as a whole, it becomes part of the iteration,
+with bizarre results that will potentially be difficult to debug.</p>
+<p>On the other hand, if we change the language’s scoping to purely
+lexical, constructs like <code>(let (j k) a)</code> make no sense --- lexically
+<code>a</code> does not contain <code>j</code>, so that expression would be equivalent to
+just <code>a</code>.  And <code>(** (sum (i) (** x p)) (/ 1 p))</code> relies on the
+visibility of the index <code>i</code> to the vector <code>x</code>.</p>
+<p>This is more or less just the standard problem of variable capture
+that occurs in Lisp macros or with dynamic scoping, but it’s much more
+severe in this context, because of the pervasive use of free variables
+for implicit parameter passing through many stack levels.</p>
+<p>The usual Common Lisp approach to solving the problem would be
+something like this:</p>
+<pre><code>(let ((k (gensym)))
+   `(sum (,k) (* (let (j ,k) a) (let (i ,k) x))))
+</code></pre>
+<p>Alternatively, but awfully, you could use a name less likely to
+collide:</p>
+<pre><code>(sum (*matrix-multiply-index*)
+  (* (let (j *matrix-multiply-index*) a)
+     (let (i *matrix-multiply-index*) x)))
+</code></pre>
+<p><a href="https://apps.dtic.mil/dtic/tr/fulltext/u2/a195921.pdf" title="AI Memo 1049, Bawden 1988">Alan Bawden and Jonathan Rees’s “syntactic closures”
+mechanism</a>
+offers an relatively simple solution that is not difficult to
+implement (see also <a href="https://groups.csail.mit.edu/mac/ftpdir/users/cph/macros/prop.ps.gz">Chris Hanson’s shorter 1991
+proposal</a>
+and <a href="http://community.schemewiki.org/?syntactic-closures">the superb Scheme Wiki
+page</a>, and also
+<a href="ftp://ftp.cs.utexas.edu/pub/garbage/carl-msthesis.ps">Stephen Paul Carl’s 1996 master’s thesis on an extension of
+it</a>); Scheme
+unfortunately standardized on <a href="https://3e8.org/pub/pdf-t1/macros_that_work.pdf" title="Clinger 1991">Will Clinger’s “Macros that
+Work”</a>
+instead, which is a much more complex mechanism to implement.</p>
+<p>On the other hand, because of the evaluation semantics outlined above,
+a different kind of variable capture that occurs in Scheme is absent
+here.  Bawden and Rees give the example</p>
+<pre><code>(define-macro (push obj-exp list-var)
+  `(set! ,list-var (cons ,obj-exp ,list-var)))
+...
+(let ((cons 5))
+  (push 'foo stack))
+</code></pre>
+<p>in which the expression containing the macro invocation expands to</p>
+<pre><code>(let ((cons 5))
+  (set! stack (cons 'foo stack))
+</code></pre>
+<p>which will give an error due to attempting to invoke the number 5 as a
+function.  I assert without demonstrating that the corresponding
+problem does not arise in this new language.</p>
+<p>XXX does it?</p>
+<p>A simple direct fix for the matrix-vector-multiply problem is to have
+a <code>fresh</code> or <code>new</code> or <code>my</code> annotation that generates the equivalent of
+a syntactic closure or gensym:</p>
+<pre><code>(sum ((my k)) (* (let (j k) a) (let (i k) x)))
+</code></pre>
+<p>However, this is bug-prone; code that unintentionally omits the <code>my</code>
+tag will function correctly, perhaps for years, until used in a
+context where variable capture occurs, which may be a result of a
+change to code that doesn’t even explicitly invoke the matrix multiply
+or whatever, even renaming a variable or something.  A different
+alternative is to make the variables introduced by expressions like
+<code>sum</code> implicitly lexical, but continue to treat <code>let</code> variables as
+dynamically-scoped; this would leave the matrix-vector multiply as I
+had originally written it, but the Minkowski <em>p</em>-norm code would
+change from</p>
+<pre><code>(** (sum (i) (** x p)) (/ 1 p))
+</code></pre>
+<p>to the perhaps more gnomic</p>
+<pre><code>(** (sum (i) (** (let (i i) x) p)) (/ 1 p))
+</code></pre>
+<p>and change the polynomial-evaluation code from</p>
+<pre><code>(sum (i) (* a (** x i)))
+</code></pre>
+<p>analogously to</p>
+<pre><code>(sum (i) (* (let (i i) a) (** x i)))
+</code></pre>
+<p>(I reiterate that the S-expression form shown here is not intended as
+the syntax for interactive use, but just as an unambiguous
+representation of the internal tree structure; perhaps on the display
+this would be written as <em>a<sub>i=i</sub></em> or abbreviated in something
+like the conventional way as <em>a<sub>i</sub></em>.)</p>
+<p>However, there’s still the possibility of unintended variable capture
+in an expression such as</p>
+<pre><code>(let (h (* n dh)) (/ (- (let (x (+ x h)) f) f) h))
+</code></pre>
+<p>where we are really just using <code>let</code> to factor out a common
+subexpression, rather than to pass arguments to code or index data
+lexically defined elsewhere.</p>
+<p>A third alternative would be to require every introduction of a new
+variable by <code>let</code>, <code>sum</code>, and the like, to be explicitly marked as
+statically or dynamically scoped, but this seems like it would still
+be bug-prone --- a variable incorrectly marked as dynamically scoped
+would still be a bug.  You could catch this by requiring that the
+dynamically-scoped variable <em>not be used statically</em>, though.</p>
+<p>A fourth alternative would be to declare the variables at some lexical
+scope, in some cases module scope (where, in the context of
+<a href="../notes/dercuano-plotting.html">Dercuano plotting</a>, a module might be a note or a plot).  Then, an
+expression like</p>
+<pre><code>(** (sum (i) (** x p)) (/ 1 p))
+</code></pre>
+<p>would be referring to some <code>i</code> that was already in scope, perhaps
+imported from another module or perhaps declared in the same module,
+and would be a compilation error if there were no such variable, so in
+theory you would know that you were capturing a variable that could be
+used as a parameter; while on the other hand an expression like</p>
+<pre><code>(** (sum ((my idx)) (** (let (i idx) x) p)) (/ 1 p))
+</code></pre>
+<p>would be introducing a new <code>idx</code> variable.  This seems simultaneously
+more awkward and less safe than most of the alternatives above.</p>
+<h2>Extradimensional features</h2>
+<p>In the UI, you can write a table with some key columns and some value
+columns; each value column becomes a new aggregate, stored under a
+variable with the name in the column header, indexed by all the key
+columns.  If you don’t have key columns, a nominal invisible key
+column is generated.</p>
+<p>The top level of the UI defines an environment, or a sequence of
+environments, within which each expression is evaluated.</p>
+<p>XXX does this mean it does some kind of topological sort to come up
+with an evaluation order?</p>
+<p>When you define an expression with a single continuous free variable,
+the UI by default plots its value against that free variable in a 2-D
+plot, heuristically picking an initial range that seems likely to be
+interesting (which you can then interactively zoom and pan).  If you
+define an expression with two continuous free variables, it by default
+generates a contour plot in a similar way, with a 3-D heightfield plot
+a click away.  Discrete free variables that belong to some numerical
+range get, by default, a lollipop plot; discrete free variables that
+are merely nominal result in a labeled small-multiples display,
+switchable with a click to a single plot with multiple lines (or
+lollipops or whatever).  Tabular results display is always available,
+but only enabled by default for small tables.</p>
+<p>The UI uses the same kind of introspective magic for this that <code>sum</code>
+uses to figure out the possible values that <code>month</code> can take on in
+<code>(sum (month) production)</code>.  This allows it to distinguish between
+discrete and continuous parameters based on how they’re used, a sort
+of type inference, find out what their valid values would be, and
+measure their limits.</p>
+<h2>Automatic differentiation</h2>
+<p>How can we squeeze reverse-mode automatic differentiation into this
+model?</p>
+<h2>A first prototyping step</h2>
+<p>The above has made it clear that there are a variety of issues that
+aren’t crystallized yet, but since I’ve been thinking about this for
+six years, I probably shouldn’t expect them to crystallize anytime
+soon without more intensive effort.  Instead, maybe I should write
+enough code to get some experience with a subset that <em>is</em>
+crystallized, and maybe try two or three different approaches to the
+other aspects and see which ones work best.</p>
+<p>The most basic core is a few kinds of plots (linegraphs, scatterplots,
+lollipop plots, contour plots, and heatmaps, at least, and I’d like
+some 3-D surface plots), pointwise arithmetic (*, **, -, +, /, abs,
+exp, sin, binary min, binary max), conditionals (“where”), extracting
+the free variables from an expression, and composition (indexing).  I
+think summing along a dimension is the first sort of uncertain thing
+to add.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/dercuano.html">Dercuano</a> (16 notes)
+</li><li><a href="../topics/apl.html">APL</a> (9 notes)
+</li></ul></div></html>

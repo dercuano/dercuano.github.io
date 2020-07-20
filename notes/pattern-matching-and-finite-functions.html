@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html><title>Pattern matching and finite functions ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Pattern matching and finite functions</h1><div class="metadata">Kragen Javier Sitaker, 2017-05-10
+(14 minutes)</div><p>What if we unified function definition, pattern matching, and
+dictionaries?</p>
+<p>Consider this table:</p>
+<pre><code>| Input | Output |
+|-------+--------|
+|     1 | "st"   |
+|     2 | "nd"   |
+</code></pre>
+<p>In JS or Python, we could encode it as a hash table: <code>{1: "st", 2:
+"nd"}</code>.  This has the advantage of being “just data” and therefore
+easily changed, for example to add more items, and more easily
+optimized, for example by using a hash table.</p>
+<p>But we could also encode it as code instead of data; in JS, for
+example, <code>x =&gt; x === 1 ? "st" : x === 2 ? "nd" : null</code>.  OCaml has a
+syntax that allows us to encode it as code while we omit the variable
+name: <code>function 1 -&gt; "st" | 2 -&gt; "nd"</code>.</p>
+<p>All of these cases benefit from having a fallback:</p>
+<pre><code>|   Input | Output |
+|---------+--------|
+|       1 | "st"   |
+|       2 | "nd"   |
+| (other) | "th"   |
+</code></pre>
+<p>In Python, we can write this, more or less, as
+<code>collections.defaultdict(lambda: "th", [(1, "st"), (2, "nd")])</code>
+(although <code>defaultdict</code> has a fatally bug-prone interface; you
+shouldn’t use it).  As code, this function could be written in JS as
+follows:</p>
+<pre><code>x =&gt; x === 1 ? "st"
+   : x === 2 ? "nd"
+   :           "th"
+</code></pre>
+<p>Or, in OCaml, as follows:</p>
+<pre><code>function
+    1 -&gt; "st"
+  | 2 -&gt; "nd"
+  | _ -&gt; "th"
+</code></pre>
+<p>The OCaml approach works by pattern-matching the argument against each
+of the “patterns”, potentially binding variables (just as in passing
+arguments to a function) that can then be used in the consequent of
+that pattern match.  In this case, there happen to be no variables
+either on the left or the right side.</p>
+<h2>Really simplified overview of type inference in OCaml</h2>
+<p>OCaml does type inference to figure out what the argument type — which
+is to say, the domain of the function — should be.  To simplify things
+and avoid subtyping relations, normal ML type inference requires that
+the domain be a known type, not some arbitrary collection of values.
+Consequently, the first example above produces a warning:</p>
+<pre><code># let suffix = function 1 -&gt; "st" | 2 -&gt; "nd" ;;
+Characters 13-43:
+  let suffix = function 1 -&gt; "st" | 2 -&gt; "nd" ;;
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Warning 8: this pattern-matching is not exhaustive.
+Here is an example of a value that is not matched:
+0
+val suffix : int -&gt; string = &lt;fun&gt;
+</code></pre>
+<p>However, OCaml’s type inference algorithm has been extended in ways
+that do require subtyping, including “polymorphic variants” and
+objects with methods.  Here’s an example with polymorphic variants:</p>
+<pre><code># let rec int_of_peano = function `Z -&gt; 0 | `S(x) -&gt; 1 + int_of_peano x ;;
+val int_of_peano : ([&lt; `S of 'a | `Z ] as 'a) -&gt; int = &lt;fun&gt;
+# let rec peano_of_int = function 0 -&gt; `Z | n -&gt; `S (peano_of_int (n-1)) ;;
+val peano_of_int : int -&gt; ([&gt; `S of 'a | `Z ] as 'a) = &lt;fun&gt;
+# peano_of_int 11;;
+- : [&gt; `S of 'a | `Z ] as 'a =
+`S (`S (`S (`S (`S (`S (`S (`S (`S (`S (`S `Z))))))))))
+# int_of_peano (`S (`S (`S (`Z)))) ;;
+- : int = 3
+# int_of_peano (peano_of_int 11) ;;
+- : int = 11
+</code></pre>
+<p>Note that the return type of <code>peano_of_int</code> is not quite the same as
+the argument type of <code>int_of_peano</code>:</p>
+<pre><code>([&gt; `S of 'a | `Z ] as 'a)
+([&lt; `S of 'a | `Z ] as 'a)
+</code></pre>
+<p>That’s because the argument type is an upper bound, while the return
+type is a lower bound.  It’s valid to pass a value of a subtype, for
+example only <code>`Z</code>, as an argument; the types don’t have to match
+exactly.  Similarly, it’s valid to pass the return type into a context
+that could handle some wider array of possibilities, perhaps <code>([`S of
+`a | `D of `a | `Z] as a)</code> if we want to support efficient binary
+representation through both successors and doublings.  But the
+converse operations are not valid — we cannot pass <code>`D (`Z)</code> to
+<code>int_of_peano</code>, because it will crash, and we cannot use
+<code>peano_of_int</code> in a context that can only handle <code>`Z</code>.</p>
+<p>Of course, it’s not just a matter of the polymorphic variant tag
+matching; the type of its argument has to unify, too:</p>
+<pre><code># int_of_peano(`Z (`D (`Z)));;
+Characters 12-26:
+  int_of_peano(`Z (`D (`Z)));;
+              ^^^^^^^^^^^^^^
+Error: This expression has type [&gt; `Z of [&gt; `D of [&gt; `Z ] ] ]
+       but an expression was expected of type [&lt; `S of 'a | `Z ] as 'a
+       Types for tag `Z are incompatible
+</code></pre>
+<h2>Making it work with infix operators</h2>
+<p>In OCaml, the <code>|</code> and <code>-&gt;</code> tokens are not infix operators; you cannot
+make expressions with them alone.  They are part of the <code>function</code> and
+<code>match</code> productions in the grammar.  But what if they were infix
+operators?  What if we want the following expression to parse as
+infix, work by pattern-matching, and evaluate the function outlined
+above?</p>
+<pre><code>  1 -&gt; "st"
+| 2 -&gt; "nd"
+| _ -&gt; "th"
+</code></pre>
+<p>Or, using operator tokens that make it look like JS or Python data:</p>
+<pre><code>1: "st", 2: "nd", _: "th"
+</code></pre>
+<p>The first is fairly straightforward: <code>x -&gt; y</code> is, more or less, JS’s
+<code>x =&gt; y</code>, a λ-abstraction.  It’s a function that takes <code>x</code> as an
+argument and returns <code>y</code>, evaluated on a context augmented with
+whatever names are bound in <code>x</code>.  But we kind of want it to be able to
+<em>fail</em>, either at compile-time or at run-time, so that we can union <code>1
+-&gt; "st"</code> with <code>2 -&gt; "nd"</code> and get <code>1 -&gt; "st" | 2 -&gt; "nd"</code>.  And, for
+this kind of case, we really want the failure semantics to be
+<em>ordered</em> — we don’t want to return <code>"th"</code> for everything, just
+everything not otherwise covered.</p>
+<p>Leaving aside the very interesting type inference question for now,
+let’s consider what this gives us.  We have a single symbol here for
+defining pattern-matching lambda-expressions that can fail, and a
+second one that extends it to pattern-matching ordered conditionals,
+which also work as dict literals.  This (plus some syntax for applying
+a function to an argument) is already more than enough for Church
+numerals, and so we’re already past the Turing-completeness line; but
+can we make it more convenient?</p>
+<p>In Perl, Python, and especially JS and Lua, it’s very common to use
+dicts as general-purpose data structures.  But here our “dicts” are
+functions (whose domain we perhaps have some way of computing, or at
+least conservatively approximating).  Can we pattern-match on those
+dicts?</p>
+<p>In ES6, pattern-matching on a “dict” (called, confusingly, an
+“object”) looks like this:</p>
+<pre><code>const {a: b, c: d, e: f} = {c: 1, e: 2, g: 3};
+</code></pre>
+<p>This binds the variables <code>d</code> and <code>f</code> to 1 and 2, and the value <code>b</code> to
+<code>undefined</code>.  We could imagine that, given the option to declare a
+failed match, the missing value for <code>a: b</code> would cause the pattern
+match to fail, but the missing binding for <code>g: 3</code> would not — the
+point of storing your data in dicts in the first place is so that you
+can add new properties to it without breaking existing code, which is
+how email headers have remained backwards-compatible for forty fucking
+years.</p>
+<p>If the “dict” you’re matching is a function (that can fail), this
+corresponds to the pattern-match requiring it to succeed on some
+finite set of arguments mentioned in the pattern.  And those semantics
+are straightforward to implement, although maybe inefficient.</p>
+<p>This means that to try to invoke a function, you’re taking the
+function that is its argument and trying to invoke it (possibly
+several times) with the keys in the argument pattern.  This sounds
+like it’s going to be an infinite regress, but presumably at some
+point you will bottom out in symbols and other atoms, which, say,
+cannot be invoked as functions.</p>
+<p>If we try to keep our syntactic noise to a minimum, we could declare
+that lowercase barewords are symbols and variables need uppercase (as
+in Erlang), use the <code>:</code> and <code>,</code> symbols from Python/JS instead of <code>-&gt;</code>
+and <code>|</code>, and use the infix-syntax and
+function-application-by-juxtaposition syntax from OCaml.  So then our
+<code>peano_of_int</code> function ends up as:</p>
+<pre><code>Peano_of_int = 0: z, N: (s: Peano_of_int (N-1));
+</code></pre>
+<p>And then its counterpart should look like this:</p>
+<pre><code>Int_of_peano = z: 0, (s: N): 1 + Int_of_peano N;
+</code></pre>
+<p>And the example we started with would be written:</p>
+<pre><code>1: "st", 2: "nd", _: "th"
+</code></pre>
+<h2>Arguments first!</h2>
+<p>At this point, we start to want local variables or let-expressions.</p>
+<p>But let-expressions are just, in some sense, syntactic sugar to paper
+over the unfortunate fact that in <code>(λx.some long thing involving x)3</code>,
+the <code>x</code> argument and the <code>3</code> are spatially far apart, and we want them
+to be close together.  That is, we have the order <code>x Y 3</code>, and we want
+<code>x</code> and <code>3</code> to be adjacent.  Of the six possible orderings of the
+three items, only <code>x Y 3</code> and <code>3 Y x</code> do not have them adjacent, and
+<code>let</code> rewrites that to <code>x 3 Y</code>, omitting the literal tokens.</p>
+<p>But there are three other orderings that would also solve the problem,
+which are <code>Y x 3</code>, <code>Y 3 x</code> and <code>3 x Y</code>.  Since <code>Y</code> is an expression
+written in terms of <code>x</code>, it’s desirable for readability for <code>x</code> to
+precede it and be adjacent to it, so <code>3 x Y</code> would perhaps be the
+clearest order.</p>
+<p>Which is to say, perhaps arguments should precede functions in a
+function application expression, as, in a sense, in the ς-calculus and
+other object-oriented languages — even though, in this case, the
+functions are first-class values rather than merely selectors.</p>
+<p>This leads us to write our examples above as follows, with a needless
+Dijkstra-like <code>.</code> introduced to improve familiarity:</p>
+<pre><code>Int_to_peano = 0: z, N: (s: (N-1).Int_to_peano);
+Peano_to_int = z: 0, (s: N): 1 + N.Peano_to_int;
+</code></pre>
+<p>This pants-on-head syntax now gives us the sugar to avoid
+let-expressions in programs like this:</p>
+<pre><code>Sort = nil: nil,
+    (car: P, cdr: Xs):
+        Xs.(P.Lt.Filter).(Lesser:
+        Xs.(P.Ge.Filter).(Greater:
+        Lesser.Sort.((car: P, cdr: Greater.Sort).Append)));
+
+Filter = F: (nil: nil,
+             (car: X, cdr: Xs): X.F.(true: (car: X, cdr: Xs.F.Filter),
+                                     false: Xs.F.Filter));
+
+Append = nil: (Ys: Ys),
+         (car: X, cdr: Xs): (Ys: (car: X, cdr: Xs.Ys.Append));
+</code></pre>
+<p>Here my <code>Filter</code> and <code>Append</code> functions are curried, and I’m presuming
+that <code>Lt</code> and <code>Ge</code> are curried primitives such that, for example,
+<code>4.Lt</code> evaluates to a function that returns <code>true</code> for arguments that
+are less than 4.</p>
+<p>If you could arrange for the <code>X/Xs</code> destructuring pattern-match to
+fail in <code>Filter</code> when <code>X.F</code> doesn’t return <code>true</code>, maybe you could get
+a cleaner program.  I am not clear that there is a way to do that
+within the semantics I have described.</p>
+<p>If we wanted it to be more Prolog-like, we could use <code>;</code> instead of
+<code>,</code>; to be less Prolog-like, we could interchange the sense of upper
+and lower case, or use Ruby-like prefix colons for literal symbols
+instead of case, or interchange <code>=</code> and <code>:</code>.  And we could potentially
+dispense with the <code>.</code> for function application.  Four of the 11 other
+possibilities arising thus:</p>
+<pre><code>sort = Nil: Nil,
+    (Car: p, Cdr: xs):
+        xs (p lt filter) (lesser:
+        xs (p ge filter) (greater:
+        lesser sort ((Car: p, Cdr: greater sort) append)));
+
+Sort = nil: nil;
+    (car: P; cdr: Xs):
+        Xs.(P.Lt.Filter).(Lesser:
+        Xs.(P.Ge.Filter).(Greater:
+        Lesser.Sort.((car: P; cdr: Greater.Sort).Append)))
+
+sort: Nil=Nil;
+    (Car=p; Cdr=xs):
+        xs (p lt filter) (lesser:
+        xs (p ge filter) (greater:
+        lesser sort ((Car=p; Cdr = greater sort) append)));
+
+sort = :nil: :nil,
+    (:car: p, :cdr: xs):
+        xs.(p.lt.filter).(lesser:
+        xs.(p.ge.filter).(greater:
+        lesser.sort.((:car: p, :cdr: greater.sort).append)));
+</code></pre>
+<p>Yeesh, that last one looks unparseable.</p>
+<p>Raph Levien’s Io language used, approximately, <code>-&gt;</code> and a
+right-associative <code>;</code> where I am using <code>.(</code> and <code>:</code>, thus avoiding the
+pileup of right parentheses at the end.  If we tried that approach and
+terminated each alternative in the pattern match with <code>.</code> (that being
+the only symbol whose precedence in prose is lower than <code>;</code>), we might
+end up with something like this:</p>
+<pre><code>sort = Nil; Nil.
+    (Car; p. Cdr; xs);
+        xs -&gt; (p -&gt; lt -&gt; filter) -&gt; lesser;
+        xs -&gt; (p -&gt; ge -&gt; filter) -&gt; greater;
+        lesser -&gt; sort -&gt; ((Car; p. Cdr; greater -&gt; sort) -&gt; append.
+</code></pre>
+<p>This does not seem more readable to me.</p>
+<h2>Backtracking, generators, and binary relations</h2>
+<p>All of the above is predicated on the idea that a function produces at
+most one value — so, for example, <code>_ -&gt; "a" | _ -&gt; "b"</code> will never
+return "b" because the first match will never fail.  But a natural
+extension of the approach is to allow any expression to yield any
+number of values, as in Icon, rather than just zero or one.  (Partly
+by coincidence, Icon uses <code>|</code> to do something closely analogous to
+chaining together cases of a pattern-match.)</p>
+<p>This, in effect, means that we are no longer talking about functions;
+we are talking about binary relations.  With an order imposed on their
+pairs, perhaps.</p>
+<p>There is a rather nice algebra of binary relations; they form a
+lattice (considering them as sets of (input, output) pairs with the
+usual set operations), a monoid (under composition), and they have a
+nontrivial isomorphism — the converse or inverse, which, unlike
+function inverses, is defined for all binary relations.</p>
+<p>One approach to programming with general binary relations would be to
+attempt a binary-relation-based pattern-matching version of
+miniKANREN, abandoning the ordering of the possibilities.  And that
+would be cool.</p>
+<p>Another approach would be to follow Icon (and Python and JS) in using
+these generators for iteration.  Io does this using no new operations,
+just a little bit of syntactic sugar for continuations.  Python, JS,
+and Icon do not allow multi-shot continuations; Python and JS, like
+Io, reify the suspended generator, while Icon usually does not,
+instead identifying the generator with the expression.  I’m not sure
+how many operations you really need to control the backtracking, but
+there are at least two: one that prevents further backtracking
+(Prolog’s cut) and one that backtracks repeatedly until no further
+backtracking is possible, then continues.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/js.html">JS</a> (12 notes)
+</li><li><a href="../topics/ocaml.html">OCaml</a> (8 notes)
+</li><li><a href="../topics/predicate-logic.html">Predicate logic</a> (6 notes)
+</li><li><a href="../topics/minikanren.html">miniKANREN</a> (6 notes)
+</li><li><a href="../topics/binary-relations.html">Binary relations</a> (6 notes)
+</li><li><a href="../topics/backtracking.html">Backtracking</a> (3 notes)
+</li><li>Icon</li><li>Generators</li></ul></div></html>

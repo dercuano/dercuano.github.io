@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html><title>Caching screen contents ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Caching screen contents</h1><div class="metadata">Kragen Javier Sitaker, 2017-06-14
+(2 minutes)</div><p>Suppose I have a 1920×1080 screen that doesn’t always update, and I'd
+like to cache tiles of it.  I could do it with quadtrees (11 levels
+down to the pixel level, or 7 levels down to the traditional 16×16
+tile size) or I could do it by simply dividing the screen into a flat
+grid of tiles — tiles of 64×64 pixels, say, dividing the screen into a
+30×17 grid.</p>
+<p>Then, to redraw the screen in a kind of RESTful system, I could make
+510 requests to a tile-rendering service, providing it with
+information about what was on the screen.  For many uses, it would be
+okay for these requests to take too long for the screen to fully
+update in a single frame time.  You could imagine a usable system, for
+example, where each 16.7ms frame only has time to refetch 50 of the
+tiles: 340μs to merely revalidate the cache of a tile.</p>
+<p>(As a point of comparison, httpdito on my laptop takes about 50 μs per
+HTTP request, which would be not quite enough to redraw the screen.)</p>
+<p>This would suck for watching a movie or mouse tracking, though, since
+you’d have randomly 0–100 ms of latency (0–6 frames) for screen
+updates, making your mouse pointer jitter all over the fucking place,
+making movies unwatchable, and making real-time games utterly
+unplayable.  But if you have some kind of cache invalidation protocol
+that eagerly recalculates the tiles that have actually changed, you
+could reliably keep your latency to a fraction of a frame and track
+the mouse accurately.</p>
+<p>Suppose we can improve somewhat on httpdito by using a binary protocol
+and not forking and accepting new connections and get down to 10 μs
+per request.  (0MQ can normally handle messages in under 1 μs.)</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/sa.html">Systems architecture</a> (48 notes)
+</li><li><a href="../topics/caching.html">Caching</a> (25 notes)
+</li><li><a href="../topics/incremental-computation.html">Incremental computation</a> (24 notes)
+</li><li><a href="../topics/guis.html">Graphical user interfaces</a> (23 notes)
+</li><li><a href="../topics/protocols.html">Protocols</a> (21 notes)
+</li><li><a href="../topics/latency.html">Latency</a> (19 notes)
+</li><li><a href="../topics/rest.html">REpresentational State Transfer</a> (8 notes)
+</li></ul></div></html>

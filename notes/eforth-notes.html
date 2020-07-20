@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html><title>Notes on reading eForth ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Notes on reading eForth</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(9 minutes)</div><p>These notes are on stuff I got out of EFORTH.ZIP, 61213 bytes,
+which I downloaded from <a href="http://www.baymoon.com/~bimu/forth/">http://www.baymoon.com/~bimu/forth/</a>
+linking to
+<a href="http://www.baymoon.com/~bimu/forth/eforth/EFORTH.ZIP">http://www.baymoon.com/~bimu/forth/eforth/EFORTH.ZIP</a>.  Beware!
+This software is not under an explicit free-software license,
+and the web page says, “Permission is granted for
+non-commercial use, provided this notice is included.”</p>
+<p>Bill Muench’s eForth may be the closest thing I’ve seen to a
+minimal FORTH kernel.  The assembly-language kernel of 8086
+eForth ITC16i 971014.1, an indirect-threaded FORTH system,
+implements only these 36 words:</p>
+<pre><code>EXIT ( -- ) ( R: a -- ) ( 6.1.1380 )( 0x33 ) \ ITC
+EXECUTE ( xt -- ) ( 6.1.1370 )( 0x1D ) \ ITC
+_LIT ( -- n ) ( 0x10 )
+_ELSE ( -- ) ( 0x13 )
+_IF ( f -- ) ( 0x14 )
+C! ( c a -- ) ( 6.1.0850 )( 0x75 )
+C@ ( a -- c ) ( 6.1.0870 )( 0x71 )
+! ( n a -- ) ( 6.1.0010 )( 0x72 )
+@ ( a -- n ) ( 6.1.0650 )( 0x6D )
+RP@ ( -- a )
+RP! ( a -- )
+&gt;R ( n -- ) ( R: -- n ) ( 6.1.0580 )( 0x30 )
+R@ ( -- n ) ( R: n -- n ) ( 6.1.2070 )( 0x32 )
+R&gt; ( -- n ) ( R: n -- ) ( 6.1.2060 )( 0x31 )
+SP@ ( -- a )
+SP! ( a -- )
+DROP ( n -- ) ( 6.1.1260 )( 0x46 )
+SWAP ( n1 n2 -- n2 n1 ) ( 6.1.2260 )( 0x49 )
+DUP ( n -- n n ) ( 6.1.1290 )( 0x47 )
+OVER ( n1 n2 -- n1 n2 n1 ) ( 6.1.1990 )( 0x48 )
+CHAR- ( a -- a )
+CHAR+ ( a -- a ) ( 6.1.0897 )( 0x62 )
+CHARS ( n -- n ) ( 6.1.0898 )( 0x66 )
+CELL- ( a -- a )
+CELL+ ( a -- a ) ( 6.1.0880 )( 0x65 )
+CELLS ( n -- n ) ( 6.1.0890 )( 0x69 )
+0&lt; ( n -- f ) ( 6.1.0250 )( 0x36 )
+AND ( n n -- n ) ( 6.1.0720 )( 0x23 )
+OR ( n n -- n ) ( 6.1.1980 )( 0x24 )
+XOR ( n n -- n ) ( 6.1.2490 )( 0x25 )
+UM+ ( u u -- u cy )
+REDIRECT ( asciiz -- f )
+!IO ( u -- ) ( initialize I/O device )
+?RX ( -- c -1 | 0 )
+TX! ( c -- )
+BYE ( -- ) ( 15.6.2.0830 )
+</code></pre>
+<p>And these “procs” --- not FORTH words but machine-code routines:</p>
+<pre><code>PROC RESET ( cold start entry )
+PROC LIST1          ( entry for : words ) \ ITC
+PROC VCOLD             ( cold start entry )
+</code></pre>
+<p>Those 39 primitives are the basis for implementing everything
+else.  Here are some brief notes on them.  It took me a while
+to understand how “next,” works in eForth; it’s defined in
+EMETA.X86 and inserts a single JMP instruction to the “NEXT1”
+label.  I’m also not quite sure about the conditionals.  So my
+instruction counts may not be quite right.</p>
+<ul>
+<li>
+<p>EXIT ( -- ) ( R: a -- ) ( 6.1.1380 )( 0x33 ) \ ITC</p>
+<p>This pops the return-stack pointer to return from a colon
+definition.</p>
+<p>5 instructions.</p>
+</li>
+<li>
+<p>EXECUTE ( xt -- ) ( 6.1.1370 )( 0x1D ) \ ITC</p>
+<p>This calls a word that’s on the stack.</p>
+<p>2 instructions.</p>
+</li>
+<li>
+<p>_LIT ( -- n ) ( 0x10 )</p>
+<p>Pushes the next cell in the colon definition.</p>
+<p>3 instructions.</p>
+</li>
+<li>
+<p>_ELSE ( -- ) ( 0x13 )</p>
+<p>Unconditional branch in a colon definition.</p>
+<p>3 instructions.</p>
+</li>
+<li>
+<p>_IF ( f -- ) ( 0x14 )</p>
+<p>Conditional branch in a colon definition.</p>
+<p>7 instructions.</p>
+</li>
+<li>
+<p>C! ( c a -- ) ( 6.1.0850 )( 0x75 )</p>
+<p>Store a byte.</p>
+<p>4 instructions.</p>
+</li>
+<li>
+<p>C@ ( a -- c ) ( 6.1.0870 )( 0x71 )</p>
+<p>Fetch a byte.</p>
+<p>5 instructions.</p>
+</li>
+<li>
+<p>! ( n a -- ) ( 6.1.0010 )( 0x72 )</p>
+<p>Store a cell.</p>
+<p>3 instructions.</p>
+</li>
+<li>
+<p>@ ( a -- n ) ( 6.1.0650 )( 0x6D )</p>
+<p>Fetch a cell.</p>
+<p>3 instructions.</p>
+</li>
+<li>
+<p>RP@ ( -- a )</p>
+<p>Push the return stack pointer.</p>
+<p>2 instructions.</p>
+</li>
+<li>
+<p>RP! ( a -- )</p>
+<p>Set the return stack pointer (e.g. to throw an exception or
+switch threads)</p>
+<p>2 instructions.</p>
+</li>
+<li>
+<p>>R ( n -- ) ( R: -- n ) ( 6.1.0580 )( 0x30 )</p>
+<p>Push something on the return stack.</p>
+<p>3 instructions.</p>
+</li>
+<li>
+<p>R@ ( -- n ) ( R: n -- n ) ( 6.1.2070 )( 0x32 )</p>
+<p>Copy something off the return stack.  (Not in the minimal
+set.)</p>
+<p>2 instructions.</p>
+</li>
+<li>
+<p>R&gt; ( -- n ) ( R: n -- ) ( 6.1.2060 )( 0x31 )</p>
+<p>Pop something off the return stack.</p>
+<p>3 instructions.</p>
+</li>
+<li>
+<p>SP@ ( -- a )</p>
+<p>Get the stack pointer (e.g. for .S).</p>
+<p>3 instructions.</p>
+</li>
+<li>
+<p>SP! ( a -- )</p>
+<p>Set the stack pointer (e.g. to throw an exception or switch
+threads.)</p>
+<p>2 instructions.</p>
+</li>
+<li>
+<p>DROP ( n -- ) ( 6.1.1260 )( 0x46 )</p>
+<p>2 instructions.</p>
+</li>
+<li>
+<p>SWAP ( n1 n2 -- n2 n1 ) ( 6.1.2260 )( 0x49 )</p>
+<p>5 instructions.</p>
+</li>
+<li>
+<p>DUP ( n -- n n ) ( 6.1.1290 )( 0x47 )</p>
+<p>4 instructions.</p>
+</li>
+<li>
+<p>OVER ( n1 n2 -- n1 n2 n1 ) ( 6.1.1990 )( 0x48 )</p>
+<p>Not in the minimal set.</p>
+<p>6 instructions.</p>
+</li>
+<li>
+<p>CHAR- ( a -- a )</p>
+<p>Subtract 1.  Not in the minimal set.</p>
+<p>4 instructions.</p>
+</li>
+<li>
+<p>CHAR+ ( a -- a ) ( 6.1.0897 )( 0x62 )</p>
+<p>Add 1.  Not in the minimal set.</p>
+<p>4 instructions.</p>
+</li>
+<li>
+<p>CHARS ( n -- n ) ( 6.1.0898 )( 0x66 )</p>
+<p>No-op.  Not in the minimal set.</p>
+<p>1 instruction.</p>
+</li>
+<li>
+<p>CELL- ( a -- a )</p>
+<p>Subtract 2 (the size of a 16-bit cell).  Not in the minimal
+set.</p>
+<p>4 instructions.</p>
+</li>
+<li>
+<p>CELL+ ( a -- a ) ( 6.1.0880 )( 0x65 )</p>
+<p>Add the size of a cell (2).  Not in the minimal set.</p>
+<p>4 instructions.</p>
+</li>
+<li>
+<p>CELLS ( n -- n ) ( 6.1.0890 )( 0x69 )</p>
+<p>Multiply a number by the size of a cell (2).  Not in the
+minimal set.</p>
+<p>4 instructions.</p>
+</li>
+<li>
+<p>0&lt; ( n -- f ) ( 6.1.0250 )( 0x36 )</p>
+<p>See if a number is less than 0.</p>
+<p>4 instructions.</p>
+</li>
+<li>
+<p>AND ( n n -- n ) ( 6.1.0720 )( 0x23 )</p>
+<p>Bitwise.</p>
+<p>5 instructions.</p>
+</li>
+<li>
+<p>OR ( n n -- n ) ( 6.1.1980 )( 0x24 )</p>
+<p>5 instructions.</p>
+</li>
+<li>
+<p>XOR ( n n -- n ) ( 6.1.2490 )( 0x25 )</p>
+<p>5 instructions.</p>
+</li>
+<li>
+<p>UM+ ( u u -- u cy )</p>
+<p>Unsigned add, pushing a carry flag.</p>
+<p>8 instructions.</p>
+</li>
+</ul>
+<p>The code words up to this point are the fundamental internal
+operations of the virtual machine.  They total 117
+instructions.  The next few code words are OS interface
+primitives:</p>
+<ul>
+<li>
+<p>REDIRECT ( asciiz -- f )</p>
+<p>Open a file as stdin using INT 21h calls; returns “f”
+success or failure.</p>
+<p>15 instructions.</p>
+</li>
+<li>
+<p>!IO ( u -- ) ( initialize I/O device )</p>
+<p>No-op, for compatibility with some other eForth systems I
+don’t know about.</p>
+<p>2 instructions.</p>
+</li>
+<li>
+<p>?RX ( -- c -1 | 0 )</p>
+<p>Read a key if ready using INT 21h, otherwise return 0.</p>
+<p>16 instructions.</p>
+</li>
+<li>
+<p>TX! ( c -- )</p>
+<p>Emit a character using INT 21h.</p>
+<p>4 instructions.</p>
+</li>
+<li>
+<p>BYE ( -- ) ( 15.6.2.0830 )</p>
+<p>Exit program with INT 20h.</p>
+<p>1 instruction.</p>
+</li>
+</ul>
+<p>Those MS-DOS interface primitives are 38 more instructions.</p>
+<ul>
+<li>
+<p>PROC RESET ( cold start entry )</p>
+<p>Placed at the beginning of the program, to jump to VCOLD,
+wherever it might be.</p>
+<p>2 instructions.</p>
+</li>
+<li>
+<p>PROC LIST1          ( entry for : words ) \ ITC</p>
+<p>Pushes the instruction pointer onto the return stack and
+sets a new one.</p>
+<p>5 instructions.</p>
+</li>
+<li>
+<p>PROC VCOLD             ( cold start entry )</p>
+<p>Sets up registers and starts the interpreter.</p>
+<p>14 instructions.</p>
+</li>
+</ul>
+<p>So there are 21 more instructions; the whole thing is 117 + 38
++ 21 = 176 machine-code instructions, if I counted it
+correctly.  EFORTH.COM is 7936 bytes, of which the last 157 are
+“junk DNA,” all lower-case ‘b’, presumably so it would end on a
+256-byte boundary; the part of EFORTH.COM up to the the end of
+the definition of TX! is 762 bytes, including the dictionary
+structure and copyright notice, and I think that encompasses
+basically the above machine-code words.  (BYE and VCOLD are at
+the end, so they’re not included in the 762.)</p>
+<p>Some things not included in the machine-language subset (that
+maybe should be): multiplication and division; subtraction;
+negation; PICK; string I/O; bit shifts; memory block copying.</p>
+<p>The rest of eForth is about 700 lines of FORTH, defining 191
+more subroutines:</p>
+<p>NOOP _VAR _CON HEX DECIMAL ROT NIP 2DROP 2DUP ?DUP + D+ INVERT
+NEGATE DNEGATE S&gt;D ABS DABS - PICK 0= = U&lt; MAX MIN WITHIN
+LSHIFT UM* * RSHIFT UM/MOD SM/REM FM/MOD /MOD MOD / +! COUNT
+BOUNDS /STRING ALIGNED 2! 2@ MOVE FILL -TRAILING &gt;ADR &gt;BODY
+_USR 'S _PASS _WAKE PAUSE STOP GET RELEASE SLEEP AWAKE ACTIVATE
+BUILD DIGIT? &gt;NUMBER NUMBER? HERE PAD &lt;# DIGIT HOLD # #S #&gt;
+SIGN CATCH THROW ABORT ?KEY KEY NUF? EMIT SPACE EMITS SPACES
+TYPE CR _" _S" _." _ABORT" S.R D.R U.R .R D. U. . ? PACK DEPTH
+?STACK ACCEPT SAME? _DELIMIT _PARSE NAME&gt; WID? SFIND _[[SOURCE
+PARSE-WORD EVALUATE ASCIIZ STDIN FROM QUIT ALIGN ALLOT S, C, ,
+COMPILE, LITERAL CHAR [CHAR] ' ['] PARSE .((\ SLITERAL ,C" S"
+." ABORT" _]] GET-CURRENT SET-CURRENT DEFINITIONS ?UNIQUE HEAD,
+IMMEDIATE COMPILE-ONLY REVEAL RECURSE POSTPONE CODE next,
+:NONAME : ; _DOES&gt; DOES&gt; CREATE VARIABLE CONSTANT USER HAT
+WORDLIST ORDER@ GET-ORDER SET-ORDER _MARKER MARKER BEGIN THEN
+RESOLVE MARK IF AHEAD ELSE WHILE UNTIL AGAIN REPEAT .S !CSP
+?CSP &gt;CHAR _TYPE _DUMP DUMP .ID WIDWORDS WORDS NAMED?  SSEE SEE
+COLD</p>
+<p>Which is pretty much just a normal FORTH a bit on the minimal
+side, with just a few extras (multitasking, a decompiler),
+minus blocks (FORTH’s low-budget “virtual memory”) and an
+assembler.</p>
+<p>(There are also some variables, which I haven’t counted.)</p>
+<p>The resulting MS-DOS executable, as I mentioned, is 7936 bytes.</p>
+<p>The “metacompiler” is in a separate source file and is not
+included in those 7936 bytes; and Muench did not include the
+source to his assembler, just an executable, called B.EXE,
+which is relatively large.</p>
+<p>So we have an “inner core” of 176 instructions in 39 routines,
+about 700-800 bytes including debug info; an “outer core” of
+another 191 FORTH routines, about 7000 more bytes (about 1000
+of which is just their names); and presumably your program on
+top of that.</p>
+<p>(It actually uses only the 22 instructions MOV, JMP, SUB, ADD,
+ADC, LODSW, POP, PUSH, AND, OR, JZ, JNZ, JB, XOR, SHL, CWD,
+XOR, INT, DEC, CLI, STI, and CLD, although there are a variety
+of operand types in use with some of those; so writing a
+minimal assembler to support it would be pretty
+straightforward.)</p>
+<p>Looks like this isn’t the original eForth though...</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/small-is-beautiful.html">Small is beautiful</a> (40 notes)
+</li><li><a href="../topics/instruction-sets.html">Instruction sets</a> (40 notes)
+</li><li><a href="../topics/forth.html">Forth</a> (19 notes)
+</li></ul></div></html>

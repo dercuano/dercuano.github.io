@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><title>VCR oscilloscope ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>VCR oscilloscope</h1><div class="metadata">Kragen Javier Sitaker, 2017-05-10 (updated 2017-06-20)
+(2 minutes)</div><p>An NTSC video signal is 6MHz wide.  A VCR records it on the tape in
+the cassette with maybe one 60Hz field per diagonal pass of the head
+across the tape, with reasonably good analog fidelity.  A VHS tape
+uses a different modulation scheme, with about <a href="https://en.wikipedia.org/wiki/VHS#Video_recording">3MHz of video
+(luminance) bandwidth and another 400kHz of chroma bandwidth</a>.
+<a href="https://en.wikipedia.org/wiki/S-VHS">S-VHS has 5.4MHz</a></p>
+<p>The tricky part of making a decent (20MHz) oscilloscope out of garbage
+is high-speed signal detection: either direct analog display or
+analog-to-digital conversion.  Perhaps recording the signal on a video
+tape, perhaps with sped-up heads, would enable you to do the
+conversion over a longer period of time using a slower converter,
+converting different samples on each pass, with the tape paused.</p>
+<p>A NTSC VHS VCR head rotates at 1800 rpm, each rotation covering a 60Hz
+field, lasting 16.7 milliseconds. If you were to rotate it four times
+as fast, 7200 rpm, each such track would only last 4.2 milliseconds,
+but could plausibly have up to 12MHz bandwidth, or 21.6MHz for S-VHS.</p>
+<p>4.2 milliseconds is a ridiculously long recording time; at 60
+megasamples per second, it’s 250,000 samples, hundreds of times longer
+than is necessary for a storage oscilloscope.  So, if it were
+mechanically practical to speed the heads up further, it would be a
+good idea.</p>
+<p>(See also files <a href="../notes/tv-oscilloscope.html">TV oscilloscope</a>, <a href="../notes/laser-printer-oscilloscope.html">Laser printer oscilloscope</a>, and
+<a href="../notes/ccd-oscilloscope.html">CCD oscilloscope</a>.)</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/electronics.html">Electronics</a> (138 notes)
+</li><li><a href="../topics/metrology.html">Metrology</a> (18 notes)
+</li><li><a href="../topics/ghettobotics.html">Ghettobotics</a> (18 notes)
+</li><li><a href="../topics/oscilloscopes.html">Oscilloscopes</a> (12 notes)
+</li><li><a href="../topics/video.html">Video</a> (7 notes)
+</li></ul></div></html>

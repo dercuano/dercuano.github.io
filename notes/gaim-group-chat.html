@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html><title>Gaim group chat ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Gaim group chat</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(3 minutes)</div><p>So I want to make a Gaim (um, I mean Pidgin) extension for group
+activities such as games.  The first activity, of course, is group
+chat.  So here are some thoughts on how to achieve that.</p>
+<p>People on the channel are connected in some sort of connected graph
+and relay broadcast messages to each other.  The graph doesn't need to
+be acyclic; every message has a unique ID and everyone's client
+remembers the unique IDs of the messages they've seen recently, and
+only forwards on or displays new messages.  Eventually, every message
+should traverse every link that is live at the time in one direction
+or the other.</p>
+<p>The first question is how much the people should be allowed to know
+about each other.  Of course since they can send broadcast messages
+visible to one another, they can establish communications if they
+want; if my client colludes with someone, they can snoop on the
+channel without anyone else being able to find out that they are
+there; and if my client colludes with someone, my client can tell them
+all the people I'm talking to.  So, in the framework above, there's no
+way to enforce either a policy of anonymity or the opposite in the
+protocol; the question is just what the default and advertised policy
+should be.</p>
+<p>I think I will start with revealing the truenames of everyone on the
+channel --- truenames being something like "ksitaker on AOL" ---
+because it has four advantages.  It makes it difficult to censor or
+falsify the utterances of a particular person when others can contact
+them directly; it can allow the channel to heal when somebody goes
+offline unexpectedly; it facilitates side-channel conversations; and
+it reduces the probability of accidentally saying something in front
+of the wrong person.</p>
+<p>The conversations ought to be private, in the sense that the default
+should be that chat lines aren't transmitted unencrypted and aren't
+forwarded to unannounced third parties.</p>
+<p>The encryption is a bit tricky.  There are three straightforward
+possibilities:</p>
+<ol>
+<li>Encrypt point-to-point between connected clients;</li>
+<li>Encrypt each message with a fresh "session key" and include copies
+   of the "session key" encrypted with the public key of each
+   participating client;</li>
+<li>Negotiate a shared "session key" periodically (at least every time
+   group membership changes) and encrypt all messages with that.</li>
+</ol><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/gossip.html">Gossip</a> (6 notes)
+</li><li><a href="../topics/games.html">Games</a> (6 notes)
+</li><li><a href="../topics/secure-scuttlebutt.html">The Secure Scuttlebutt protocol</a> (5 notes)
+</li><li><a href="../topics/chat.html">Chat</a> (3 notes)
+</li></ul></div></html>

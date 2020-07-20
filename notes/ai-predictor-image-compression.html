@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><title>Improving lossless image compression with basic machine learning algorithms ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Improving lossless image compression with basic machine learning algorithms</h1><div class="metadata">Kragen Javier Sitaker, 2016-07-27
+(2 minutes)</div><p>Image compression algorithms work, in some sense, by finding a good
+way to predict the value of each pixel from the already-known pixels,
+and then correcting the prediction more or less.  (It's kind of a
+stretch to apply this description to JPEG, I guess...)</p>
+<p>One possible predictor is a simple spline fit to the previous pixels.
+If it's zero-order, this reduces in some sense to RLE; first-order
+predicts gradients; second-order and higher may not be useful.</p>
+<p>A more interesting predictor for screenshots is perhaps a KNN
+predictor: given the so-far decoded pixel data, what are the K
+previously-decoded pixels whose environment was most similar?
+Perhaps, for concreteness, we take the two pixels above, two pixels to
+the left, and one pixel diagonally up and to the left.  Let's take
+them in grayscale so we only have a 5-dimensional parameter space,
+since RGB TrueColor would form a 15-dimensional parameter space.</p>
+<p>Now we can search the so-far-decoded image for the K pixels whose
+environments are most similar to our current environment, using
+e.g. Manhattan distance, and take the mean or, more likely, median of
+their color to form our predictor of the current pixel's color.</p>
+<p>5 dimensions is small enough that we could reasonably build a k-d tree
+to keep the search efficient.</p>
+<p>My thought is that the vast majority of pixels in screenshot
+environments would have exactly the predicted color, because those 5
+pixels have enough information to nearly uniquely identify the font
+glyph, pixel position within that glyph, and background color that
+we're looking at.  That means you can encode the average residual in
+less than a bit, particularly if you accept some quantization noise.</p>
+<p>(We might want to do some kind of dimensionality reduction, e.g. PCA,
+to be able to use color and more than 5 pixels.)</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/compression.html">Compression</a> (28 notes)
+</li><li><a href="../topics/information-theory.html">Information theory</a> (9 notes)
+</li><li><a href="../topics/ai.html">Artificial intelligence</a> (8 notes)
+</li></ul></div></html>

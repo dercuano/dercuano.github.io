@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html><title>Does SAAS make it harder to ship?  I doubt it. ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Does SAAS make it harder to ship?  I doubt it.</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(7 minutes)</div><p>From a <a href="http://smoothspan.wordpress.com/2007/11/27/why-small-software-teams-grow-large-and-other-software-development-conundrums/#comment-1114">comment on the Smoothspan blog, by Damon Edwards</a> of
+dev2ops.org:</p>
+<blockquote>
+<p>A troubling trend I've noticed is how the benefits of "rock
+star" software development teams (small, highly skilled,
+highly motivated) are increasingly neutralized by poor
+operations.</p>
+<p>In an ops heavy SaaS and on-demand world, the software
+development phase becomes an increasingly smaller part of an
+application's overall lifecycle. Time and time again we see
+great code sitting behind the bottleneck of QA, staging,
+performance testing, and then production deployment.</p>
+<p>On the project plan, the "rock star" teams repeatedly deliver
+great code in record time... but at all but the smallest of
+enterprises, their "delivery" of code is a long way from where
+the business is actually realizing the benefit.</p>
+</blockquote>
+<p>I don't know whether this is true or false, but if it's true, it
+represents the reversal of a <a href="http://philip.greenspun.com/panda/future" title="The Future chapter of Philip and Alex's Guide to Web Programming">trend touted by Philip Greenspun in
+1998</a>:</p>
+<blockquote>
+<p>When I graduated from MIT in 1982, my classmates and I had but one
+choice if we wanted to get an idea to market: Join a big
+organization. When products, even software, needed to be distributed
+physically, you needed people to design packaging, write and mail
+brochures, set up an assembly line, fill shelves in a warehouse,
+fulfill customer orders, etc. We went to work for big companies like
+IBM and Hewlett-Packard. Our first rude surprise was learning that
+even the best engineers earned a pittance compared with senior
+management. Moreover, because of the vast resources that were needed
+to turn a working design into an on-sale product, most finished
+designs never made it to market. "My project was killed" was the
+familiar refrain among Route 128 and Silicon Valley engineers in
+1982.</p>
+<p>How does the Web/db world circa 1998 look to a programmer? If Joe
+Programmer can grab an IP address on a computer already running a
+well-maintained relational database, he can build an interesting
+service in a matter of weeks. By himself. If built for fun, this
+service can be delivered free to the entire Internet at minimal
+cost. If built for a customer, this service can be launched without
+further effort. Either way, there is only a brief period of several
+weeks during which a project can be killed. That won't stop the site
+from being killed months or years down the road, but very seldom
+will a Web programmer build something that never sees the light of
+day (during my entire career of Web/db application development,
+1994-1998, I have never wasted time on an application that failed to
+reach the public).</p>
+</blockquote>
+<p>And <a href="http://www.paulgraham.com/road.html" title="Paul Graham's Road Ahead">by Paul Graham in 2001</a>:</p>
+<blockquote>
+<p>One of the most important changes in this new world is the way
+you do releases. In the desktop software business, doing a
+release is a huge trauma, in which the whole company sweats
+and strains to push out a single, giant piece of code. Obvious
+comparisons suggest themselves, both to the process and the
+resulting product.</p>
+<p>With server-based software, you can make changes almost as you
+would in a program you were writing for yourself. You release
+software as a series of incremental changes instead of an
+occasional big explosion. A typical desktop software company
+might do one or two releases a year. At Viaweb we often did
+three to five releases a day.</p>
+</blockquote>
+<p>I see four possible interpretations:</p>
+<ol>
+<li>
+<p>Damon Edwards is wrong, and in fact the software development phase
+   is not "becoming an increasingly smaller part of an application's
+   overall lifecycle" as a result of "SaaS", which is what Graham
+   called "server-based software" and what Philip Greenspun called "a
+   service", and in fact the per-user cost to deploy software is
+   continuing to shrink.</p>
+<p>This is a plausible answer; Moore's Law continues to grind away
+   giving us more MIPS per watt and MIPS per CPU, the cost of
+   bandwidth was still falling last I checked, and perhaps more
+   importantly, EC2 and S3 and Hadoop and Puppet and MogileFS and
+   <code>aptitude</code> and Xen and <code>monit</code> and Cacti and <code>backuppc</code> and <code>nginx</code>
+   and <code>perlbal</code> and <code>memcached</code> and Nagios and Erlang and Varnish and
+   Capistrano are reducing the amount of human effort it takes to
+   administer a given number of CPUs and increasing the number of
+   users each MIPS can support.  Maybe Damon sees operations becoming
+   more difficult because the internet is still growing, and so the
+   biggest services have to deal with more users now than in 2001 or
+   1998.</p>
+</li>
+<li>
+<p>The effort required to deploy software on centralized servers
+   really is growing out of proportion to the effort required to write
+   it in the first place, and that's because of the dependence on
+   centralized servers.  If the software could run on the machines of
+   its users, the way Firefox or BitTorrent or Skype or Emacs does,
+   the users would be the ones deploying it.  Of course, they might
+   still find that difficult, but that wouldn't be visible to the
+   software authors; they would just see that nobody was using their
+   software, not the hours of frustration expended trying to install
+   it.  But a lot of that deployment effort can still be moved into
+   software (that's the point of InstallShield, <code>aptitude</code>,
+   <code>easy_install</code>, RubyGems, CPAN.pm, Fink, Darwin Ports, Xen,
+   AppEngine, and so on, although the diversity of items in that list
+   suggests that the job is far from over), and with the effort that
+   can't be, people can avoid duplication of effort by sharing
+   solutions online.</p>
+<p>Just because the software runs on its users' machines doesn't mean
+   it can't be providing a networked service; consider BitTorrent or
+   Skype or, for that matter, Sendmail, ircd, or INN.</p>
+</li>
+<li>
+<p>The effort required is growing, but not because of centralized
+   servers.  But I do not know of any other plausible candidates.</p>
+</li>
+<li>
+<p>A post by Jesse Robbins on O'Reilly Radar <a href="http://radar.oreilly.com/archives/2007/10/operations-advantage.html" title="Operations is a competitive advantage">3</a> suggests that some
+   startups get their operations highly automated early on, so they
+   can easily deploy their changes, while others screw up and end up
+   with a mess, and spend lots of time on operations.  If this is
+   correct, then Damon Edwards is wrong in thinking that operations
+   <em>inevitably</em> consumes a greater and greater proportion of the
+   resources available; he's just working with dumb groups who dig
+   themselves into big holes.</p>
+</li>
+</ol><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li>Devops</li></ul></div></html>

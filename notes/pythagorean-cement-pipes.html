@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html><title>Pythagorean cement pipes for your shower singing ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Pythagorean cement pipes for your shower singing</h1><div class="metadata">Kragen Javier Sitaker, 2019-09-08 (updated 2019-09-09)
+(7 minutes)</div>
+<p>How could you architecturally encourage singing in the shower?
+Bathroom resonance sounds great, but it’s not always in tune, and
+often there aren’t enough resonances to sing any but the simplest
+tunes in resonance.</p>
+<p>So, perhaps you could provide carefully tuned resonator cavities that
+resonate pleasingly at in-tune frequencies; for example, concrete
+pipes of different lengths, sufficiently isolated from the room air as
+to have a reasonable <em>Q</em>, but sufficiently coupled to it that they can
+pick up a note in a reasonable period of time; something like <em>Q</em> = 10
+or <em>Q</em> = 20 (half-power points a half-step apart) should be adequate.</p>
+<p>Helmholtz resonators like the ocarina are another, more scalable
+possibility, but they only resonate at a single frequency.  Not only
+does this deprive you of overtones, it also means you need a separate
+set of resonators for each octave.</p>
+<p>The presence of such resonators would also enable you to play a tune
+on them without singing, just by energizing the resonators, for
+example by hitting them with your hands, by hitting them with
+Blue-Man-Group floppy paddles, by banging them with hammers, or by
+setting firecrackers off in them.</p>
+<h2>The Pythagorean pentatonic scale</h2>
+<p>In some sense the simplest musical scale in common use is the
+<a href="https://en.wikipedia.org/wiki/Pythagorean_tuning">Pythagorean</a> <a href="https://en.wikipedia.org/wiki/Pentatonic_scale#Major_pentatonic_scale">major pentatonic</a> scale, consisting of these <a href="https://en.wikipedia.org/Interval_(music)">intervals</a>
+from the tonic in each octave (assuming the tonic is C):</p>
+<ul>
+<li>1:1, the <a href="https://en.wikipedia.org/wiki/Perfect_unison">perfect unison</a> or <a href="https://en.wikipedia.org/wiki/Sh%C3%AD-%C3%A8r-l%C7%9C">黄钟</a>, no semitones, C;</li>
+<li>9:8, the <a href="https://en.wikipedia.org/wiki/Major_second">major second</a> or supertonic or epogdoon or 太簇, two semitones, D;</li>
+<li>4:3, the <a href="https://en.wikipedia.org/wiki/Perfect_fourth">perfect fourth</a> or epitriton or roughly 中吕, five semitones, E;</li>
+<li>3:2, the <a href="https://en.wikipedia.org/wiki/Perfect_fifth">perfect fifth</a> or hemiolion or 林钟, seven semitones, G; and</li>
+<li>27:16, the <a href="https://en.wikipedia.org/wiki/Major_sixth">major sixth</a> or 南吕, nine semitones, A.</li>
+</ul>
+<p>(The Greek names are from Plato’s Republic and Timaeus.)</p>
+<p>In some other tunings, 27:16 for the major sixth is replaced by 5:3,
+but the commonly-used equal temperament is only about six cents away
+from the Pythagorean 27:16, but 16 cents away from 27:16.</p>
+<p>I’m not sure exactly how you should combine these Pythagorean
+intervals with ISO 16 <a href="https://en.wikipedia.org/wiki/A440_(pitch_standard)">A440 concert pitch</a>, but one way to do it would be
+to use the equal-temperament A440 frequency for
+C as the tonic for each
+octave.  So to get a C, you take 2<sup>-2/12</sup> of 440 Hz (since C is two
+semitones above A) and get 392.00 Hz.  Then you can go down by octaves
+from there: 196.00 Hz, 97.999 Hz, 48.999 Hz.  That’s probably deep enough
+for singing, since the tubes will also resonate at harmonics;
+so your first octave is 48.999 Hz, 55.124 Hz, 65.333 Hz,
+73.499 Hz, 82.687 Hz.</p>
+<pre><code>(440/2**(2/12)/2/2/2*numpy.array([1/1, 9/8, 4/3, 3/2, 27/16])).round(3)
+</code></pre>
+<p>I could be wrong here, but I think that for a pentatonic rather than
+diatonic or chromatic scale, the advantages of equal temperament do
+not really come into play, and for singing in the shower, the
+advantages of just intonation may be more important.  But in that case
+it might be better to use 5:3 rather than 27:16 for the major sixth;
+the medieval tradition of using 27:16 for this interval led to
+theorists considering it unusably dissonant, and of course Pythagoras
+himself was tuning tetrachords, which is why there’s no Greek name for
+it above.</p>
+<h2>Air-column resonators</h2>
+<p><a href="https://en.wikipedia.org/wiki/Standing_wave">Wikipedia says</a></p>
+<blockquote>
+<p>Nodes occur at fixed ends and anti-nodes at open ends.  If fixed at
+only one end, only odd-numbered harmonics are available.</p>
+</blockquote>
+<p>Having a node at one end of a tube and an antinode at the other end
+means we only need a half-wavelength, which is nice, because the speed
+of sound in sea-level, room-temperature air is about 343 m/s, though
+it can increase by up to 0.6% with humidity, and vary considerably
+with temperature (<code>definitions.units</code> says 331.46 m/s in dry air at
+STP).  So a whole wavelength at 48.89 Hz is 7 m!  (And that’s why a
+tuba has so many curls.)</p>
+<p>A half-wavelength one-end-open tube at each of these frequencies would
+be 3.500 m, 3.111 m, 2.625 m, 2.333 m, and 2.074 m.  But those tubes
+won’t resonate at an octave, since it isn’t an odd harmonic, so you need
+five more for the next octave, which is the one people most commonly
+talk in: 1.750 m, 1.556 m, 1.313 m, 1.167 m, 1.037 m.  Alternatively,
+you could have another set of tubes of the same length, but open at
+both ends to raise the pitch by an octave — curved around to open
+again into the bathroom, of course.</p>
+<h2>Speed of sound variation</h2>
+<p><a href="https://en.wikipedia.org/wiki/Speed_of_sound">Wikipedia says</a> the speed of sound in dry air around room
+temperature is 331.3 m/s + 0.606 <em>θ</em> m/s, where <em>θ</em> is the temperature
+in °C, or more accurately 331.3 m/s √(1 + <em>θ</em>/273.15).  This is larger
+than the variation with humidity, which will also be a consideration
+when singing in the shower.  Long, narrow concrete pipes will tend to
+slow down variation in both temperature and humidity.</p>
+<p>So it might be best to use an average temperature of, say, 20°, or
+whatever is likely to be the average temperature of the house
+containing the bathroom; using the 331.46 number from
+<code>definitions.units</code> we get 343.38 m/s, with numbers ranging from
+340.43 m/s at 15° to 349.19 m/s at 30°, about 44 cents (0.44
+half-steps) of tuning variation.</p>
+<pre><code>331.46 * (1 + numpy.array([0, 15, 20, 25, 30])/273.15)**.5
+</code></pre>
+<p>Closing the mouths of the tubes a bit, so the aperture into the room
+is smaller than the body of the tube, would reduce the variability of
+temperature and humidity inside the tube by impeding air circulation.
+However, because of the wavelength-dependent participation of air just
+outside the mouth of the tube in the resonation process, this will
+also exacerbate the detuning of the higher harmonics.  Perhaps a
+better solution is to flare the mouths of the tubes like brass
+instruments to counteract this detuning effect, then cover them with
+something fairly acoustically transparent like aluminum foil or waxed
+paper.</p>
+<p>However, you aren’t going to notice the temperature-driven detuning of
+the pipes unless their Q is higher than about 40, so maybe you could
+just not worry about it.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/physics.html">Physics</a> (119 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/music.html">Music</a> (18 notes)
+</li><li><a href="../topics/construction.html">Construction</a> (5 notes)
+</li><li><a href="../topics/cement.html">Cement</a> (4 notes)
+</li></ul></div></html>

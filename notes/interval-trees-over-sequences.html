@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html><title>Query evaluation with interval-annotated trees over sequences ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Query evaluation with interval-annotated trees over sequences</h1><div class="metadata">Kragen Javier Sitaker, 2019-08-30 (updated 2019-09-03)
+(30 minutes)</div>
+<p>Consider queries of the following forms:</p>
+<pre><code>select * from foo where bar between 80 and 101;
+select * from foo order by bar limit 10;
+select * from foo order by abs(bar - 13) desc limit 10;
+select * from foo where bar between 80 and 101 and baz between 2 and 3;
+select * from foo order by (bar-10)*(bar-10) + (baz-2)*(baz-2) desc limit 6;
+</code></pre>
+<p>Conventional SQL indices permit answering the first three of these
+with good efficiency, but not the others; conventional SQL query
+optimizers do not produce a reasonable query plan for the third given
+an index on foo.bar, although it is in theory feasible.  Usually
+queries like these are answered with K-d trees or, in the last case in
+case of high dimensionality, ball trees, but these structures occupy
+significant space, and constructing and updating them is
+time-consuming.</p>
+<p>Such queries are unfortunately common in applications like
+geographical maps, as described for example in <a href="../notes/fast-geo-maps-on-android.html">Fast geographical maps on Android</a>.</p>
+<p>An alternative that is somewhat more flexible is to construct a tree
+of substrings over an existing file of records, annotated with
+intervals describing the data in each substring.</p>
+<h2>The interval-annotated-tree data structure</h2>
+<p>(There is a standard data structure called an “interval tree” which is
+not the same thing, thus the awkward name.)</p>
+<p>The underlying data to be queried
+is a sequence or “file” of records, which have
+some attributes.  The tree is a sort of index for some of these
+attributes; each node of the tree pertains to some contiguous
+substring of the overall record sequence, and is annotated with the
+minimum and maximum value for each indexed attribute that occurs
+within the subsequence.  The substrings all begin and end on record
+boundaries.
+Leaf nodes contain pointers into the sequence
+of records, indicating the start and end of the substring to which
+they pertain; internal nodes, instead, pertain to the union of their
+child nodes, which are disjoint and consecutive.  The root node of the
+tree pertains to the entire sequence.</p>
+<p>Different branching factors may be appropriate in different
+situations; if memory is random access, the structure is in theory
+fastest with a branching factor of 2, but with a memory hierarchy, a
+larger branching factor is probably better.</p>
+<p>If there is some kind of reasonable locality within the existing
+sequence, this structure can perform as well as a K-d tree, at a much
+lower space cost (since its leaves contain merely pointers into the
+sequence of records).  If there is not, it should perform about as
+well as brute force.</p>
+<h2>Interval query</h2>
+<p>To find all the records within a given multidimensional interval — a
+criterion of the form attr0 between min0 and max0 and attr1 between
+min1 and max1 and attr2 between min2 and max2... — we do a tree
+search from the root, pruning a node from the search when the interval
+annotation on that node can show that none of the records in its
+substring of the sequence can match the query.  In the case where the
+query is on a single attribute and the records are sorted by that
+attribute, this will take O(lg N) time.  So, too, if the records are
+sorted in the order of a traversal of a K-d tree, and the query is on
+a subset of the attributes indexed by that K-d tree, even if the
+branching factor is not the same.</p>
+<p>In some cases it may make sense to also halt the traversal when it can
+be determined that <em>all</em> the records within a substring match the
+query interval, for example if only a count of the matching records is
+required.</p>
+<p>Altering a record in the sequence requires updating as many as all of
+its ancestor nodes.  Appending a record to the end requires creating
+or updating as many as all of its ancestor nodes, and, as with a
+B-tree, potentially deepening the tree and adding a new ancestor node
+when the root node overflows.</p>
+<p>This generalizes, of course, to the case where leaf nodes contain
+intervals rather than point-values of attributes, but I think a
+standard interval tree (with its sorted lists of intervals crossing
+each node’s partition) will perform better in that case, perhaps much
+better.</p>
+<h2>A simple example</h2>
+<p>Suppose we have a branching factor of 8, a leaf size of 32 records, a
+total of 16,777,216 records of 64 bytes each, two
+perfectly-uniformly-distributed 32-bit attributes indexed, and the
+data arranged according to the traversal of a 2-D K-d tree on those
+two attributes.  The data amounts to one gibibyte.  There are 524,288
+leaf nodes and 599,187 tree nodes in total distributed across 8 tree
+levels, including a root node with only two children.  The pointers in
+the tree nodes can be all entirely implicit as long as we don’t have
+to insert and delete in the middle of the sequence, even if we mutate
+or append records to the end of the sequence, so each tree node can be
+stored in 16 bytes (4 bytes for the minimum X, 4 bytes for the minimum
+Y, etc.)</p>
+<p>So the tree occupies only 9,586,992 bytes, under 0.9% of the data
+size.  It can be built in time linear in the data size — in a single
+sequential input pass outputting tree nodes to 8 sequential buffers,
+or in 8 sequential passes reading from a single sequential input
+stream and writing to a single sequential output stream.</p>
+<p>A tree traversal for a two-dimensional interval that includes only a
+single record will prune all nodes but one at each recursion level, so
+it will visit the root node, its two children, and 8 nodes at each of
+the other six levels, for a total of 51 tree nodes, then the 32
+records belonging to the leaf.  If we consider 4096-byte memory pages,
+the top four levels can be in a single memory page, and then each of
+the other four tree levels will require reading a single page; the 32
+records of the leaf node will also be in a single page.  This puts the
+total read cost of the query at six pages.</p>
+<p>Suppose the query is instead for an interval similarly tightly bounded
+in one attribute but open in the other.  This interval will only prune
+6 of the 8 children of any given internal node, so it will visit, say,
+the root node, its two children, and then at the other six levels, 4,
+8, 16, 32, 64, and 128 nodes, respectively, and then 256 leafnodes,
+which will be in 256 separate pages.  The top four levels are again in
+a single page, while we can suppose that all the other nodes are in
+different pages, so we have 1 + 16 + 32 + 64 + 128 + 256 pages: 497 in
+total, a total of just over 2 megabytes out of the 1.075 gigabytes of
+data.  Still, to answer this query from 8-ms spinning rust, you would
+need almost four seconds.</p>
+<p>Actually, though, that’s overly pessimistic: the groups of 8 nodes we
+are examining at each level are siblings, and so they are presumably
+contiguous.  So in fact it’s 1 + 2 + 4 + 8 + 16 + 256 pages.  Adding
+another level that includes the actual values of the attributes for
+the records would cut that final 256, and thus the query time by a
+factor of 8, but bloat the index from 0.9% to 25% of the size of the
+original data.</p>
+<p>At the other extreme, suppose we do the traversal with an interval
+that includes all the nodes.  This is simply a tree traversal that
+never prunes, so it just has to traverse an extra 0.9% amount of index
+data as it sequentially examines the gigabyte of records.</p>
+<p>As explained above, updating or appending a record just involves
+updating or creating up to its 8 ancestor nodes; however, if the
+update results in the record being out of order, it may degrade the
+index’s query performance thereafter.  8 levels of tree is sufficient
+up to four gigabytes, at which point the tree deepens and it becomes
+9.</p>
+<h2>A tiny sketch of building such an index with numpy</h2>
+<p>I hacked this out quickly just in order to get some kind of
+performance measurement; it could obviously be cleaned up.  I kept the
+data size super small because I was plotting things and, although
+numpy can deal with tens of millions of items with no problem,
+matplotlib falls over.  Obviously in real life you would need some
+provision for non-power-of-two sizes, and probably appending records
+as well, and you wouldn't want a special-case array for the leafnode
+annotations.</p>
+<pre><code>x = rand(2**17)
+x.sort()
+
+leafnodes = x.reshape((len(x)//32, 32))
+lmin = leafnodes.min(axis=1)                       # leafnode min/max
+lmax = leafnodes.max(axis=1)
+
+imin, imax = zeros(lmin.shape), zeros(lmax.shape)
+size = len(lmin) // 2
+
+imin[:size] = lmin.reshape((size, 2)).min(axis=1)
+imax[:size] = lmax.reshape((size, 2)).max(axis=1)
+
+pos = size
+
+while size &gt; 1:
+    size //= 2
+    imin[pos:pos+size] = imin[pos-2*size:pos].reshape(size, 2).min(axis=1)
+    imax[pos:pos+size] = imax[pos-2*size:pos].reshape(size, 2).max(axis=1)
+    pos += size
+</code></pre>
+<p>Building the index this way on my laptop takes about 3–5 milliseconds.
+Taking precautions to limit the load on matplotlib, increasing <code>x</code> to
+2²⁴ items (128 mebibytes) slows it to 227 ms one time, 194 ms another
+time, 182 ms a third time.  Increasing it to 2²⁶ items, I accidentally
+crashed my laptop trying to re-evaluate the IPython cell (thus
+resulting in two half-gibibyte arrays in memory at once); sorting it
+took 10.8 seconds; but building the index tree only took 892 ms.</p>
+<h2>Ordering and reindexing flexibility</h2>
+<p>The interesting thing here is how the indexing data structure is valid
+entirely independent of the record ordering.  For some record
+orderings, it reduces to brute force, but it doesn’t give incorrect
+results, and the extra cost is mild.</p>
+<p>The above case is precisely equivalent to the K-d tree whose traversal
+order we suppose the records are encountered in, with some of its
+internal nodes purely implicit.  But with some mild degradation,
+amounting I think to a small constant factor, the same index data
+structure would accelerate such queries on data that is ordered
+according to a K-d tree whose node boundaries were not perfectly
+aligned with the node boundaries of the index tree.</p>
+<p>If the tree traversal is done in a Hilbert-curve order, so that
+adjacent nodes in the serialization are also adjacent in the K-d
+space, you gain about a factor of 2 in the case of such misalignments.
+I’m not sure if this is at every tree level or as a constant factor
+of about 2 overall.</p>
+<p>Other traversal orders may provide better performance for some data
+distributions; for example, an approximate TSP solution might be
+better at keeping the intervals smaller, and thus permit better
+pruning.  Some applications might even be able to get away with doing
+the simplest thing — leaving the records purely in insertion order
+--- because the insertion order already had enough locality in the
+relevant attributes to make queries adequately efficient.  For
+example, in a zooming user interface, most queries for drawable
+objects are restricted to a particular (x, y, size) interval, and
+generally when you create new objects, you create them in a small
+area in a small range of sizes.</p>
+<p>If the records are instead sorted in a lexicographic order by some
+sequence of attributes, such as (x, y), then the performance
+characteristics are equivalent to a normal sorted SQL index: criteria
+<code>x=x0</code> or <code>X=x0 and Y=y0</code> are evaluated in logarithmic time, while a
+bare criterion <code>Y=y0</code> is nearly as slow as sequential search.  Again,
+this happens without changing the definition of the index tree, just
+rebuilding it for the new sort order.</p>
+<p>Suppose you instead append some new random records to the end of the
+record sequence.  As discussed above, this means that most queries
+will have to traverse not only their normal path but also much of the
+path down to these new update records, in case one of them contains a
+relevant record; the standard index update takes care of this
+automatically.  But until you have a whole leafnode full of extra
+records, the number of extra nodes each query needs to visit is just a
+single linear path — 8 nodes in the above example.  Each additional
+leafnode normally adds just a single additional node, for a total of 9
+nodes in the above example, or occasionally 10 or even more rarely 11.</p>
+<p>This is recognizable as the standard database approach of having an
+“update file” that every query must examine sequentially in addition
+to its usual index traversal, but it is in some sense simpler — the
+index structure handles it automatically.  In a sense this is just an
+extension of the earlier-described property, that the same index
+structure is valid for different sorting orders — in this case, we
+have different sorting orders within the same file, one part of the
+file sorted in a useful way, while another part is unsorted and
+requires a sequential search.</p>
+<p>We can extend this to a whole “LSM-tree” or “log-structured merge
+tree” approach like the one used by LevelDB or Lucene: if you have
+8,388,608 sorted records, followed by 4,194,304 separately sorted
+records, followed by 2,097,152 sorted records, then most queries will
+do no pruning in the first few levels of the tree search, then doing a
+search within each segment in the usual efficient fashion.  At any
+time if we we atomically replace any substring of the file with a
+reordered version of itself, as well as the relevant index nodes, the
+system remains valid, but potentially handles queries more
+efficiently.</p>
+<p>It’s often advantageous to handle record updates as well as insertions
+through such an update file, because it avoids spreading the updates
+all over the file and frustrating early pruning during query
+evaluation.  To strictly maintain the validity of the index in such a
+case, you need to somehow null out the outdated versions of the
+records, replacing them with some kind of N/A or NaN or broken-heart
+value, one which participates in the min and max computations by just
+being left out.  This might require also maintaining explicit rather
+than implicit record counts in tree nodes.  Upon nulling out a record
+in this way, you can either update its ancestor nodes in the
+index — preserving the index’s precise nature — or you can leave the index
+untouched, so that the index is only a conservative approximation of
+the actual data.</p>
+<p>The flip side of this ordering-indexing orthogonality is that you can
+rebuild the index with different parameters — a different leaf-node
+size, branching factor, or indexed set of attributes, for
+example — without sorting the records again.</p>
+<h2>Conservative approximation of queries</h2>
+<p>To answer a query such as</p>
+<pre><code>select * from foo where (x-10)*(x-10) + (y-2)*(y-2) &lt; 100;
+</code></pre>
+<p>we begin by constructing a conservative approximation</p>
+<pre><code>where x between 0 and 20 and y between -8 and 12;
+</code></pre>
+<p>which can potentially be answered efficiently by this index structure.
+An alternative conservative approximation with better precision would
+be</p>
+<pre><code>where x between 0 and 20 and y between -6 and 10
+or x between 2 and 18 and y between -8 and 12;
+</code></pre>
+<p>or</p>
+<pre><code>where x between 0 and 2 and y between -6 and 10
+or x between 2 and 18 and y between -8 and 12
+or x between 18 and 20 and y between -6 and 10;
+</code></pre>
+<p>Records returned by the conservative approximation must then be tested
+against the precise criterion.</p>
+<p>Alternatively, instead of testing the multidimensional interval
+covered by each index node against such a multidimensional interval,
+you might be able to do better by testing it against the original
+precise criterion, using interval or affine arithmetic.</p>
+<h2>Evaluating nearest-K queries</h2>
+<p>Consider again my introductory example</p>
+<pre><code>select * from foo order by abs(bar - 13) desc limit 10;
+</code></pre>
+<p>The standard way of evaluating such a query, lacking a functional
+index on abs(bar - 13) — which won’t work for abs(bar - 2), for
+example — is to compute a sort or partial sort over all the records,
+which involves examining all the records’ bar attribute at least once.</p>
+<p>You could imagine doing this query with a series of queries like the
+following:</p>
+<pre><code>select abs(bar - 13) as k, * from foo where k &lt; 1 order by k desc limit 10;
+select abs(bar - 13) as k, * from foo where k &lt; 2 order by k desc limit 10;
+select abs(bar - 13) as k, * from foo where k &lt; 4 order by k desc limit 10;
+select abs(bar - 13) as k, * from foo where k &lt; 8 order by k desc limit 10;
+</code></pre>
+<p>and stop once you got enough records from one of the queries.  Each of
+these queries can be efficiently evaluated by the index structure
+described above, repeating the same tree traversal as the previous
+query, but pruning perhaps fewer nodes.</p>
+<p>A more efficient approach is to do the traversal once, storing all the
+pruned nodes in a priority queue according to <em>by how much</em> they were
+excluded.  This allows you to revisit enough of them to ensure that
+you have found all the points within the radius at which you found the
+Nth-best point you’ve found so far (N=10 above).  That point won’t
+necessarily be in one of the nodes whose intervals are nearest to the
+query point, either in upper bound or lower bound.</p>
+<h2>Evaluating minimum, maximum, and top-N queries</h2>
+<p>Consider these queries:</p>
+<pre><code>select min(x) from foo;
+select min(x) from foo where y = 41;
+select min(x) from foo where y between 38 and 42;
+select * from foo where y between 38 and 42 order by x desc limit 5;
+</code></pre>
+<p>If you have an interval-annotated tree built for attribute <code>x</code>, and
+you’re updating it precisely rather than conservatively, the first
+query can be answered instantly — it’s stored in the root node of
+the tree.  The second and third queries are not instant, but if there
+are contiguous ranges of records all matching the selection criterion,
+it is unnecessary to examine each record individually; you can use the
+min(x) annotation from their tree nodes instead.</p>
+<p>The fourth query is somewhat more interesting, because once we have
+done enough traversal to define the set of records matching the
+selection criterion (as a smaller set of tree nodes covering disjoint
+parts of the file), we would like to return them starting from the
+largest <em>x</em>.  Well, we can look at the max(x) annotations to figure
+out beneath which node in the set the largest x (say 112) is to be
+found, then recursively trace down through the tree from that node to
+find some record with x = 112.  <em>Then we remove it from the set</em>,
+by removing the tree node we had found it from, adding that
+node’s children, if any, and then recursively repeating that
+process for the child node by which we found the record;
+this leaves us in a position to repeat the
+process four more times.  By maintaining the nodes in a priority queue
+ordered by max(x), we can do this update quite efficiently.</p>
+<h2>Column-oriented index storage</h2>
+<p>Above I said that for an index covering two 32-bit attributes, each
+node will occupy 16 bytes, and in my analyses of locality I assumed
+they were contiguous in memory.  But in the case where a query only
+needs to examine one of the attributes, it would be better to store
+the trees for the two attributes separately — the query will need to
+transfer half as many cache lines from RAM, and perhaps an extra level
+near the root of the tree will fit into the first page.</p>
+<h2>Pointer files</h2>
+<p>In cases where the records are sorted in an inconvenient order, you
+can do the usual database-index thing of making a sorted file of
+pointers to the records, perhaps augmented with the sort keys, and
+build the index tree on that.  In the case where you use a simple
+lexicographical sort, this is just a normal database index, but you
+also have the possibility of using a different order.</p>
+<h2>Some explorations of a generalization of the index structure, and a surprising connection with mathematical morphology</h2>
+<p>The tree search pruning merely depends on being able to efficiently
+compute the bounds of the search key in certain substrings of the
+file; you could imagine using some other structure to accelerate that
+computation, rather than just a tree for a given set of substrings.</p>
+<p>An alternative structure is the preprocessing for the Urbach-Wilkinson
+erosion algorithm described in <a href="../notes/bresenham-erosion.html">Some notes on morphology, including improvements on Urbach and Wilkinson’s erosion/dilation algorithm</a>: given some
+string of pixels, you can compute summary strings of maxima of all
+substrings of 2, 4, 8, 16, 32, etc., pixels, starting at all the
+possible offsets.  Then the maximum of an arbitrary-length substring
+can be computed in constant time by finding two
+potentially-overlapping substrings, typically within the same level of
+summary, whose union is the you want to find the maximum of.</p>
+<p>More briefly, say <em>S</em><sub>0,<em>j</em></sub> is pixel <em>j</em> of the string of
+pixels, and define</p>
+<blockquote>
+<p><em>S</em><sub><em>i</em>,<em>j</em></sub> = <em>S</em><sub><em>i</em>-1, <em>j</em></sub> ∨
+  <em>S</em><sub><em>i</em>-1, <em>j</em> + 2<sup><em>i</em>-1</sup></sub></p>
+</blockquote>
+<p>whenever all of the subscripts are within bounds, and <em>x</em> ∨ <em>y</em> gives
+the maximum of <em>x</em> and <em>y</em>.  This gives us the <em>N</em>-ary maxima
+∨<sub><em>j</em></sub> of all the size-2<sup><em>i</em></sup> substrings</p>
+<blockquote>
+<p>∨<sub><em>j</em> ∈ [<em>m</em>, <em>m</em> + 2<sup><em>i</em></sup>)</sub> <em>S</em><sub>0, <em>j</em></sub>
+  = S<sub><em>i</em>, <em>m</em></sub></p>
+</blockquote>
+<p>and from that we can compute the maximum of an arbitrary range of
+pixels as</p>
+<blockquote>
+<p>∨<sub><em>j</em> ∈ [<em>m</em>, <em>n</em>]</sub><em>S</em><sub>0, <em>j</em></sub> =
+  <em>S</em><sub><em>a</em>, <em>j</em></sub> ∨
+  <em>S</em><sub><em>a</em>, <em>j</em> + <em>n</em> - <em>m</em> - 2<sup><em>a</em></sup></sub></p>
+</blockquote>
+<p>where <em>a</em> is chosen such that <em>n</em> - <em>m</em> + 1 ∈ [2<sup><em>a</em></sup>,
+2<sup><em>a</em> + 1</sup>) to prevent a gap from occurring between the two
+size-2<sup><em>a</em></sup> substrings.</p>
+<p>If we precompute all the <em>S</em><sub><em>i</em></sub>, of which there are a
+logarithmic number, we can do this in constant time.</p>
+<p>Of course all of the above goes <em>mutatis mutandis</em> for minima rather
+than maxima.</p>
+<p>An interesting property of this structure is that, without any further
+metadata, we need only logarithmic time to trace any range maximum
+thus computed back to one of the pixels where it originated; for
+example, <em>S</em><sub>4, 3</sub> is either equal to <em>S</em><sub>3, 3</sub> or
+it’s equal to <em>S</em><sub>3, 11</sub>, and <em>S</em><sub>3, 11</sub> is either
+equal to <em>S</em><sub>2, 11</sub> or to <em>S</em><sub>2, 15</sub>.  By following
+the trail this way, we can figure out where in the range to find the
+maximum pixel value.  In particular, this allows us to find the
+runner-up value in logarithmic time: if it turns out that the maximum
+value came from pixel 12, we can split the range into two halves that
+exclude pixel 12 and calculate their maxima, one of which is the
+runner-up.</p>
+<p>This is suggestively similar to the query algorithms described above,
+and as it turns out,
+we can view the interval-annotated-tree structure we started with as a
+sort of decimated version of this layer-cake structure, where we only
+keep <em>S</em><sub><em>i</em>, <em>j</em></sub> if <em>j</em> is divisible by
+2<sup><em>i</em>+<em>k</em></sup>, where 2<sup><em>k</em></sup> gives the number of records
+in a leaf node, and perhaps if <em>i</em> is divisible by some
+number — above I used 3.  This makes for a much smaller index, but it also
+makes even the simplest queries take logarithmic time rather than
+constant time, and it adds a constant factor to logarithmic-time
+queries.  Intermediate points on this time-space tradeoff spectrum may
+be worth considering.  For example, you could have nodes further up
+the tree overlap somewhat, without storing every possible offset.</p>
+<h2>Annotations using lattices and semilattices other than total orderings</h2>
+<p>The above data structures generalize to general lattices and
+semilattices.  As an example closer to normal databases, you could
+consider indexing some attribute with small Bloom filters, using
+bitwise OR between the Bloom filters rather than min or max.  Suppose
+you use 256 bits (16 bytes) and a single hash function:</p>
+<table cellpadding=3 style="text-align: right">
+       <tr> <th>Records indexed <th>Expected fullness <th>False positive probability
+       <tr> <td>1               <td>0.4%              <td>0.4%
+       <tr> <td>32              <td>12%               <td>12%
+       <tr> <td>128             <td>39%               <td>39%
+       <tr> <td>256             <td>63%               <td>63%
+</table>
+
+<p>So you could skip over about a third of your 256-record chunks after
+just checking a bit in their Bloom filters, and almost 90% of your
+32-record chunks (although there’s a conditional probability there
+that I’m not calculating — if you’re looking at a 32-record leafnode
+at all, it might be because it’s, say, one of eight children of a
+256-record that had the right bit set, and at least one of those eight
+children needs to have that bit, and so on average almost two of them
+will.)</p>
+<p>This suggests that aggregating Bloom filters in this way is only
+useful over a couple of orders of magnitude, and also that you should
+use a low branching factor like 2 in this case.</p>
+<p>I think this gets worse rather than better with more hash functions:
+false positive probability goes down for single records and small
+groups, and up for large groups.  Consider the case with three hash
+functions:</p>
+<table cellpadding=3 style="text-align: right">
+       <tr> <th>Records indexed <th>Expected fullness <th>False positive probability
+       <tr> <td>1               <td>1.2%              <td>0.0002%
+       <tr> <td>32              <td>31%               <td>3.1%
+       <tr> <td>128             <td>78%               <td>47%
+       <tr> <td>256             <td>95%               <td>86%
+</table>
+
+<p>The problem is that Bloom filters are most efficient when they’re
+about half full, but trying to calculate the parent bitvector from the
+child bitvectors means that they have to be the same size.  You could
+consider giving that up — maybe you use three hash functions, and
+for 16-record leafnodes, you use 64-bit (8-byte) bitvectors, giving
+you a 14.9% false-positive probability; while for their 32-record
+parents, you use 128-bit (16-byte) bitvectors with 14.8% false
+positives; and for their 64-record parents, 256 bits (32 bytes) and
+14.7%; and their 128-record parents, 512 bits and 14.7%; and so on.
+But then if you delete a record or update it in place, you either have
+to let the Bloom filters decay a bit, or you have to rehash all 128 of
+them.  At some point you have to stop expanding the filters or
+deleting a single key ultimately requires rehashing the whole file.</p>
+<p>Bloom filters can do some operations that go beyond simple membership
+testing.  For example, if two Bloom filters are built compatibly, you
+can efficiently compute not only their union (as above) but also the
+Bloom filter of their intersection.  This is potentially useful for
+joins somehow.</p>
+<p>There are also cases where you have honest-to-goodness bitvectors
+stored in a database, perhaps in a SAT solver or a database of
+combinational-logic circuits, and it might be useful to query not only
+for a particular bit pattern but for things that have supersets or
+subsets of it set.</p>
+<h2>Affine-arithmetic nodes</h2>
+<p>Suppose that instead of annotating each node with just the (min, max)
+values of each indexed attribute, you annotate it with a coefficient
+which gives a <em>predicted</em> attribute value when multiplied by its
+offset within that node, and a (min, max) value pair for the
+<em>difference</em> between the predicted value and the real value.  If the
+coefficient is 0, then the (min, max) values are the same as before,
+but if there’s some correlation between the attribute value and the
+record position (at least locally), this may allow much tighter
+bounds, and in particular much faster range narrowing — interpolation
+search on steroids.</p>
+<p>(You might want some kind of extended-precision data type to handle
+the necessary arithmetic on string keys.)</p>
+<p>This is quite close to a totally trippy paper from Google Research on
+training neural nets as database index nodes, whose authors and title
+I forget.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li><li><a href="../topics/databases.html">Databases</a> (20 notes)
+</li></ul></div></html>

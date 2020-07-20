@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html><title>Toward a language for hacking around with natural-language processing algorithms ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Toward a language for hacking around with natural-language processing algorithms</h1><div class="metadata">Kragen Javier Sitaker, 2016-09-08
+(7 minutes)</div><p>To come up with non-words beginning with "sex" consisting of an "s"
+followed by a real word, in bash:</p>
+<pre><code>&lt; ~/devel/wordlist cat | while read freq word
+    do case "$word" in
+    ex*) echo "s$word";;
+    esac
+done | grep -vf &lt;(&lt; ~/devel/wordlist head -15000
+                  | while read freq word
+                    do echo "^$word\$" done) | head -45 | sort
+</code></pre>
+<p>This is probably the wrong way to do it.  I thought it might be easier
+in Python, but it isn't:</p>
+<pre><code>import itertools
+words = [line.split()[1] for line in open('/home/user/devel/wordlist')]
+common_words = set(words[:15000])
+swords = ('s' + word for word in words if word.startswith('ex'))
+sorted(itertools.islice((sword for sword in swords if sword not in common_words), 0, 45))
+</code></pre>
+<p>Python’s set type, lazy generator expressions, and implicit file-line
+iteration are useful here, but this still ends up being kind of a lot
+of code, even more than the bash version, in part because genexes are
+pretty pointful, which is in part because Python’s methods are not
+very useful to pass to higher-order expressions like <code>map</code> and
+<code>filter</code>.</p>
+<p>Another thing to keep in mind here is that I invariably write this
+kind of thing incrementally, looking at the results computed by
+intermediate versions, in order to decide what to do next.  For
+example, I added the filter to eliminate existing common words when
+“sexist” showed up in the output, and increased the cutoff from 2000
+to 15000 when it continued to show up.  Traditional
+<code>function(arguments)</code> syntax kind of sucks for this, because usually
+you write the arguments left to right (not least because the cursor’s
+implicit motion is to the right as you type), and then you have to
+move back to the beginning to add the <code>function</code> bit.  This gets even
+worse when we’re wrapping something in a list comprehension or a
+generator expression.</p>
+<p>The ideal environment for writing stuff like this incrementally would
+not be implicitly imperative, so that it could safely evaluate
+intermediate expressions without fear of damage and evaluate lazily
+for responsiveness without fear of confusion; it would allow you to
+add functions on the right; it would use map and filter functions
+rather than list comprehensions or generator expressions; it would use
+CLOS-like generic functions, with ML-like implicit currying, instead
+of methods so that you could use them as map and filter arguments; and
+it would allow you to write the equivalent of <code>f(a, g(b, h(c, d)))</code>
+without matching parens.</p>
+<p>These requirements actually make it sound a lot like Forth!  But I
+don’t think we need to descend down the rabbit hole of typelessness
+and syntaxlessness to get these advantages.</p>
+<p>Here’s a hack at an alternative syntax that maximizes left-to-right
+typability with incremental feedback:</p>
+<pre><code>'/home/user/devel/wordlist' file, split each; 1 th each -&gt; words
+words, 'ex' startswith only;
+    ('s' ++) each;
+    , (words, :15000 th set) contains not each;
+    :45 th sorted
+</code></pre>
+<p>I’m not sure that's right or even parseable, but here are the things I
+was trying:</p>
+<ul>
+<li><code>f(a, b, c)</code> is written as <code>a, b, c f</code></li>
+<li><code>x = a</code> is written as <code>a -&gt; x</code>.</li>
+<li><code>f(a, g(b, h(c, d)))</code> is written, with syntax somewhat borrowed from
+  Mark Lentczner’s <a href="http://www.ozonehouse.com/mark/codeworks.html">Glyphic Script</a>, which in turn borrowed it with
+  a semantic change from Smalltalk, as <code>c, d h; b g; a f</code>.  I'm not
+  sure that I have the parsing rules down correctly, and it might be
+  better to use <code>c, d h | b g | a f</code>.  Also I think both of these do
+  the wrong thing as you type the <code>c, d h; b</code> part, because it tries
+  to apply <code>b</code> to the results of <code>h</code>, though <code>b</code> will become merely an
+  argument to <code>g</code>; this will result in misleading feedback in the
+  middle.  (The <code>;,</code> thing in the middle there makes me think that
+  this is really wrong and I need to rethink it.)</li>
+<li>For cases where the <code>,,;,,;</code> nesting-free syntax is inadequate
+  (because you need nesting in some parameter that isn’t the first
+  one) </li>
+<li><code>map</code> is called <code>each</code>.  Probably it would be better to default to
+  <code>flatMap</code>, but this code is written with the opposite assumption.</li>
+<li>Sequence indexing <code>[]</code> is spelled <code>th</code> (as in <code>4 th</code>, <code>5 th</code>, etc.),
+  and sequences are lazy by default.  This may not be the best
+  spelling.</li>
+<li><code>:</code> is an infix operator with the same semantics as in Python
+  slicing, except for indexes from the end: it returns a slice object
+  that can be used with <code>th</code>.</li>
+<li>Functions are implicitly curried, making it easy to write functions
+  like <code>1 th each</code>, which means λx.each(λy.th 1 y)x in the λ-calculus.</li>
+<li>There are no functions as separate from methods.  If we need ad-hoc
+  polymorphism, as for <code>th</code> and sequence iteration, we use CLOS-style
+  generic functions.</li>
+<li><code>++</code> is the sequence concatenation function as an infix operator, in
+  order to avoid semantic confusion with the <code>+</code> operator for numeric
+  addition, which probably ought to be implicitly lifted to apply over
+  conformable functions and sequences.  I thought about using OCaml
+  <code>^</code>, SQL <code>||</code>, Perl/PHP <code>.</code>, or Lua <code>..</code>, but all of those already
+  carry far too much semantic baggage already.</li>
+<li><code>(x op)</code>, where <code>op</code> is an infix operator, is a Haskell-style
+  “section”, meaning λy.x op y.</li>
+<li><code>not</code> is implicitly lifted to operate over not just booleans but
+  boolean-returning functions.</li>
+<li><code>open</code> is called <code>file</code> and implicitly opens read-only, as in Python</li>
+<li>Probably opening a file for write should use some kind of IO
+  monad or whatever.</li>
+<li><code>in</code> is called <code>contains</code>, on the theory that <code>common_words
+  contains</code> is a sensible phrase with the right meaning.</li>
+<li><code>split</code> takes a string and optionally a separator.  I need to figure
+  out how to reconcile implicit currying with optional arguments, but
+  I suspect OCaml labeled arguments have my back, and I don’t even
+  have to use their shitty syntax because I’m not backwards-compatible
+  with ML.</li>
+<li><code>filter</code> is called <code>only</code>, so that <code>words, 'ex' startswith only</code>
+  returns the items from <code>words</code> that start with 'ex'.</li>
+<li><code>sorted</code> sorts the provided sequence, which is necessarily eager
+  (the last input item might be the first output) but because of lazy
+  evaluation, this only needs to loop until the first 45 items are
+  generated.</li>
+</ul>
+<p>The above suggests that it actually is necessary to have some kind of
+separator between a function and its arguments; in this line</p>
+<pre><code>'/home/user/devel/wordlist' file, split each; 1 th each
+</code></pre>
+<p>it’s totally ridiculous that <code>each</code> is being applied not only to
+<code>split</code> but to the return of <code>file</code>.  We could use <code>.</code> to apply
+functions and call methods:</p>
+<pre><code>'/home/user/devel/wordlist'.file, split. each, 1.th. each -&gt; words
+words, ('ex'.startswith). only, ('s' ++). each,
+    (words, :15000.th. set. contains. not). each.
+    :45.th.sorted
+</code></pre>
+<p>Or alternatively we could use <code>;</code>, but that’s kind of terrible,
+really, because the whole point of <code>;</code> is that its left and right
+precedence are very different:</p>
+<pre><code>'/home/user/devel/wordlist'; file, split; each, 1;th; each -&gt; words
+words, ('ex'; startswith); only, ('s' ++); each;
+    (words, :15000;th; set; contains; not); each;
+    :45;th;sorted
+</code></pre><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/nlp.html">Natural-language processing</a> (6 notes)
+</li></ul></div></html>

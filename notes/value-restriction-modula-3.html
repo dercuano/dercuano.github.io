@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html><title>ML’s value restriction and the Modula-3 typing system ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Notes on the value restriction and Modula-3</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(3 minutes)</div>
+<p><link rel="stylesheet" href="style.css" /></p>
+<p>(Warning, this note is kind of rambling with no real point.)</p>
+<p><a href="http://www.nondot.org/sabre/Mirrored/AdvProgLangDesign/">Finkel</a>
+says, describing Modula-3's subtyping rules:</p>
+<blockquote>
+<p>If every value of one type is a value of the second, then the first
+type is a called a 'subtype' of the second. For example, a record
+type TypeA is a subtype of another record type TypeB only if their
+fields have the same names and the same order, and all of the types
+of the fields of TypeA are subtypes of their counterparts in TypeB.</p>
+</blockquote>
+<p>Initially, this struck me as violating ML's "value restriction" and
+therefore being unsafe, but I was wrong.  Suppose we say</p>
+<pre><code>type Ushort = 0..65535;
+     Long = -2147483648..2147483647;
+     TypeB = record
+       Data: Long;
+     end;
+     TypeA = record
+       Data: Ushort;
+     end;
+</code></pre>
+<p>Now it seems that <code>Ushort</code> is a subtype of <code>Long</code>, because every value
+of type <code>Ushort</code> is a value of type <code>Long</code>.  So it is safe to assign a
+value of type <code>Ushort</code> to a variable of type <code>Long</code>.  <code>TypeA</code> and
+<code>TypeB</code> have fields of the same names in the same order, and the
+single field in <code>TypeA</code> has a type that is a subtype of the single
+field in <code>TypeB</code>.</p>
+<p>However, I guess if you're passing by value, you can safely copy a
+record of type <code>TypeA</code> into a variable declared as a record of type
+<code>TypeB</code>, and you're still safe with no run-time type checks.  </p>
+<h2>Mutable Aliases Introduce Problems</h2>
+<p>It's only once you get into aliasing that you start running into
+problems; if you have a record that is mutably accessible through both
+<code>TypeA</code> and <code>TypeB</code> pointers, you can set its <code>Data</code> to <code>-1</code> through
+the <code>TypeB</code> pointer and then access it through the <code>TypeA</code> pointer.</p>
+<p>It seems that if you could ensure that the <code>TypeB</code> pointer were
+<code>const</code> --- that is, didn't allow modification of the pointed-to value
+--- you could avoid this.  That would allow the following subtyping
+rule:</p>
+<pre><code>if                    TypeA is a subtype of TypeB
+        -------------------------------------------------------
+then    pointer to TypeA is a subtype of pointer to const TypeB
+</code></pre>
+<p>That allows you to copy a pointer to <code>TypeA</code> into a variable declared as
+pointer to const <code>TypeB</code>.  Which is pretty much equivalent to copying a
+<code>TypeA</code> into a variable declared as <code>TypeB</code>, but more efficient.</p>
+<h2>Arrays</h2>
+<p>When it comes to arrays of the same element type but varying sizes,
+the definition of "A is a subtype of B" that works in the above
+subtyping rule is "A's indices are a superset of B's indices".  That
+is, if you have an <code>int[100]</code> array, it's perfectly OK to copy a
+pointer to it someplace that is expecting a pointer to a <code>const
+int[10]</code> array; no run-time type checks will be needed.  Actually,
+though, that's true even if that pointer isn't <code>const</code> --- which I
+guess is Finkel's point when he distinguishes "extensions" from
+"subtypes".</p>
+<h2>Lack of Conclusions</h2>
+<p>Anyway, just some interesting things I hadn't realized before about
+safe static typing.  There's a subtyping relation that still applies
+after you take mutable references, and another one that doesn't, and
+the one that doesn't can be pretty broad.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/typing.html">Typing</a> (3 notes)
+</li></ul></div></html>

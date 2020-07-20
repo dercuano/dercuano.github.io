@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html><title>Likely-feasible non-flux-deposition powder-bed 3-D printing processes ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Likely-feasible non-flux-deposition powder-bed 3-D printing processes</h1><div class="metadata">Kragen Javier Sitaker, 2015-09-11 (updated 2019-12-20)
+(49 minutes)</div>
+<p>I just wrote this long thing in <a href="../notes/glass-fluxing-3d-printing.html">Flux deposition for 3-D printing in glass and metals</a> about a
+powder-bed 3-D printing technique that deposits a binder that’s
+completely inert at room temperature, but upon firing the print in a
+kiln, becomes active.  (See also <a href="../notes/flux-deposition.html">3-D printing by flux deposition</a>.)</p>
+<p>I think there are a variety of other possibilities in powder-bed 3-D
+printing that have not yet been fully explored.</p>
+<p>Powder-bed 3-D printing, <em>in general</em>, consists of depositing one
+layer after another of powder, alternating with selectively applying
+some kind of treatment to the top layer of powder which results in
+causing it to solidify.  The classic inkjet-binder-deposition 3-D
+printing is one example, but selective laser sintering and selective
+laser melting are other processes in this category.</p>
+<h2>Magnesium oxychloride (Sorel cement) or zinc oxychloride</h2>
+<p><a href="https://en.wikipedia.org/wiki/Sorel_cement">Sorel cement</a> is a combination of highly water-soluble <a href="https://en.wikipedia.org/wiki/Magnesium_chloride">magnesium
+chloride</a> (nigari) with highly water-insoluble <a href="https://en.wikipedia.org/wiki/Periclase">magnesium oxide</a>
+(milk of magnesia); it’s a cement similar to Portland cement, but more
+refractory, less water-resistant (and won’t harden underwater), and
+nearly twice as strong.</p>
+<p>So, although I’d have to investigate more, I think you could use an
+aqueous solution of magnesium chloride to moisten a powder bed of sand
+and dry magnesium oxide to form a very strong mortar.</p>
+<p>Zinc oxychloride might work in the same way: zinc oxide is insoluble,
+like magnesium oxide, while zinc chloride is so soluble it’s
+deliquescent; and zinc oxychloride or zinc hydroxychloride formed in
+precisely this way was formerly used as a dental cement, like the zinc
+phosphate mentioned below.  Zinc chloride, however, is acidic,
+corrosive, and a skin irritant, while magnesium chloride is free of
+these problems.  In fact, Sorel investigated zinc oxychloride before
+settling on magnesium oxychloride!</p>
+<h2>Selective hammering</h2>
+<p>Instead of squirting binders onto a powder bed like an inkjet printer,
+you could bang the shit out of it with hammers like a dot-matrix
+printer, ideally under vacuum so that you don’t generate explosive gas
+expulsions.  The impact will stick together the particles in the
+vicinity, affecting a total mass of powder material similar to the
+total mass of the hammer.  (This suggests that low-mass hammers are in
+some sense optimal.)</p>
+<h2>Selective electrical sintering</h2>
+<p>For beds of metal particles, instead of squirting binders, you could
+touch the surface of the powder with an electrode and drive a large
+current into it, sintering the nearby particles together through joule
+heating of their contact points, like an old-fashioned <a href="https://en.wikipedia.org/wiki/Coherer">coherer</a>.</p>
+<p>The electrode would probably have to be a carbon rod, since any other
+plausible material is likely to stop working due to surface oxidation.</p>
+<p>This probably won’t produce a strongly bonded part, but might be
+enough to produce a solid part that can then be solidified further by
+other means.</p>
+<h2>Cement precipitation by cross-linking with calcium or other polyvalent cations</h2>
+<p>A number of anions, such as phosphate, carbonate, and alginate, form water-soluble
+compounds with monovalent cations like those of the alkali metals
+(sodium, potassium) and ammonium, while forming water-insoluble compounds with
+divalent cations like those of the alkaline earth metals (calcium,
+magnesium).  Calcium and magnesium also have highly water-soluble
+salts, such as their nontoxic chlorides.  Phosphate is also
+water-soluble in the form of phosphoric acid.</p>
+<p>This means that by mixing two liquids you can precipitate a solid
+through a <a href="https://en.wikipedia.org/wiki/Salt_metathesis_reaction">double ion replacement reaction</a>.  This is used in
+<a href="https://en.wikipedia.org/wiki/Spherification">molecular gastronomy spherification</a> of foods, forming a flexible
+calcium alginate membrane around a liquid center with sodium alginate
+dissolved in it.</p>
+<p>(I’m pretty sure this is because these anions are polyvalent and are
+strongly enough bonded to their cations that they are solvated
+together with them, rather than separately, so that once the cations
+are also polyvalent, the individual anions floating around with their
+individual cation harems are replaced by endless chains in which each
+cation links together different anions.  But I’m no chemist.)</p>
+<h3>Candidate cements and fillers</h3>
+<p>Other polyvalent cations, like Cu₂₊, Zn₂₊, Fe₃₊, Fe₂₊, and Al₃₊, should also
+work for this.  Most of these also have relatively innocuous
+water-soluble salts; ZnCl₂, Fe(NO₃)₃, Cu(NO₃)₂, FeCl₃, and AlCl₃, as well as
+blue, white, and green vitriol, of course, which last are innocuous
+enough to use as nutritional supplements, but are subject to onerous
+reporting paperwork in places nowadays; acetates of calcium,
+magnesium, copper, zinc, and ferrous iron (II) are also all soluble,
+though acetate of zinc only a bit,
+and acetate of ferric iron (III) not at all.  Ferrous
+citrate is also soluble.</p>
+<p>So the plan is that you precipitate a solid cement in the interstices
+of an aggregate or filler, such as quartz, grog, carbon black, fumed silica,
+mullite needles, aluminum oxide crystals, rutile needles, zircon crystals, mica,
+chopped carbon fiber, chopped basalt fiber, chopped glass fiber, powdered graphite,
+powdered copper, powdered silver, hollow glass spheres, hollow steel
+spheres, chopped cellulose fiber (such as sawdust), silicon carbide, clay
+(especially finely dispersed bentonite), diatomaceous earth, etc.; or a
+mixture.  If the cement is relatively inert, unlike the aggressively
+alkaline slaked lime and portland cement, a wide variety of fillers are
+possible that couldn't withstand the harsh chemistry of everyday building
+materials.</p>
+<p>Different possible resulting cements include the following;
+I’m including Mohs hardnesses as an imprecise but readily available
+and roughly accurate guide to strength:</p>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Aluminum_phosphate">Aluminum phosphate</a> — the rare mineral berlinite, with Mohs
+  hardness 6.5, or, when hydrated, the unusual mineral variscite, with
+  Mohs hardness 4.5, used as a dental cement; or, sometimes, aluminum
+  triphosphate, aluminum hexametaphosphate, or aluminum
+  tetrametaphosphate.</li>
+<li><a href="https://en.wikipedia.org/wiki/Calcium_phosphate">Calcium phosphate</a> — probably hydroxyapatite, like tooth enamel, Mohs
+  hardness 5; can incorporate iron(II) and manganese substituting
+  freely for calcium to form the equally hard graftonite;</li>
+<li><a href="https://en.wikipedia.org/wiki/Calcium_carbonate">Calcium carbonate</a> — calcite, Mohs hardness 3;</li>
+<li><a href="https://en.wikipedia.org/wiki/Calcium_alginate">Calcium alginate</a> — a silicone-like insoluble, nontoxic organic
+  water-gel-forming elastomer;</li>
+<li><a href="https://en.wikipedia.org/wiki/Ammonium_magnesium_phosphate">Ammonium magnesium phosphate</a> — the light, very soft (Mohs ≤ 2)
+  mineral struvite, which might be formed if ammonium phosphate is the
+  phosphate salt used;</li>
+<li><a href="https://en.wikipedia.org/wiki/Magnesium_phosphate">Magnesium phosphate</a> is a GRAS food additive for buffering acidity,
+  but I don’t know anything about its mechanical properties;</li>
+<li><a href="https://en.wikipedia.org/wiki/Magnesium_carbonate">Magnesium carbonate</a> — the soft mineral magnesite, Mohs hardness
+  3.5–4.5, which can be calcined at only 500–800° to magnesium oxide,
+  or magnesia alba (<a href="https://en.wikipedia.org/wiki/Periclase">periclase</a>, as mentioned above), which doesn’t
+  melt until 2852° and is used as a stronger alternative to gypsum in
+  drywall;</li>
+<li><a href="https://en.wikipedia.org/wiki/Calcium_magnesium_carbonate">Calcium magnesium carbonate</a> — the mineral dolomite, Mohs 3.5–4,
+  which probably will <em>not</em> form even if its constituents are
+  available (because it’s picky about crystallizing);</li>
+<li>Magnesium alginate ought to exist and be similar to calcium
+  alginate;</li>
+<li><a href="https://en.wikipedia.org/wiki/Copper_phosphate">Copper phosphate</a> — a blue-to-green insoluble copper salt;</li>
+<li><a href="https://en.wikipedia.org/wiki/Copper_carbonate">Copper carbonate</a> — a bright blue to green pigment, depending on
+  degree of hydration, occurring as malachite and azurite in nature
+  (which differ in their degree of carbonation); “very sensitive to
+  acids”.  Mohs 3.5–4.</li>
+<li><a href="https://en.wikipedia.org/wiki/Zinc_phosphate">Zinc phosphate</a> — one of the oldest and most widely used dental
+  cements, so nontoxic and biocompatible, made in something like the
+  way I’m suggesting here (mixing zinc oxide and magnesium oxide
+  powder with buffered aqueous phosphoric acid); occurs naturally as
+  the rare mineral hopeite (Mohs 3–3.5);</li>
+<li><a href="https://en.wikipedia.org/wiki/Zinc_carbonate">Zinc carbonate</a> — the mineral smithsonite (Mohs 4.5), one of the two
+  minerals known as calamine (the other being zinc silicate);</li>
+<li><a href="https://en.wikipedia.org/wiki/Ferric_phosphate">Ferric phosphate</a> — non-toxic, except to mollusks, and sometimes used
+  as an iron nutritional supplement, but almost insoluble in
+  water; “heterosite” or “wolfeite”?</li>
+<li><a href="https://en.wikipedia.org/wiki/Ferrous_phosphate">Ferrous phosphate</a> — the soft deep blue to bluish green mineral
+  vivianite, used to kill garden slugs, Mohs 1.5–2;</li>
+<li><a href="https://en.wikipedia.org/wiki/Iron_carbonate">Iron carbonate</a> — the dense yellow mineral siderite, Mohs 3.75–4.25;</li>
+<li><a href="https://en.wikipedia.org/wiki/Manganese_carbonate">Manganese carbonate</a> — the rose-red mineral rhodochrosite, Mohs 3.5–4.</li>
+</ul>
+<p>So you should be able to get relatively high strength, almost as high
+as portland cement (whose strength comes mainly from belite, which is
+known as larnite in nature, Mohs 6), by precipitating calcium
+phosphate crystals from a water-soluble calcium salt such as calcium
+chloride and a water-soluble phosphate salt such as monoammonium
+phosphate; you <em>may</em> be able to get a highly refractory bond by
+calcining the phosphate or carbonate of magnesium into magnesia; you
+can get an instant nontoxic aqueous elastomeric gel with calcium
+alginate; you can get biocompatibility (and guaranteed-working
+recipes) from zinc and magnesium oxides with buffered aqueous
+phosphoric acid; and there are thirteen other combinations that will
+probably work as well.</p>
+<p>Further alternative polycations might include nickel, mercury, and
+vanadium ions, but these have some disadvantages (carcinogenicity,
+higher toxicity) and not much in the way of available information.
+Further alternative polyanions might include sulfate (which does have
+some insoluble salts, notably calcium sulfate (gypsum) and barium
+sulfate), oxalate, silicate (see below), sulfide (soluble with
+lithium, sodium, and ammonium, but should precipitate transition
+metals) and perhaps some carrageenans.</p>
+<p>Iron sulfide in particular — fool’s gold — is 6–6.5 on the Mohs scale,
+harder than apatite.  It has the disadvantage of gradually oxidizing
+in air, though, with corrosive results, and of course the soluble
+sulfides are toxic.</p>
+<h3>Liquid tank systems</h3>
+<p>It might be advantageous to work with a mixture that is liquid until
+the cement is precipitated, rather than consisting mostly of a packed
+granular filler.  This doesn’t exclude the use of fillers; especially
+bentonite clay can remain in suspension in water up to fairly high
+concentrations of clay without solidifying the water.  It might be
+worthwhile to mix a little sodium or potassium alginate in with the
+phosphate so that the initial introduction of the calcium donor will
+gel things in place in milliseconds and prevent the liquid from
+flowing further, even if the calcium phosphate or other cement takes
+some time to fully crystallize.  (This might be useful to limit
+diffusion even in a powder-bed system.)</p>
+<p>(The advantage of Newtonian or at least non-thixotropic liquids is
+that their surfaces are reliably quite flat and horizontal; they have
+no angle of repose.)</p>
+<p>Other plant gelling agents such as pectins and carrageenans can also
+be precipitated into a gel by pH control and in some cases by
+polyvalent cations (though there are many different types of pectin
+and many different types of carrageenan, and they can sometimes react
+in opposite ways to pH changes), and aluminum sulfate precipitates
+insoluble, gelatinous aluminum hydroxide when the water is
+insufficiently acidic.  Things like alcohol or salt may be sufficient
+to precipitate some of these by reducing the amount of water.</p>
+<h3>Nucleation control</h3>
+<p>It may be desirable to prevent homogeneous nucleation in order for the
+cement particles to be big enough to bridge the gaps between grains of
+filler.  For of these most cements, if the temperature is kept high
+enough, cement particles will only nucleate on the surfaces of grains
+of filler; this may help to produce a solid mass.  (More
+speculatively, pressure control is another possible lever to control
+nucleation, but this would probably require a liquid-filled chamber.)
+It may also be possible to solve this problem by making the
+precipitation mass-transport-limited.</p>
+<p>Filler particles with more extreme aspect ratios — clays such as
+bentonite being the champion here, though a less expansive clay may be
+more practical for this use — should lower the critical percolation
+threshold needed to form a solid mass, thus placing less stringent
+demands on the nucleation process.</p>
+<h3>Densification</h3>
+<p>Once you have the “green” article made out of filler grains cemented
+together, you can use water to wash off the unhardened mixture of
+filler (“powder”) and unprecipitated solute, as well as washing out
+leftover reaction products other than the cement.
+Densification may be needed after the initial precipitation, since
+when the cement precipitates from solution, the water and other solute
+remain.  (For example, if reacting aqueous dipotassium phosphate
+(which dissolves 150 g per 100 mℓ of water) with calcium chloride to
+produce hydroxyapatite, you have potassium chloride and water taking
+up space in the result.)  Densification can be carried out by passing
+a supersaturated solution of the same cement, or a compatible cement,
+over the printed object once it is removed from the powder bed; or it
+can be carried out by infusing the pores with a different material,
+perhaps a melt, again after powder removal.</p>
+<h3>Electrolytic injection of cations</h3>
+<p>As an alternative source of polyvalent cations, you could use small
+anodes of suitable metals (zinc, copper, manganese, or iron, although
+maybe it might be possible with a suitable alloy of calcium or
+magnesium) with a controllable current; this might allow you to switch
+on and off the cementing action with much higher precision and
+frequency than pumping solute liquids in and out of a pipette or
+inkjet, and would avoid the need for the extra water content to
+maintain those cementing ions in solution.</p>
+<p>This approach should be especially suitable to introducing controlled
+amounts of impurities into particular places in the printed
+object — for example, copper or iron ions would probably produce a
+bright blue color, or manganese ions a rose-red color.  You could
+probably get a wide variety of other colors by using other metals not
+otherwise mentioned here; cations introduced for the purpose of adding
+color need not be polyvalent or form physically strong compounds.</p>
+<p>More generally, the precise control of mixing provided by the
+electrolytic mechanism can be used to produce precisely controlled
+gradients of material properties in the cementing material, for
+example to produce controllable optical or acoustic refraction.</p>
+<p>In theory you could also use a sacrificial cathode that released
+anions such as phosphate or carbonate when electrolytically reduced,
+but that seems much more difficult; I know of no such material.</p>
+<h3>Alternative solvents</h3>
+<p>Water is a terribly convenient solvent for facilitating such
+double-metathesis reactions, since it’s capable of dissolving a very
+wide variety of ions, it’s fairly nontoxic, and it is liquid at room
+temperature.  But it has the major disadvantage that it contains
+oxygen, so to metals like calcium, water is utter death.  Other polar
+solvents might be feasible alternatives; for example, anhydrous
+ammonia at low temperature and/or high pressure, or molten-salt
+mixtures like FLiNaK and FLiBe at somewhat higher temperatures, or the
+truly outlandish polar organic solvent systems used in current
+lithium-ion batteries.</p>
+<h2>Bicarbonate as a hydroxyl donor</h2>
+<p>Cyanoacrylates polymerize in the presence of hydroxyl ions; dripping
+cyanoacrylate onto NaHCO₃, stealing hydroxyl ions and converting it to
+sodium carbonate, is a well-known manual additive manufacturing
+technique which can probably be improved by adding filler to the
+NaHCO₃.</p>
+<h2>Bicarbonate as a CO₂ donor</h2>
+<p>Waterglass (sodium or potassium silicate) forms a silica gel
+rapidly upon exposure to CO₂; maybe you
+can use NaHCO₃ as a CO₂ donor for this purpose.  Certainly you can
+harden it with acids instead, or with ethanol.</p>
+<p>There are other materials that harden or recrystallize upon exposure
+to CO₂, most notably Ca(OH)₂, slaked lime, which produces calcium
+carbonate.  Normally they harden fairly slowly once wet by absorbing
+CO₂ from the air, but maybe you could get them to harden faster by
+supplying them with NaHCO₃.</p>
+<h2>Metastable redox systems such as thermites</h2>
+<p>Rather than using chemicals that react immediately on contact, as in
+the above, or initiating some kind of interaction by slowly heating
+the entire powder bed after careful deposition, as in <a href="../notes/glass-fluxing-3d-printing.html">Flux deposition for 3-D printing in glass and metals</a> and <a href="../notes/flux-deposition.html">3-D printing by flux deposition</a>, it might be
+worthwhile to use chemicals that can react quite energetically, but
+which remain almost completely inert during the printing process; and,
+once the printing is complete, ignite them and allow the
+self-sustaining reaction to run to completion.  The trick is to
+identify reactions that would produce enough heat to produce
+interesting materials, but without producing enough gas to blow the
+nascent object to bits.</p>
+<p>Thermites, such as the classic aluminum-powder/magnetite system
+formerly widely used for welding, are one example; you could
+selectively deposit aluminum powder into a bed of magnetite, and then
+ignite the thermite once the printing is done (traditionally, using
+magnesium ribbon).  This produces molten iron and molten (!!) aluminum
+oxide, which I expect would then quickly quench in the much larger
+body of magnetite, producing a solid object consisting of a magnetite
+shell around a core consisting of phases of iron and amorphous or
+cryptocrystalline corundum; plausibly both phases might initially be
+continuous, as in an open-cell foam, but the corundum would almost
+certainly fracture severely during cooling.  With some luck, the
+purified iron thus produced will be sufficiently ductile to remain
+intact.</p>
+<p>(The temperature is 2500° when the oxidizer is hematite rather than
+magnetite, but I think this is limited by aluminum boiling at 2519°
+rather than by the energy available.)</p>
+<p>Magnetite has some disadvantages; it will melt onto the outside of the
+printed object, its own properties are not all that desirable, and it
+adds iron (thus, weight) to the piece.  Other oxygen donors might
+solve or at least ameliorate these problems.  However, the traditional
+alternatives are hematite (red iron oxide), silica, diboron trioxide
+(boria), a mixture of manganese dioxide with manganese monoxide, lead
+tetroxide, cupric oxide (CuO, the toxic tenorite), and viridian.  Of
+these, I think silica is the one with the highest melting point
+(1600°), and it has the benefit of being transparent; but the metallic
+silicon thus formed is even more brittle than corundum.  Viridian and
+cupric oxide offer the fascinating prospect of 3-D printing in
+purified chromium and copper, but cupric-oxide thermite can be
+explosive.  Additionally, chromite (FeCr₂O₄) might work — I think
+aluminothermic reduction of chromite is used for commercial chromium
+smelting.</p>
+<p>Sometimes people use teflon instead of an oxygen donor, thus producing
+a metal fluoride (and carbon) rather than a metal oxide.</p>
+<p>Typically when burning aluminum with quartz as the oxidizer, sulfur is
+included in an aluminum–sulfur–sand composition; <a href="https://en.wikipedia.org/wiki/Thermite">WP claims</a> this
+functions as an extra oxidizer to add energy, as well as to ease
+ignition.  Sulfur is sometimes used with magnetite, aluminum, and
+barium nitrate to make “thermate,” a higher-temperature thermite with
+mostly military uses.</p>
+<p>Aluminum is not the only possible fuel metal, only one of the cheapest
+and safest; other possibilities include zirconium, calcium (!), zinc,
+titanium, silicon, boron, and magnesium.</p>
+<p>Common fillers for thermite welding include high-carbon steel, cast
+iron, or pig iron, which melt and mix with the purified iron to
+produce a steel with the desired level of carbon.</p>
+<p>Alternatively, at somewhat higher cost, you could attempt to make the
+oxidizer rather than the metal the limiting reagent — for example,
+depositing a small amount of magnetite powder in a bed of aluminum
+powder, rather than the reverse; then, the newly formed material will
+quench in the aluminum, acquiring an aluminum coating rather than a
+magnetite coating.  This is very risky, though, because the aluminum
+powder burns fiercely in air.  You’d need to do it under an inert or
+reducing gas, or in vacuum.</p>
+<p>The reaction between zinc and sulfur, every chemistry teacher’s
+favorite, is another candidate.  The sphalerite or wurtzite thus
+produced is a reasonably strong mineral (Mohs 3.5–4).  Other metals,
+such as aluminum and I think iron, have similar reactions, but the
+sulfides thus formed are less stable and tend to hydrolyze.</p>
+<h2>Some materials pricing</h2>
+<p>Looking at Mercado Libre here in Argentina this weekend
+(2019-12-13 to 2019-12-15) I found
+some vendors for most of the materials I mentioned above; today the
+dollar is around AR$62 bid, AR$67 ask; I'm using AR$64.50/US$ for the
+conversion.  I've ordered the materials I was able to price roughly by
+price.</p>
+<p>(Addendum 2019-12-20: the dollar is AR$73 today.  I spot-checked three
+of the prices below; none of the three have changed, in pesos,
+although this means they have fallen by something like 10% to 15% in
+dollars.  This clearly means that the error bars on these prices are
+like 20% or 30%.)</p>
+<ul>
+<li>Silica sand for construction (not very pure, but without stones or
+  salt) has costs that vary greatly by location, but are generally
+  around
+  <a href="https://articulo.mercadolibre.com.ar/MLA-768679609-arena-fina-para-construccion-por-m3-zona-norte-_JM#position=10&amp;type=item">AR$1200/m<sup>3</sup></a>,
+  which works out to about AR$750/tonne at 1.6 g/cc, or AR$0.75/kg
+  (US$0.012/kg).</li>
+<li>Portland cement costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-797321571-cemento-loma-negra-x-50kg-_JM#position=6&amp;type=item">US$9.64/kg</a>
+  (US$0.15/kg).</li>
+<li>Calcium hydroxide (slaked lime) costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-757939942-cal-comun-hidrat-25kg-materiales-moreno-_JM?quantity=1#position=6&amp;type=item">AR$7.8/kg</a>
+  (US$0.12/kg).</li>
+<li>Fine pine sawdust costs around
+  <a href="https://articulo.mercadolibre.com.ar/MLA-780311310-aserrin-fino-o-harina-de-madera-_JM?quantity=1#position=3&amp;type=item">AR$10/kg</a>
+  (US$0.16/kg) although prices vary by a factor of 2 or 3.</li>
+<li>Coke (carbon) costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-705399385-carbon-de-coque-ideal-para-fragua-herreria-cuchilleria-_JM#position=6&amp;type=item">AR$45/kg</a>
+  (US$0.70/kg).</li>
+<li>Magnesium sulfate (Epsom salt) costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-799605787-sales-de-epsom-sulfato-de-magnesio-x-1-kg-cerveza-beerman-_JM?variation=40283751673&amp;quantity=1#reco_item_pos=1&amp;reco_backend=machinalis-seller-items&amp;reco_backend_type=low_level&amp;reco_client=vip-seller_items-above&amp;reco_id=12377ec4-2ff4-4b43-8da2-72e510d1c6cc">AR$116/kg</a>
+  for beer brewing or
+  <a href="https://articulo.mercadolibre.com.ar/MLA-734568990-sales-de-epson-sulfato-de-magnesio-1-kg-en-caba-belgrano-_JM#position=22&amp;type=item">AR$112/kg</a>
+  as medicine or
+  <a href="https://articulo.mercadolibre.com.ar/MLA-782695567-fertilizante-sulfato-de-magnesio-1kg-hidroponia-fertirriego-_JM#position=1&amp;type=item">AR$83/kg</a>
+  or as low as
+  <a href="https://articulo.mercadolibre.com.ar/MLA-743192007-fertilizante-sulfato-de-magnesio-25-kg-_JM#position=4&amp;type=item">AR$60/kg</a>
+  as a hydroponics fertilizer (US$0.90/kg).</li>
+<li>Diammonium phosphate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-788997362-fosfato-diamonico-bertinat-x-1-kg-_JM#position=3&amp;type=item">AR$150/kg</a>
+  as a hydroponic fertilizer or
+  <a href="https://articulo.mercadolibre.com.ar/MLA-740956087-fosfato-diamonico-profertil-x-25-kg-fertilizante-siembra-_JM#position=5&amp;type=item">AR$60/kg</a>
+  in bulk (US$0.90/kg).</li>
+<li>Magnetite is I think
+  <a href="https://articulo.mercadolibre.com.ar/MLA-687582531-oxido-de-hierro-magnetico-color-negro-_JM?quantity=1#position=1&amp;type=item">AR$70/kg</a>
+  ("oxido de hierro magnetico color negro") but it isn't totally clear
+  whether the AR$350 price is for a 5-kg bag or not.  (US$1.10/kg)</li>
+<li>Sodium silicate solution (waterglass) costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-614113867-sikafloor-cure-hard-24-20kg-curador-silicato-sodico-hormigon-_JM?quantity=1#position=10&amp;type=item">AR$72/kg</a>
+  for waterproofing and surface-hardening concrete ("curador
+  silicato", in this case Sikafloor CureHard 24).  (US$1.10/kg)</li>
+<li>Quicklime, calcium oxide, costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-785354481-cal-viva-en-piedra-4-kilos-_JM#position=3&amp;type=item">AR$75/kg</a>.
+  (US$1.20/kg).  Note that this is almost ten times the price of
+  slaked lime, suggesting that either the slaked lime is adulterated
+  or the safe handling of quicklime is very costly.</li>
+<li>Bentonite clay costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-726626245-bentonita-uso-alimentario-por-1-kilo-para-vino-artesanal-_JM#position=16&amp;type=item">AR$232/kg</a>
+  or more when food-grade, but as clumping cat litter, only
+  <a href="https://articulo.mercadolibre.com.ar/MLA-827234517-piedras-aglomerantes-para-gatos-bentonita-cancat-x-24kg-_JM#position=27&amp;type=item">AR$83/kg</a>
+  (US$1.30/kg).  The cat litter might be contaminated with other
+  clays, with silt, or with sand, but for these purposes that might be
+  acceptable.</li>
+<li>Aluminum in ingots costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-769852785-lingotes-de-aluminio-_JM?quantity=1#reco_item_pos=0&amp;reco_backend=machinalis-seller-items&amp;reco_backend_type=low_level&amp;reco_client=vip-seller_items-above&amp;reco_id=de0ed817-5520-473d-be6b-f9028b946fdd">AR$100/kg</a>
+  (US$1.60/kg).</li>
+<li>Calcium chloride costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-801292925-cloruro-de-calcio-5-kg-anti-humedad-microcentro-oferta-_JM#position=1&amp;type=item">AR$106/kg</a>
+  as a desiccant (US$1.60/kg), or
+  <a href="https://articulo.mercadolibre.com.ar/MLA-801293094-cloruro-de-calcio-1-kg-anti-humedad-microcentro-oferta-_JM#position=2&amp;type=item">AR$125/kg</a>
+  if you only buy one kilo.  For beer brewing they charge
+  <a href="https://articulo.mercadolibre.com.ar/MLA-799700836-cloruro-de-calcio-x-1-kg-sales-cerveza-beerman-_JM?quantity=1#position=5&amp;type=item">AR$165/kg</a>
+  which seems like it might be purer.  For bath salts,
+  <a href="https://articulo.mercadolibre.com.ar/MLA-692807595-cloruro-calcio-5-kg-antihumedad-quimicaxquimicos-_JM?quantity=1&amp;variation=38352669199#position=7&amp;type=item">AR$155/kg</a>
+  with a purity of 77-80%.</li>
+<li>Calcium nitrate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-782697675-nitrato-de-calcio-soluble-1kg-fertilizante-hidroponia-fertir-_JM#position=13&amp;type=item">AR$111/kg</a>
+  as a fertilizer (US$1.70/kg).  It's deliquescent above 50% humidity.</li>
+<li>Green vitriol costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-782694358-sulfato-de-hierro-1kg-fertilizante-hidroponia-fertirriego-_JM#position=4&amp;type=item">AR$111/kg</a>
+  (US$1.70/kg) to
+  <a href="https://articulo.mercadolibre.com.ar/MLA-773096315-fertilizante-sulfato-de-hierro-heptahidrato-x-1-kg-ferroso-_JM#position=15&amp;type=item">AR$165/kg</a>
+  as a fertilizer.</li>
+<li>Sodium bicarbonate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-609806294-bicarbonato-de-sodio-puro-x-1-kilo-consumo-alimenticio-_JM?variation=39010468391&amp;quantity=1#reco_item_pos=2&amp;reco_backend=mp2v-combos-multiseller-v5-without-promise&amp;reco_backend_type=low_level&amp;reco_client=vip_combo&amp;reco_id=004ec0bd-816d-4399-9e19-2dd9c50edb77">AR$129/kg</a>
+  (US$2.00/kg).</li>
+<li>Monoammonium phosphate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-782687002-fosfato-monoamonico-soluble-1kg-hidroponia-fertirr-orquideas-_JM#position=1&amp;type=item">AR$143/kg</a>
+  as a hydroponic fertilizer (US$2.20/kg)</li>
+<li>Lead in ingots costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-758197821-plomo-en-lingotes-precio-por-kilo--_JM?quantity=1#reco_item_pos=2&amp;reco_backend=machinalis-v2p-pdp&amp;reco_backend_type=low_level&amp;reco_client=vip-v2p&amp;reco_id=df3a03ea-0823-49a4-9bfd-d0ffbb644631">AR$145/kg</a>
+  from BATERIAS INDIANAPOLIS in Burzaco.  (US$2.20/kg)</li>
+<li>Trisodium phosphate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-788648580-fosfato-trisodico-_JM#position=6&amp;type=item">AR$150/kg</a>
+  for industrial use.  (US$2.30/kg)</li>
+<li>85% phosphoric acid costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-800599354-acido-fosforico-85-uso-alimenticio-x-1l-cerveza-artesanal-_JM#position=1&amp;type=item">AR$495/liter</a>
+  for beer brewing, or
+  <a href="https://articulo.mercadolibre.com.ar/MLA-824889997-acido-fosforico-al-85-oxidial-x-5kg-cerveza-artesanal-_JM#position=6&amp;type=item">AR$350/liter</a>
+  in bulk or as low as
+  <a href="https://articulo.mercadolibre.com.ar/MLA-768698447-fertilizante-acido-fosforico-85-35-kg-grado-alimenticio-_JM#position=26&amp;type=item">AR$170/liter</a>.
+  That's <a href="https://en.wikipedia.org/wiki/Phosphoric_acid#cite_ref-Density_85%_1-0">1.6845
+  g/cc</a>
+  so that's reasonably close to being AR$495 or AR$350 or AR$170
+  (US$2.60) per kg of phosphoric acid.</li>
+<li>Alumina costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-757407097-alumina-calcinada-x-5-kgs-ideal-ceramica-refractaria-_JM#position=3&amp;type=item">AR$298/kg</a>
+  from Alcoa, or, in bulk, as little as
+  <a href="https://articulo.mercadolibre.com.ar/MLA-705053769-oxido-de-aluninio-_JM?quantity=1#position=2&amp;type=item">AR$194/kg</a>
+  (US$3/kg).</li>
+<li>Magnesium chloride costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-704309565-cloruro-de-magnesio-importado-de-alemania-1-kilo-_JM#position=17&amp;type=item">AR$221/kg</a>
+  or
+  <a href="https://articulo.mercadolibre.com.ar/MLA-790169873-cloruro-de-magnesio-puro-de-israel-1-kilo-_JM#position=11&amp;type=item">AR$249/kg</a>
+  for food or nutritional supplement use, or as low as
+  <a href="https://articulo.mercadolibre.com.ar/MLA-801300287-cloruro-de-magnesio-x-1-kg-grs-microcentro-oferta-_JM#position=49&amp;type=item">AR$195/kg</a>
+  for bath-salts use (US$3/kg).</li>
+<li>Brass filings from keys (probably mostly free-machining brass) can
+  cost
+  <a href="https://articulo.mercadolibre.com.ar/MLA-826151385-1-kg-viruta-de-bronce-de-llaves-lanus-envios-_JM#position=3&amp;type=item">AR$230/kg</a>,
+  (US$4/kg) although the price seems to vary quite a bit; another
+  listing has it at
+  <a href="https://articulo.mercadolibre.com.ar/MLA-810839346-1-kg-viruta-de-bronce-_JM?quantity=1#position=7&amp;type=item">AR$1500/kg</a>.</li>
+<li>Scrap brass in ingots costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-769839038-lingotes-de-bronce-_JM?quantity=1#reco_item_pos=1&amp;reco_backend=machinalis-seller-items&amp;reco_backend_type=low_level&amp;reco_client=vip-seller_items-above&amp;reco_id=de0ed817-5520-473d-be6b-f9028b946fdd">AR$230/kg</a>
+  (US$4/kg).</li>
+<li>Powdered sulfur costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-702668486-azufre-en-polvo-uso-agricola-certificado-x-1-kilo-aranuela-_JM#position=1&amp;type=item">AR$329/kg</a>
+  or
+  <a href="https://articulo.mercadolibre.com.ar/MLA-702668711-azufre-en-polvo-uso-agricola-certificado-x-5-kilos-_JM#position=3&amp;type=item">AR$244/kg</a>
+  in bulk (US$4/kg).</li>
+<li>Potassium nitrate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-782678595-nitrato-de-potasio-1kg-fertilizante-hidroponia-_JM#position=22&amp;type=item">AR$245/kg</a>
+  (US$4/kg) to
+  <a href="https://articulo.mercadolibre.com.ar/MLA-814892875-nitrato-de-potasio-x-1000gr-grado-tecnico-_JM#position=33&amp;type=item">AR$289/kg</a>
+  as a fertilizer.</li>
+<li>White vitriol costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-819343339-sulfato-de-zinc-25kg-hidroponia-indoor-frutales-_JM#position=2&amp;type=item">AR$258/kg</a>
+  (US$4/kg) as a fertilizer.</li>
+<li>Magnesium nitrate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-818728076-fertilizante-nitrato-de-magnesio-soluble-25kg-fertirriego-_JM#position=24&amp;type=item">AR$262/kg</a>
+  (US$4/kg) as a fertilizer.</li>
+<li>Sodium carbonate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-628345764-carbonato-de-sodio-puro-x-1-kg-_JM#position=3&amp;type=item">AR$690/kg</a>
+  for bath-salts use, or
+  <a href="https://articulo.mercadolibre.com.ar/MLA-768801312-carbonato-de-sodio-x-1kg-soda-solvay-_JM#position=1&amp;type=item">AR$860/kg</a>,
+  or
+  <a href="https://articulo.mercadolibre.com.ar/MLA-824295056-carbonato-de-sodio-10-kilos-envio-gratis-_JM#position=4&amp;type=item">AR$280/kg</a>
+  (US$4/kg) in bulk.  It's also available in small quantities in
+  supermarkets mixed with sodium percarbonate for laundry use.</li>
+<li>Manganese sulfate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-782695861-fertilizante-sulfato-de-manganeso-1kg-hidroponia-fertirriego-_JM?quantity=1&amp;variation=41856095567">AR$381/kg</a>
+  (US$6/kg) as a fertilizer.</li>
+<li>Chopped 4.5-mm glass fiber costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-753742872-hilo-de-fibra-de-vidrio-cortada-45-mm-20-kg-carga-placas-_JM?quantity=1#position=22&amp;type=item">AR$381/kg</a>
+  (US$6/kg) ("Hilo De Fibra De Vidrio Cortada 4,5 Mm - 20 Kg Carga
+  Placas", "Comercial San José", 12 blocks from the Tigre station), or
+  in 3-mm cuts, as low as
+  <a href="https://articulo.mercadolibre.com.ar/MLA-626789126-fibra-de-vidrio-cortada-227kg-friccion-frenos-embragues-_JM?quantity=1#position=11&amp;type=item">AR$337/kg</a>
+  ("mecha cortada", "chemia.com.ar").</li>
+<li>Copper sulfate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-728428461-sulfato-de-cobre-x-1-kg-pentahidratado-alguicida-swimclor-_JM?quantity=1#position=1&amp;type=item">AR$400/kg</a>
+  (US$6/kg) as a swimming-pool fungicide and algicide.</li>
+<li>Silicon carbide costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-768525886-carburo-de-silicio-1-kg-_JM?quantity=1&amp;variation=34521887207&amp;onAttributesExp=true#position=41&amp;type=item">AR$420/kg</a>
+  (US$7/kg) ("Carbeto de silicio", in Portuguese, imported from
+  Brazil, brand Imerys Fused Minerals.)</li>
+<li>Monopotassium phosphate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-782689480-fosfato-monopotasico-soluble-1kg-hidroponia-fertirriego-_JM#position=4&amp;type=item">AR$483/kg</a>
+  (US$7/kg) as a hydroponic fertilizer.</li>
+<li>Calcium citrate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-696873565-citrato-de-calcio-puro-usp-1-kilo-_JM?quantity=1&amp;variation=36215312715#position=1&amp;type=item">AR$520/kg</a>
+  (US$8/kg) as a nutritional supplement.  Its solubility is a bit
+  under 1 g/liter: 100x higher than calcium carbonate, but 1000x lower
+  than chloride and nitrate.</li>
+<li>Zinc oxide costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-821674738-oxido-de-zinc-500gr-uso-cosmetico-_JM#position=2&amp;type=item">AR$1600/kg</a>
+  to
+  <a href="https://articulo.mercadolibre.com.ar/MLA-821674155-oxido-de-zinc-100gr-uso-cosmetico-_JM#position=5&amp;type=item">AR$3300/kg</a>
+  for cosmetics use, or
+  <a href="https://articulo.mercadolibre.com.ar/MLA-815571838-oxido-de-zinc-x-1-kg-zona-oeste-_JM?quantity=1#position=13&amp;type=item">AR$540/kg</a>
+  (US$8/kg) for use in paint ("purity 99.5%, contact with skin
+  dangerous").  Also <a href="https://articulo.mercadolibre.com.ar/MLA-814398983-cemento-de-fosfato-de-zinc-polvo-90g-de-trey-zinc-dentsply-_JM?quantity=1#position=16&amp;type=item">zinc phosphate dental cement is for
+  sale</a>
+  for AR$2080 for 90 grams; presumably this is the zinc oxide and
+  phosphoric acid mentioned above.</li>
+<li>Iron filings ("limaduras de hierro") cost
+  <a href="https://articulo.mercadolibre.com.ar/MLA-635344275-polvo-de-hierro-por-5-kgs-_JM#position=20&amp;type=item">AR$600/kg</a>
+  (US$9/kg) to
+  <a href="https://articulo.mercadolibre.com.ar/MLA-612106699-polvo-limaduras-de-hierro-muy-fina-para-magnetizar-x-1-kg-_JM#position=2&amp;type=item">AR$850/kg</a>.</li>
+<li>Magnesium citrate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-692362188-citrato-de-magnesio-puro-usp-1-kilo-_JM?searchVariation=26231558871#position=4&amp;type=item">AR$650/kg</a>
+  (US$10/kg) as a supplement.</li>
+<li>Powdered lead costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-708482010-plomo-en-polvo-envases-por-1-kilo-_JM">AR$700/kg</a>,
+  (US$11/kg) but see above about lead in ingots.</li>
+<li>Magnesium oxide costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-716898108-oxido-de-magnesio-grado-usp-999-apto-consumo-1kg-_JM#position=3&amp;type=item">AR$845/kg</a>
+  (US$13/kg) to
+  <a href="https://articulo.mercadolibre.com.ar/MLA-716899617-oxido-de-magnesio-grado-usp-999-apto-consumo-250-gr-_JM#position=2&amp;type=item">AR$1040/kg</a>
+  in 99.9% USP food-grade form.</li>
+<li>Copper filings ("polvo de cobre puro") cost
+  <a href="https://articulo.mercadolibre.com.ar/MLA-762274650-polvo-de-cobre-puro-1kg-_JM?quantity=1#position=2&amp;type=item">AR$850/kg</a>
+  (US$13/kg).</li>
+<li>Potassium chloride costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-810688910-sal-udable-sal-con-003-de-sodio-70-grs-_JM?variation=42320647286&amp;quantity=1#reco_item_pos=0&amp;reco_backend=machinalis-domain-pads&amp;reco_backend_type=low_level&amp;reco_client=vip-pads&amp;reco_id=d5c1979e-1933-415a-a50c-d86c80635853&amp;is_advertising=true&amp;ad_domain=VIPCORE_RECOMMENDED&amp;ad_position=1&amp;ad_click_id=NzU0YmMxMzUtMjI5YS00MzQxLTg4YjAtMGNmZWRkZDE5NTE1">AR$996/kg</a>
+  (US$15/kg) as a salt substitute.</li>
+<li>Fine brass powder costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-637439920-bronce-puro-en-polvo-por-kilo-_JM?quantity=1#position=25&amp;type=item">AR$1200/kg</a>
+  (US$19/kg).</li>
+<li>Potassium silicate solution costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-716496949-top-crop-barrier-250-ml-silicato-de-potasio-_JM?quantity=1#position=6&amp;type=item">AR$1450/kg</a>
+  (US$22/kg) as a fertilizer.</li>
+<li>Calcium acetate hypothetically costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-818209811-acetato-de-calcio-_JM?quantity=1#position=1&amp;type=item">AR$2000/kg</a>
+  (US$30/kg) but a lot of people complain about that vendor.</li>
+<li>Powdered zinc costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-706162251-zinc-puro-en-polvo-precio-por-kilo-_JM#position=18&amp;type=item">AR$2600/kg</a>
+  (US$40/kg).</li>
+<li>97%-pure powdered aluminum costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-637123855-aluminio-pureza-97-en-polvo-p-pinturas-uso-industrial-_JM">AR$2900/kg</a>
+  (US$40/kg) though I've seen other listings at lower prices.</li>
+<li>99%-pure powdered tin costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-637126985-estano-en-polvo-pureza-999-ultrafino-envases-de-1-kgs-_JM">AR$3700/kg</a>
+  (US$60/kg).</li>
+<li>Sodium alginate costs
+  <a href="https://articulo.mercadolibre.com.ar/MLA-675431636-alginato-de-sodio-modernist-pantry-50gr-cocina-molecular-_JM#position=1&amp;type=item">AR$40000/kg</a>.
+  or as low as
+  <a href="https://articulo.mercadolibre.com.ar/MLA-782955884-alginato-de-sodio-materia-prima-premium-por-100g-envio-_JM#position=3&amp;type=item">AR$10050/kg</a>
+  (US$160/kg) for culinary use.</li>
+<li>Nitrates of iron and copper are not available.</li>
+<li>Zinc chloride is not available.</li>
+<li>Potassium carbonate is not available, which is a shame, since it's
+  much more water-soluble than sodium carbonate.</li>
+<li>Ammonium carbonate is not available, although it's used in some
+  cookies here in Argentina.</li>
+<li>Aside from the possibility of prying them out of dead batteries,
+  carbon electrodes are available for arc gouging: <a href="https://articulo.mercadolibre.com.ar/MLA-670322016-electrodos-de-carbon-para-repelado-arcair-4x305mmx-3-unid-_JM?quantity=1#position=1&amp;type=item">4 mm diameter, 305
+  mm long for
+  AR$83</a>,
+  <a href="https://articulo.mercadolibre.com.ar/MLA-825520594-electrodo-de-carbon-60-mm-x-1-unidad-_JM?quantity=1#position=4&amp;type=item">6 mm diameter of some unknown length for
+  AR$43</a>,
+  <a href="https://articulo.mercadolibre.com.ar/MLA-825520595-electrodo-de-carbon-10-mm-x-1-unidad-_JM?quantity=1#position=11&amp;type=item">10 mm diameter of some unknown length for
+  AR$72</a>,
+  or <a href="https://articulo.mercadolibre.com.ar/MLA-825520599-electrodo-de-carbon-13-mm-x-1-unidad-_JM?quantity=1#position=12&amp;type=item">13 mm diameter of some unknown length for
+  AR$136</a>.</li>
+<li>Several vendors sell bars of magnesium as sacrificial anodes for
+  solar hot water heaters for a few hundred pesos, and there are a few
+  magnesium firestarters like the one I had as a kid.</li>
+<li>Someone is selling <a href="https://articulo.mercadolibre.com.ar/MLA-829232912-fibra-de-vidrio-basalto-de-alta-calidad-resistencia-directa-_JM#position=4&amp;type=item">"glass basalt
+  fiber"</a>
+  for "SMC roving", for AR$100 for 1.5 meters.  I have no idea if this
+  is actually basalt fiber but I suspect it's just glass fiber.</li>
+</ul>
+<h2>Some candidate mixtures explored in more detail</h2>
+<p>Although there are of course a very large number of combinations drawn
+from the above that are likely to work, I thought it would be useful
+to work out some properties and approximate recipes for a few of the
+variants.</p>
+<p>Although mostly I'm considering a binder-jetting process here, keep in
+mind that in fact the "binder" being jetted is in most cases just
+water, or water thinned with alcohol, and its only function is to
+solvate the actual cement grains so that they can react, and in some
+cases to drive the reaction kinetics toward water-insoluble cement
+products.  In most cases, another polar solvent such as ammonia, or
+heat from a laser or arc, could be substituted for the water "binder".</p>
+<p>Also, many of these mixtures would benefit from additional
+ingredients; the U Washington Open3DP project has published a number
+of recipes they found worked well.  In many cases, for example, they
+added carboxymethylcellulose or a similar plant gum to provide both
+wet strength and green strength.</p>
+<h3>Cat-litter bentonite or other clay body by itself</h3>
+<p>If we jet water, perhaps thinned with a little alcohol, onto a powder
+bed made of clumping cat litter, it will clump.  If left to dry,
+perhaps without even depowdering, it will form a dried unfired clay
+object.  If some sand or grog is included, this object can even be
+strong enough to survive handling, and such additives will also reduce
+shrinkage on drying, as would non-expansive clays.</p>
+<h3>Quartz sand and calcium hydroxide</h3>
+<p>This is the classic <em>cal y arena</em> mortar, cured by absorbing carbon
+dioxide from the air, mostly in 24 hours.  It has the attractive
+feature of being bright white.  I think U Washington Open3DP has done
+some work with this recipe.</p>
+<h3>Quartz sand and portland cement</h3>
+<p>This is the classic hydraulic mortar; it sets up faster if you add
+some slaked lime.</p>
+<h3>Quartz sand, wood flour, cat-litter bentonite, diammonium phosphate, calcium chloride</h3>
+<p>Upon jetting water thinned with a little alcohol onto this dry
+powder-bed mixture, ammonium chloride and calcium phosphate are
+formed; bentonite crystals serve to provide extra nucleation centers
+for the precipitating calcium phosphate, to bridge gaps between
+precipitate crystals (especially initially, when they are small), to
+add tensile strength to the weaker calcium phosphate crystals, and to
+stop the propagation of cracks through the calcium phosphate.  The
+highly soluble ammonium chloride remains in solution in the pore
+water; if desired, it can be leached out later by immersing the
+finished part in water.  The quartz sand fills the majority of the
+material and provides mostly compressive strength.  The wood flour
+serves to reduce density and provide tensile strength, like collagen
+in bone.</p>
+<p>The mixture is kept dry and must be protected from air exposure when
+not in use, because the calcium chloride is deliquescent at ordinary
+humidities; even then, the ammonium has a limited shelf life,
+especially when warm.</p>
+<p>The needle-like morphology of typical apatite nanocrystals is
+well-suited for bridging gaps between clay particles and other
+fillers, and would pose no barrier to further diffusion to carry the
+reaction to completion; even the platelet-like morphology that
+sometimes occurs with apatites and often with triclinic octacalcium
+phosphate would work well.  The spherical morphology that occurs with
+amorphous tricalcium diphosphate (called tricalcium phosphate, TCP)
+would be pessimal, and when TCP precipitates from aqueous solutions,
+it always precipitates in amorphous form, requiring heat-treatment to
+crystallize.  Apatite is favored at high pH; TCP is favored at more
+acidic pH; and OCP is favored in between, at a slightly acidic pH.</p>
+<p><a href="https://en.wikipedia.org/wiki/Calcium_chloride">Calcium chloride</a> is CaCl<sub>2</sub>, with a molar mass of 111 and a
+solubility of 650 g/liter of water at 10°; <a href="https://en.wikipedia.org/wiki/Diammonium_phosphate">diammonium phosphate</a> is
+(NH<sub>4</sub>)<sub>2</sub>HPO<sub>4</sub>, with a molar mass of 132
+and a solubility of 575 g/liter of water at 10°.  <a href="https://en.wikipedia.org/wiki/Hydroxyapatite">Hydroxyapatite</a>,
+which is the mineral cement we are hoping for, is
+Ca<sub>5</sub>(PO<sub>4</sub>)<sub>3</sub>OH, with a Ca:P ratio of 5:3
+and a molar mass of 502; Wikipedia says it is commonly prepared as
+nanocrystals from a mixture of calcium nitrate and diammonium
+phosphate, including at non-stoichiometric ratios.  So for every 5
+moles (555 g) of calcium chloride we want 3 moles (396 g) of
+diammonium phosphate and get some miscellaneous products plus one mole
+(502 g) of hydroxyapatite, 10 moles of chloride ions, and 6 moles of
+ammonium ions, which I think will result in 6 moles of ammonium
+chloride (53.5 g/mol, so 321 g) and 4 moles of excess chloride.  Also
+we have a couple of extra hydrogens floating around, so maybe we'll
+get hydrochloric acid or something; might be a good idea to include
+some calcium hydroxide or something if that's happening.  (I should
+work out the side products in more detail; the formation of
+chlorapatite rather than hydroxyapatite may be a possibility, and
+seems guaranteed if you heat the result to dissociate the ammonium
+chloride.)</p>
+<p>Solvating that amount of calcium chloride simultaneously would take
+850 g of water, and of diammonium phosphate, 690 g of water, at 10°.
+So, dividing, for every gram of hydroxyapatite, we need 3.1 g of
+water, 1.1 g of calcium chloride, and 0.79 g of diammonium phosphate.
+Actually we might need somewhat more or somewhat less water than that:
+more because some of the water molecules are tied up by the "pore
+walls" of the bentonite, or less because when hydroxyapatite
+precipitates out of solution, the water remains to solvate new calcium
+chloride and diammonium phosphate.  It will gradually become saturated
+with <a href="https://en.wikipedia.org/wiki/Ammonium_chloride">ammonium chloride</a> (solubility: about 240 g/liter at 10°) and
+lose its ability to solvate more calcium and phosphate so they can
+react.</p>
+<p>I'm not sure whether you would expect such a water deficiency to also
+slow the formation of the calcium phosphate crystals, allowing them to
+grow larger, by limiting the speed at which calcium phosphate can
+diffuse to the crystal growth sites, or to result in smaller crystals
+because the solution is more fully saturated.  Both seem worth a try.
+Also, though, the papers I've seen on hydroxyapatite wet
+precipitation, like <a href="https://www.ncbi.nlm.nih.gov/pubmed/19232507">Poinern et al. 2009</a>, required hours for the
+crystallization to produce particles of tens to hundreds of
+nanometers, and ideally we'd like it to happen at subsecond time
+scales, or in minutes at most.  (But Victor Chen's YouTube demo of
+reacting sodium phosphate with calcium chloride produced a solid and
+completed within a few seconds; similarly Arieus Alcide's reacting
+calcium gluconate with potassium phosphate produced a white
+precipitate instantly.)</p>
+<p>(Carbonates or hydroxides might work to liberate ammonium from the
+solution, and would prevent the pH from dropping (<a href="https://www.hielscher.com/sono-synthesis-of-nano-hydroxyapatite.htm">Hielscher's
+sono-synthesis report</a> says they tried to keep their pH around 10 with
+NaOH in order to get hydroxyapatite instead of a different calcium
+phosphate) but the chlorides they formed would also be soluble, except
+in a few problematic cases like chlorides of silver, thallium, lead
+(plumbous, II), mercury (I) (calomel), and copper(cuprous, I), all of
+which are alarmingly toxic, absurdly expensive, or both.  Also, I
+suspect any of these would form soluble complexes with the ammonium
+ligands, leaving us back where we started.  Perhaps it would help to
+use trisodium phosphate, which is pretty alkaline, in place of some or
+all of the diammonium phosphate.)</p>
+<p>The apatite crystals can incorporate a little magnesium, which can
+transform them into whitlockite, but it is reported to inhibit apatite
+nucleation and growth, as does carbonate.  Magnesium I think favors
+the precipitation of tricalcium phosphate, since &beta;-TCP shares
+whitlockite's crystal structure.</p>
+<p>So, if the amount of water is about right --- as set by the amount of
+pore space available for the reaction --- then every 5 kg (or, say, 5
+nanograms) of pore space will produce 1 kg (or, respectively, 1 ng) of
+cement.  Because hydroxyapatite has a density of about 3.2 g/cc, this
+means that the cement will fill up only about 8% of the pore space, so
+we'd better hope that we can get by with a smaller amount of water.</p>
+<p>(8% was arrived at as follows: anhydrous calcium chloride weighs 2.15
+g/cc, and undissolved diammonium phosphate weighs 1.619 g/cc, so the 5
+g of solution that yielded each gram of hydroxyapatite actually
+occupied 4.1 milliliters before the water began to solvate the salts,
+and the gram of hydroxyapatite occupies 1 ml/3.2 = 0.31 ml, which
+works out to about 7.6%.)</p>
+<p>How much pore space is there?  Building sand weighs <em>d</em> = <a href="https://civiltoday.com/civil-engineering-materials/sand/299-bulk-density-of-sand">1.52-1.68
+g/cc</a>
+(<a href="http://www.rfcafe.com/references/general/density-building-materials.htm">see also
+rfcafe</a>),
+which suggests a void fraction of (1 - <em>d</em>/2.4) = 30% to 37%, 2.4 g/cc
+being the density of quartz; let's say one third.  The bentonite
+particles might occupy 50% of the remaining space, one sixth of the
+total, and the phyllosilicate bentonite crystalline material might
+have a density of 2 g/cc (I'm not sure).  Let's forget about the
+sawdust for the time being.  So we have one sixth of the space
+available as pore space.</p>
+<p>For each 4.1 milliliters of pore space, we need 1.1 g of calcium
+chloride and 0.79 g of diammonium phosphate.  So for each milliliter
+of powder, we need 270 mg of calcium chloride, 190 mg of diammonium
+phosphate, 1600 mg of construction sand, and 170 mg of bentonite cat
+litter.  Or, per liter of mix:</p>
+<table><tr><th>Ingredient<th>Mass/liter<th>US$/kg<th>US$/liter
+       <tr><td>Sand      <td>1.6 kg    <td>0.012 <td>0.019
+       <tr><td>Cat litter<td>170 g     <td>1.30  <td>0.22
+       <tr><td>CaCl<sub>2</sub>
+                         <td>270 g     <td>1.60  <td>0.43
+       <tr><td>(NH<sub>4</sub>)<sub>2</sub>HPO<sub>4</sub>
+                         <td>190 g     <td>0.90  <td>0.17
+       <tr><th>Total     <td>2.23 kg   <td>      <td>0.84
+</table>
+
+<p>It's probably important to make sure that the formation of the calcium
+phosphate take place mostly between the bentonite grains.  In the
+powder bed, the bentonite is I think unavoidably going to be
+aggregated into clumps of tens to hundreds of microns in size, and
+water, when wetting the powder, will reach the centers of those clumps
+last.  But the centers of those clumps are precisely where the calcium
+phosphate is most needed --- in other places it runs the risk of
+forming crystals that don't attach to anything.  I think the way to
+solve this is to thoroughly wet-mix the calcium chloride into the
+bentonite before drying the bentonite and breaking it into those
+clumps; then mix the clumps with the sand and the crystals of
+diammonium phosphate.  That way, when the water wets the powder, it
+will first dissolve all the diammonium phosphate, then begin to
+diffuse into the bentonite clumps, where it can cement them by forming
+calcium phosphate there.</p>
+<p>If the bentonite in question is not already a calcium bentonite, it
+may eat some of your calcium in this process, diffusing out sodium to
+replace it, so you may need to use somewhat more calcium than
+suggested.</p>
+<p>We can see that if we were to replace all the sand 1:1 with sawdust,
+assuming 1 kg/liter, it would add US$0.16 to the cost and bring it up
+to US$1/liter.  However, sawdust has much higher porosity than sand,
+so it would also increase the amount of bentonite and cement that
+could be included; perhaps the cost might increase to as much as
+US$2/liter.</p>
+<h3>Phosphoric acid is not a cheaper phosphate source but might permit denser cement</h3>
+<p>The diammonium phosphate mentioned above contains one phosphorus atom
+per 132-dalton formula unit, and additionally it needs more than its
+own mass in water to dissolve it.  Phosphoric acid also contains one
+phosphorus atom per molecule, but its molecules are only 98 daltons,
+and it only needs a very small amount of water.  So if diammonium
+phosphate costs US$0.90/kg, phosphoric acid could cost as much as
+$1.20/kg and still actually be cheaper.  But in fact phosphoric acid
+costs US$2.60/kg.</p>
+<p>Jetting 85%-pure phosphoric acid out of nozzles is not going to work;
+it's too viscous.  But you could maybe use powdered solid phosphoric
+acid.  However, although it's not toxic, it's pretty caustic; most of
+the other chemicals described above are less dangerous.</p>
+<h3>Calcium nitrate is more expensive than calcium chloride</h3>
+<p><a href="https://www.sciencedirect.com/science/article/pii/B9780080552941000234?via%3Dihub">Rey, Combes, Drouet, and Grossin</a> explain that the usual way to
+deposit apatites in lab wet synthesis, with also some use in industry,
+is by reacting calcium nitrate with an ammonium phosphate; one reason
+for this is that nitrate and ammonium groups are easily driven out of
+the reaction product by heating.  Calcium nitrate at US$1.70/kg would
+seem to be very nearly the same price as calcium chloride at
+US$1.60/kg, but calcium chloride's molar mass is 111 (or 219 as
+hexahydrate), while calcium nitrate's is 164 (or 236 as tetrahydrate),
+so you get considerably less calcium for your money unless that
+calcium chloride is fully hydrated and the nitrate is desiccated.</p>
+<p>The bigger issue is that nitrates are a certain amount of hassle to
+deal with, due to both their toxicity to the humans and ongoing
+chimpanzee dominance games the humans like to play.</p>
+<p>There are presumably cases where the greater ease of driving nitrate
+residues out of the structure is a decisive advantage, however.</p>
+<h3>Berlinite-bonded alumina</h3>
+<p><a href="https://inis.iaea.org/search/search.aspx?orig_q=RN:33000620">Grover et al.</a> at Argonne published a paper in 1999 on this,
+reporting a rather astonishing result: "We hydrothermally cured a
+mixture of Al<sub>2</sub>O<sub>3</sub> and H<sub>3</sub>PO<sub>4</sub>
+solution between 130°C and 150°C to form a hard and dense
+berlinite-bonded alumina ceramic."  I would not have thought that
+phosphoric acid could attack sapphire so easily, much less that the
+result would be a low-temperature way to bond alumina grains.  They
+got a "putty-like" gel of aluminum phosphates after heating alumina in
+aqueous phosphoric acid, which could dry (to a hydrated xerogel I
+suppose) and then redissolve in water; by heating it to 150° they
+drove off not only the water but also the remaining hydrogen,
+converting the water-soluble aluminum phosphates into berlinite,
+aluminum orthophosphate, AlPO<sub>4</sub>, which is covalently bonded
+to the remaining alumina.</p>
+<p>This is such an astounding development that I wonder why I haven't
+heard of it before; perhaps it has some fatal flaw not mentioned in
+the paper.  The cement described would cost close to US$3 per kilogram
+and requires baking to cure, so it's not going to replace portland
+cement unless some material prices change dramatically, but it's both
+cheaper and presumably much stronger than common petroleum-based
+plastics, while sharing most of their advantages, although requiring a
+slow curing process to reach its full strength.</p>
+<p>It might work for a variant of this binder-jetting process, too.
+Although the soluble aluminum phosphates are probably too syrupy to
+squirt out of jets, you can reportedly dry them to a hard, rocky form
+that dissolves again in water; squirting water onto it may be
+sufficient to stick particles of a filler such as sapphire together
+into a green body that can then be baked at 150°, perhaps with a
+preliminary aging step.  And, like the processes described in <a href="../notes/flux-deposition.html">3-D printing by flux deposition</a>, it might be possible to bake the whole powder bed,
+since the water is an essential reagent in the hardening process; if
+this works, it would make the green strength irrelevant, but might
+irreversibly cure the unused aluminum-phosphate binder.  And of course
+you can use an FDM-like selective paste deposition process like those
+used for adobe and clay-paste "3-d printing".</p>
+<p>More on this berlinite-gel process in <a href="../notes/berlinite-gel.html">Berlinite gel</a>.</p>
+<p>The double-metathesis-type reactions described above might be a more
+comfortable way to precipitate aluminum phosphates <em>in situ</em> than
+pressure-cooking alumina in strong phosphoric acid for several days.
+For example, you could produce an aluminum phosphate by mixing
+solutions of aluminum chloride and diammonium phosphate --- even if
+the aluminum phosphates you get are water-soluble, they won't be
+nearly as water-soluble as the reagents, so you might get enough
+precipitation.  But it seems likely that, without baking, you'll only
+get soluble aluminum hydrogen and dihydrogen phosphates.</p>
+<h3>Sawdust, diammonium phosphate, sodium bicarbonate, and calcium chloride</h3>
+<p>You should be able to make a kind of inexpensive waterproof fiberboard
+by precipitating apatite between the wood fibers in the same way
+described above, but a larger fraction of the resulting substance will
+be made of apatite, because you don't have sand grains taking up two
+thirds of the volume.  Sodium bicarbonate can keep the combination
+alkaline, like trisodium phosphate above, which not only favors the
+precipitation of apatite rather than less-stable calcium phosphates,
+but also protects the wood fiber from acid.  Bicarbonate will buffer
+the system, preventing it from becoming too alkaline, and additionally
+serves as a fire retardant.</p>
+<p>The elasticity of the mix may pose problems for a powder-bed 3-D
+printer, since it will spring back after you compact it.  You can
+compact the whole mass at the end of the process, squeezing both air
+and water out of the mix and causing the water to spread somewhat.
+The alternative of maintaining the bed under compression while you
+squirt binder onto it seems impractical.  Just adding binders like
+carboxymethylcellulose won't help because it's the dry part of the
+powder bed that causes the problem.</p>
+<p>A reasonable mix might be 500 g sawdust, 100 g sodium bicarbonate, 235
+g calcium chloride, 165 g diammonium phosphate; this works out to
+US$0.80/kg.</p>
+<h3>Magnesium sulfate, sodium carbonate, and silica sand</h3>
+<p>These two soluble chemicals (Epsom salt and washing soda) ought to
+form magnesium carbonate (magnesite).  Magnesium sulfate is US$0.90/kg
+and sodium carbonate is US$4/kg.  I haven't worked out the
+stoichiometry, but probably the article of commerce is the
+heptahydrate, which will have an impact on that.</p>
+<h3>Green vitriol and trisodium phosphate</h3>
+<p>At respectively US$1.70/kg and US$2.30/kg, with some luck, these two
+highly soluble salts should react to make an insoluble basic copper
+phosphate, the deep green pigment pseudomalachite and its polymorphs
+ludjibaite and reichenbachite,
+Cu<sub>5</sub>(PO<sub>4</sub>)<sub>2</sub>OH<sub>4</sub>.  Again, I
+haven't worked out the stoichiometry.</p>
+<h3>Spot-welding brass filings with a carbon or TIG electrode</h3>
+<p>Brass filings can be bought as cheaply as US$4/kg.  There are a couple
+of ways you could easily melt a controlled-size spot on the surface of
+a bed of brass filings using a carbon-rod or TIG electrode.  First,
+you could charge up a capacitor and move the rod closer to the surface
+until there is an arc, with the rod being positive and the filings
+being negative; this will deposit most of the energy into the filings.
+Second, you could bring the rod into contact with the filings, run a
+current through the rod and an inductor, and then break contact, again
+inducing an arc, again with the electrons impacting the rod and the
+ionized air or other gas molecules impacting the filings.  In each of
+these cases the spot size is controlled by the amount of energy built
+up in the energy-storage device.</p>
+<p>Third, you could run an arc more or less continuously from the
+electrode to the bed, as in normal TIG welding or carbon arc gouging.</p>
+<p>Lead particles in the powder bed might help with the sintering; I
+think molten lead can dissolve a signficant amount of copper, and I
+don't know about zinc (see <a href="../notes/filled-fdm.html">Filling hollow FDM things with other materials</a> and <a href="../notes/phase-change-soldering-iron.html">A phase-change soldering iron</a> for more on related systems).  If so, as
+described in <a href="../notes/flux-deposition.html">3-D printing by flux deposition</a>, it might be possible to later
+bake the finished piece to induce the lead to diffuse away from what
+were initially the sintering boundaries, thus preventing the evolution
+of any liquid until a substantially higher temperature.</p>
+<p>Other powdered metals, such as copper, lead, stainless steel, steel,
+or aluminum, would also work to a greater or lesser extent, but steel
+and aluminum are relatively hazardous and would probably need to be
+done under an inert gas such as argon.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/materials.html">Materials</a> (112 notes)
+</li><li><a href="../topics/pricing.html">Pricing</a> (89 notes)
+</li><li><a href="../topics/digital-fabrication.html">Digital fabrication</a> (42 notes)
+</li><li><a href="../topics/3d-printing.html">3-D printing</a> (23 notes)
+</li><li><a href="../topics/chemistry.html">Chemistry</a> (20 notes)
+</li><li><a href="../topics/flux-deposition.html">Flux deposition</a> (4 notes)
+</li></ul></div></html>

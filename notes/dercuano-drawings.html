@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html><title>Dercuano drawings ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Dercuano drawings</h1><div class="metadata">Kragen Javier Sitaker, 2019-04-30 (updated 2019-05-30)
+(18 minutes)</div><p>At this point I’ve imported 90 notes into Dercuano, and the lack of
+images of any kind is sort of annoying.  My actual, paper notebooks
+have a little line-drawing “icon” for each note, maybe 10 millimeters
+square, but often some kind of graphic would help a lot both with
+visual appeal and with comprehensibility.  But my total byte budget of
+some 5MB, so that Dercuano remains easily downloadable in full, makes
+this challenging; I need a way to make very compact graphics.</p>
+<p>This is related to <a href="../notes/dercuano-calculation.html">Dercuano calculation</a> and
+<a href="../notes/dercuano-formula-display.html">Dercuano formula display</a>.</p>
+<h2>Example uses</h2>
+<p>To take a few of the notes I currently have in Dercuano at random:</p>
+<p><a href="../notes/deep-freeze.html">Deep freeze</a> could benefit from diagrams of one or more of the
+following: 11 tonnes of foods including soybeans; a cutaway freezer
+with labels for insulation, refrigeration, and passive thermal
+storage; freezers of different sizes, with different amounts of
+surface area per unit volume, including a cubic-meter sphere and a
+thousand-cubic-meter sphere; food stored at the bottom of a 30-meter
+well; mounds of sand and locally excavated earth; a heat–temperature
+curve for water, including enthalpy of fusion and vaporization; plots
+of heat loss versus surface area and insulation thickness; etc.  It
+would also benefit, I think, from a goofy line drawing of a freezer
+with a smiley face on it.  A three-dimensional rotating rendering of a
+freezer would maybe be a plus, too; and a model whose parameters you
+could adjust interactively and see the relationships between the other
+parameters in the neighborhood would be awesome.</p>
+<p><a href="../notes/dehydrating-processes.html">Dehydrating processes and other interaction models</a> could benefit from sketches of user
+interfaces; from diagrams of the interaction sequences and data flows
+being discussed, of FlatBuffers or binary array state, and of the
+timing of sequences; and from illustrations of punched cards and
+perhaps a dehydrated window or something.</p>
+<p><a href="../notes/executable-scholarship.html">Executable scholarship, or algorithmic scholarly communication</a> could benefit from a timeline, at least.</p>
+<p><a href="../notes/flux-deposition.html">3-D printing by flux deposition</a> could benefit from an illustration/diagram of
+the binder/powder-bed/tray setup, and maybe of some grains being
+fluxed — generally mechanical things like this really need diagrams;
+maybe also a temperature scale showing where different mixes sinter
+and/or melt would be helpful.</p>
+<p><a href="../notes/imgui-programming-language.html">IMGUI programming language</a> would benefit a lot from some
+sketches of the UI components being programmed, and maybe also some
+diagrams of activation records allocated on the stack and of
+Golang-style interfaces.</p>
+<p><a href="../notes/transactional-event-handlers.html">Transactional event handlers</a> would benefit from some timing
+diagrams showing priority problems, concurrent transactions,
+transaction conflicts with pessimistic and optimistic synchronization,
+and deadlock.</p>
+<h2>Possible tools</h2>
+<h3>No photos</h3>
+<p>A thing I’ve done in the past is to draw diagrams on paper and
+photograph them.  This allows for pleasingly direct feedback during
+the drawing process, but even with aggressive compression, the
+resulting image files are dozens of kilobytes each.</p>
+<h3>No bloated SVGs</h3>
+<p>The Web standard format for line drawings is SVG — even hand computers
+running iOS support it now.  SVG is super cool; it supports
+alpha-blending, Bézier curves, gradients, arbitrary affine transforms,
+some degree of abstraction and reuse,
+and text.  You can do a lot in very few bytes of SVG, and it’s a lot
+more readable and debuggable than PostScript, my pre-SVG favorite.
+The standard example is probably something like this 78-byte triangle:
+<svg width="30" height="40">
+<path d="M 10,10 L 20,20 10,30" fill="red"/>
+</svg></p>
+<pre><code>&lt;svg width="30" height="40"&gt;&lt;path d="M 10,10 L 20,20 10,30"
+    fill="red"/&gt;&lt;/svg&gt;
+</code></pre>
+<h4>An example diagram in handwritten SVG</h4>
+<p>And I <em>have</em> used SVG for diagrams, for example in <a href="../notes/mechano-optical-vector-display.html">A mechano-optical vector display for animation archival</a>:</p>
+<p><svg width="128" height="128" class="diagram m">
+<use xlink:href="#burst" transform="translate(128 60.24)" />
+<path class="beam" d="M128,60.24 L60,60.24 l-121.1,-992.5" />
+<path class="mirror" d="M90.51,128 A90.51,90.51 0 0,0 0,37.49 v90.51" />
+<path class="arrow" d="M20,57.49 a70.51,70.51 0 0 1 50.51,50.51" />
+</svg>
+<!-- SVG for definitions of common things used in embedded SVGs. -->
+<svg style="display: none" class="m"><defs>
+<marker id="v" overflow="visible" orient="auto">
+  <path d="M-8,-4 0,0 -8,4" />
+</marker>
+<marker id="vv" overflow="visible" orient="auto">
+  <path d="M-8,-4 0,0 -8,4 M4,-5 12,0 4,5" />
+</marker>
+<symbol id="burst" overflow="visible" class="m">
+<path d="M0,0 l-16,-16 16,16  -16,16 16,-16  -16,-8 16,8
+         -16,8 16,-8  -8,-16 8,16  -8,16 8,-16" class="beam" />
+</symbol>
+</defs></svg>
+<style>
+svg.diagram { margin-left: auto; margin-right: auto; display: block }
+.m path { stroke: black; stroke-width: .5px; fill: none }
+.m .beam { stroke: red }
+.m .mirror { stroke-width: 0; fill: #ccc }
+.m .arrow { marker-end: url(#v); marker-start: url(#vv) }
+</style></p>
+<p>The source code for that looks like this, which is somewhat verbose
+but arguably not unreasonably so.</p>
+<pre><code>&lt;svg width="128" height="128" class="diagram m"&gt;
+&lt;use xlink:href="#burst" transform="translate(128 60.24)" /&gt;
+&lt;path class="beam" d="M128,60.24 L60,60.24 l-121.1,-992.5" /&gt;
+&lt;path class="mirror" d="M90.51,128 A90.51,90.51 0 0,0 0,37.49 v90.51" /&gt;
+&lt;path class="arrow" d="M20,57.49 a70.51,70.51 0 0 1 50.51,50.51" /&gt;
+&lt;/svg&gt;
+&lt;!-- SVG for definitions of common things used in embedded SVGs. --&gt;
+&lt;svg style="display: none" class="m"&gt;&lt;defs&gt;
+&lt;marker id="v" overflow="visible" orient="auto"&gt;
+  &lt;path d="M-8,-4 0,0 -8,4" /&gt;
+&lt;/marker&gt;
+&lt;marker id="vv" overflow="visible" orient="auto"&gt;
+  &lt;path d="M-8,-4 0,0 -8,4 M4,-5 12,0 4,5" /&gt;
+&lt;/marker&gt;
+&lt;symbol id="burst" overflow="visible" class="m"&gt;
+&lt;path d="M0,0 l-16,-16 16,16  -16,16 16,-16  -16,-8 16,8
+         -16,8 16,-8  -8,-16 8,16  -8,16 8,-16" class="beam" /&gt;
+&lt;/symbol&gt;
+&lt;/defs&gt;&lt;/svg&gt;
+&lt;style&gt;
+svg.diagram { margin-left: auto; margin-right: auto; display: block }
+.m path { stroke: black; stroke-width: .5px; fill: none }
+.m .beam { stroke: red }
+.m .mirror { stroke-width: 0; fill: #ccc }
+.m .arrow { marker-end: url(#v); marker-start: url(#vv) }
+&lt;/style&gt;
+</code></pre>
+<p>However, you can probably kind of tell from reading that that it was
+pretty slow to write, and from looking at it that the workflow doesn’t
+really support rapid iteration to get it to look good.</p>
+<p>What you can’t necessarily tell from looking was that when I added
+that diagram to this document, it broke the triangle example higher
+up, so I hacked it not to interfere, and then I had to spend some time
+debugging incompatibilities between Firefox and Chromium about when
+they applied certain styles (arguably a bug in Firefox).</p>
+<h4>SVG’s abstraction capability is very limited</h4>
+<p>That diagram exploits SVG’s capabilities for reducing duplication to
+the maximum, to the point that I had to bring in code from three
+separate parts of its source document to use it here (and then, as I
+said, hack them so they wouldn’t break other SVGs).  It uses a
+stylesheet with overrides to specify how lines, arrows, and areas
+should be drawn, and it uses SVG’s <code>&lt;marker&gt;</code> and <code>&lt;symbol&gt;</code>
+facilities to define graphic elements that can be used many times in
+the same drawing or across many drawings.</p>
+<p>But those facilities, though complex, expensive in terms of syntactic
+overhead, and hard to debug, are still very limited.  You can reuse a
+<code>&lt;symbol&gt;</code> in different places, for example, but not with different
+line widths or colors.  (In theory I think you can, but it doesn’t
+fucking work, at least in Firefox.)  You can apply the same style to
+different pieces of text or different paths, but as far as I can tell,
+you can’t instantiate a rectangular component at different widths in
+different places, other than by stretching the whole component,
+including its line widths.  The kind of simple constraint satisfaction
+we routinely apply to HTML with the CSS box model is entirely outside
+of our reach in SVG.</p>
+<h4>WYSIWYG SVG editors produce insanely bloated output</h4>
+<p>On the other hand, the standard tools for generating SVGs produce data
+that looks more like this:</p>
+<pre><code>&lt;path d="M 21.789062 16.140625 L 20.332031 15.941406
+         L 20.335938 15.742188 L 20.371094 15.53125
+         L 20.453125…
+</code></pre>
+<p>That’s eight significant figures on every coordinate, absolute
+coordinates everywhere instead of relative, and using diagonal lines
+instead of H horizontal or V vertical lines even when the relevant
+coordinate difference is in the fifth significant figure, and also
+using unnecessary spaces.  The extra significant figures are
+essentially random, so gzip isn’t going to be able to compress them,
+except by noting that, being digits, they only need four bits each.</p>
+<p>The problem with this kind of thing is that, even when it’s
+hand-drawn, it mixes the actual desired signal with a lot of random
+noise which is hopefully imperceptible but still incompressible.  The
+mouse produces, say, 100 positions per second, each with three
+significant figures in each of X and Y, though the number is smaller
+with relative positions.  Crudely, that’s 6400 bits of data per
+second, 800 bytes per second, after compression, that can be added to
+the Dercuano download package.</p>
+<p>I launched Inkscape, plugged in a mouse, and drew with the pencil tool
+for a while.  Running Inkscape for 110 seconds, I produced a
+54-kilobyte SVG that compresses to 15.6 kilobytes; most of it looks
+like this (line breaks added for clarity):</p>
+<pre><code>&lt;path
+   style="fill:none;fill-rule:evenodd;stroke:#000000;
+          stroke-width:1px;stroke-linecap:butt;
+          stroke-linejoin:miter;stroke-opacity:1"
+   d="m 94.285714,946.64792 c 7.539686,-3.23129 21.663356,-10.54083
+        31.428576,-11.42857 15.99002,-1.45364 19.9212,2.36631
+        34.28571,-2.85715 6.00412,-2.18331 11.32674,-5.92773…
+</code></pre>
+<p>That is, Inkscape has converted my three-significant-figure mouse
+coordinates into coordinates with seven to nine significant figures.
+Just in case.  How helpful.</p>
+<h4>Why this is too much bloat for Dercuano to tolerate</h4>
+<p>The trouble with this is that 15.6 compressed kilobytes per 110
+seconds is 1.1 kilobit per second, and the entire five-megabyte target
+size for Dercuano — containing many years of notes — would be
+completely filled with SVG in less than ten hours of drawing time.
+I’ve already spent over 20 hours just getting the first 600 kilobytes
+of Dercuano to work so far.</p>
+<p>The basic reason many years of notes fit into five megabytes is that I
+can only type about 90 words per minute, which is 72 bits per second
+uncompressed, 24 bits per second compressed — a bit rate 45 times
+lower.  And then I spend time revising the notes, which often makes
+them better without making them larger, though as anyone can see, I
+don’t revise my notes nearly enough.</p>
+<h3>TikZ won’t fit</h3>
+<p>One of the SVGs I excerpted above is a sort of graphic of a
+comic-book-style explosion or impact, but with a gradient.  I
+generated it with the TikZ graphics system for T<sub>E</sub>X from the
+following input:</p>
+<pre><code>\documentclass{standalone}
+\usepackage{tikz}
+\begin{document}
+\tikz\shade[inner color=yellow,outer color=red](1ex,0)
+    \foreach\t in{4, 8, ..., 360}
+        {-- (\t:{.1+Mod((\t/17)^3, 57)/100})};
+\end{document}
+</code></pre>
+<p>This uses (θ ÷ 17)³ % 57 (composed with an affine function) to
+generate a “random” radius for each of 90 different angles to generate
+a jagged outer polygon, then fills it with a gradient.  This is not
+something you can do in SVG, although you can do it in something else
+(like TikZ or JS) and generate SVG programmatically.  And TikZ comes
+with a massive built-in library of things like arrowheads, directed
+graph layout algorithms, tree layout, plotting math functions,
+calendars, finite state machines, ERDs, Petri Nets, and so on.  The
+sections of the TikZ manual about arrowheads (and arrow tails, etc.)
+total about 10 pages.  It’s a bit overwhelming, honestly.</p>
+<p>Unfortunately, I can’t use TikZ directly in Dercuano, because that
+would involve embedding not only the 5 megabytes of TikZ, but also the
+rest of T<sub>E</sub>X and L<sup>A</sup>T<sub>E</sub>X that it depends
+on to run, in some kind of browser-executable form, probably compiled
+with Emscripten.  And, while that’s probably a feasible thing to do,
+I’m pretty sure would blow my space budget for Dercuano.</p>
+<p>I could draw (“write”?) graphics in TikZ and generate SVGs from them,
+but that just puts us back at square one: the SVGs are bloated, and
+I’d blow my space budget even faster that way.</p>
+<p>TikZ has another problem, too: it’s purely intended for static
+graphics.  But in Dercuano much of the time a dynamic,
+interactively-responsive graphic would be better, and only marginally
+harder to write.</p>
+<h3>d3 may be a good option, but not for illustrations</h3>
+<p>d3.js is a JS library for dynamic data-driven graphics which generates
+SVG at runtime using the DOM.  One of the minified copies of d3.js I
+have here is 151 kilobytes, and it gzips to 53 kilobytes;
+the current v5.9.2 gzips to 79 kilobytes.  Another,
+non-minified copy I have is d3 v3, and it’s 315kB, gzipping to 68kB.
+It’s pretty easy to use, and in particular it’s pretty easy to get
+really nice graphical output from, and it’s amazing at interactivity.
+On the downside, the JS code to use it is usually pretty verbose, and
+it’s not well suited for the kinds of sketching and illustration I
+earlier said were most important, although it’s probably fine for
+timelines.</p>
+<h3>Some kind of restricted-bandwidth WYSIWYG drawing program</h3>
+<p>For some things, though, the closer to paper, the better.  I just
+don’t want to pay half a megabyte per hour for the privilege of
+faithfully recording the shaking of my hands as I sketch; shaky lines
+can be good but we might as well produce the shakiness from a
+highly-compressible random number generator.  One possibility here
+would be drawing with a line that thrashes around near the mouse,
+starting at low-entropy points in whatever encoding I end up with, and
+gradually moving to higher-entropy points.  Or maybe you stroke the
+mouse along a line multiple times to coax it into the shape you want.
+Maybe snap to a grid that gets finer if you zoom in: then you’d need
+to zoom in.  Or maybe you need to click to nail down a spline point,
+and there’s a snap grid that is finer for smaller displacements.</p>
+<p>Another possibility would be something that encourages drawings to be
+highly factored, perhaps by having clumsy graphical primitives (though
+primitives that compose flexibly, e.g., adopting the line width and
+color from their use context) and really low reuse overhead.</p>
+<p>A third possibility, and this is kind of cheating in a way, is just to
+use a textual language to describe the graphics, but shorten the
+feedback cycle as much as possible so that you can vary things
+interactively to see the results on the screen.  To the extent that
+you can map backwards from the screen image to the textual source
+code, you may be able to alter the textual source code by direct
+manipulation of the screen image.</p>
+<p>Ivan Sutherland’s SKETCHPAD was a visual programming language for
+interactively constructing a set of graphical objects and constraints
+for them to fulfill, progressively approaching fulfillment, and
+visualizing the results.</p>
+<p>The problem with these approaches is that in some sense you’re
+deliberately impeding the drawing process, which you would think would
+make it clumsier.  But maybe that clumsiness can be minimized or even
+reversed — the bandwidth from my brain to the mouse is definitely not
+1100 bits per second and may not even be the 24 bits per second I get
+on the keyboard.  If the drawing program can somehow filter out the
+other 1000+ bits per second of pure noise, it might actually make it
+<em>easier</em> to draw things rather than harder.</p>
+<h3>Penrose looks like an appealing approach, but would need reimplementing</h3>
+<p>The unfortunately named <a href="http://penrose.ink/">Penrose</a>
+(<a href="https://github.com/penrose/penrose">GitHub</a>) diagramming software
+project is not related to Penrose diagrams (also known as
+Penrose–Carter diagrams), the Penrose Graphical Notation, the Penrose
+Project (a band), or the OpenJDK project Penrose.  Instead, it’s
+Katherine Ye’s research team at CMU, which has produced software that
+largely consists of three DSLs, with even more unfortunate
+names — “DDL” defines the primitive objects of some mathematical
+domain, such as the vector space ℝ² or ZFC set theory; “STYLE”
+explains the desired visual representation of each domain concept in
+terms of constraints and optimization objectives; and then “SUBSTANCE”
+describes the particular objects to put into a particular diagram.
+Further interactive tweaking is then used to adjust one of the various
+outputs from the constraint solver to look best.</p>
+<p>The underlying approach sounds reasonable, and they’ve gotten some
+impressive results, but the implementation is 8000 lines of Haskell,
+plus substantial bits in Java, TypeScript (for a React UI), JS, and
+Emacs Lisp; they’re actually using Alloy (thus the Java) to reduce
+some kind of problem to SAT and solve it with SAT4J (maybe the layout
+optimization problem itself, although I don’t think SAT4J would be
+particularly good at that?  Or maybe some other problem).  Using
+Penrose itself for diagrams in Dercuano would thus involve generating
+vector graphics in SVG or whatever during the Dercuano build process,
+since running the existing Penrose software in the browser would not
+be practical, even with Emscripten, which itself would probably blow
+Dercuano’s space budget.</p>
+<h3>Something like <a href="https://zzz.dog/">Zdog</a> might be interesting for 3D</h3>
+<p>Zdog is a browser-based 3-D engine using points, lines, arcs, and
+splines rendered with stroke thickness, with SVG (and, I think,
+<code>&lt;canvas&gt;</code>) output.  Its implementation, though lightweight, doesn’t
+run in old browsers, and I’m not that fond of its API.</p>
+<p>It does a great job of demonstrating the potential of the approach,
+which is pretty easy to implement; doing it just for points with
+diameter (“spheres”) <a href="http://canonical.org/~kragen/sw/81hacks/topopt-ar">took me just a few lines of JS on
+<code>&lt;canvas&gt;</code></a> a few
+years ago:</p>
+<pre><code>var s = Math.sin(theta)
+  , c = Math.cos(theta)
+;
+
+var ty = y.times(c).plus(z.times(s))
+  , tz = z.times(c).plus(y.times(-s))
+  , seq = tz.gradeDown()     // painter’s algorithm
+;
+
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+for (var ii = 0; ii &lt; seq.length; ii++) {
+    var i = seq[ii];
+    circle(ctx, x[i] + 128, ty[i] + 128, 2048 / (tz[i] + 128), color(r[i], g[i], b[i]));
+}
+</code></pre>
+<p>In that case, though, the “scenegraph” (coordinates and colors) was
+randomly generated at startup.  It doesn’t really help with the
+question of how to get the 3-D models made in the first place.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/compression.html">Compression</a> (28 notes)
+</li><li><a href="../topics/dercuano.html">Dercuano</a> (16 notes)
+</li><li><a href="../topics/multitouch.html">Multitouch</a> (12 notes)
+</li><li><a href="../topics/js.html">JS</a> (12 notes)
+</li><li><a href="../topics/constraints.html">Constraint satisfaction</a> (9 notes)
+</li><li><a href="../topics/sketchpad.html">Sketchpad</a> (3 notes)
+</li><li>TikZ</li><li>SVG</li><li>Inkscape</li><li>D3</li></ul></div></html>

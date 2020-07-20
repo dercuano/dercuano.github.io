@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html><title>Ideal language syntax ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Ideal language syntax</h1><div class="metadata">Kragen Javier Sitaker, 2017-07-19
+(1 minute)</div><p>What would make a language syntax ideal for my tastes?</p>
+<ul>
+<li>Short keywords.  <code>my</code> or <code>=</code> instead of <code>var</code>, <code>to</code> or underlines,
+  instead of <code>function</code>, <code>for</code> or a vertical line instead of <code>while</code>,
+  maybe even <code>do</code> instead of <code>while</code> or <code>for</code>.</li>
+<li>Little punctuation.  Python-style <code>:</code> instead of <code>{}</code>.  <code>.</code> instead
+  of <code>-&gt;</code>.  <code>:</code> instead of <code>=&gt;</code>.</li>
+<li>Punctuation and keywords that follow existing prose use; <code>--</code> is far
+  better for comments than <code>;</code> or <code>#</code>, which mean something totally
+  different in everyday life.</li>
+<li>Not fucking monospace.</li>
+<li>Infix syntax with either traditional precedence or required full
+  parenthesization in cases where it would change the meaning.
+  Because I don’t want to puzzle over why <code>a + b * c</code> is giving the
+  wrong answer, only to find that it means <code>(a + b) * c</code>.</li>
+<li>By the same token, operator overloading; I certainly don’t want to
+  have to write <code>a.plus(b.times(c))</code> as in JS.</li>
+<li>Some kind of aspect weaving so that a particular piece of code can
+  be focused on only the things that are relevant to a particular
+  task — for example, dataflow, types, proofs, resource limits,
+  escape-analysis annotations.</li>
+<li>Lightweight lambdas.</li>
+<li>Extensibility, because sometimes lightweight lambdas aren’t enough.</li>
+</ul>
+<p>Of course there are other aspects of programming languages that are
+more important than the syntax, but the syntax is important.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/typography.html">Typography</a> (5 notes)
+</li></ul></div></html>

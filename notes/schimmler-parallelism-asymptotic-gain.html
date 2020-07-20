@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><title>Schimmler parallelism asymptotic gain ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Schimmler parallelism asymptotic gain</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(1 minute)</div><p>In Dan Bernstein's grant proposal to the NSF from 2001,
+<a href="http://cr.yp.to/papers/nfscircuit.pdf">Circuits for Integer Factorization:
+A proposal</a>,
+he writes:</p>
+<blockquote>
+<p><strong>A philosophical note</strong>.  I always thought that common
+general-purpose computers were the pinnacle of realistic computational
+power.  Special-purpose computer architectures, such as Lehmer's
+bicycle chain sieve or Pomerance's Cracker or Shamir's TWINKLE, were
+at best a constant factor faster.  Quantum computers are
+asymptotically faster for many computations, but it is unclear whether
+they can actually be built.</p>
+<p>I also thought that parallel computing reduced the <em>time</em>, not the
+<em>cost</em>, of computations.  Ten processors might perform a computation
+in one tenth the time of a single processor, but they are ten times as
+expensive, so the cost of the conmputation remains the same.</p>
+<p>I was wrong.  Schimmler's machine, with m² processors, can be built
+for m^{2+o(1)} dollars, just like a single-processor computer with
+m^{2+o(1)} bits of memory.  It can sort m² numbers in time m^{1+o(1)},
+while the single-processor machine needs time m^{2+o(1)}.  The cost of
+the computation has dropped from m^{4+o(1)} to m^{3+o(1)}.</p>
+</blockquote>
+<p>I have a hard time believing this,
+but Bernstein is pretty reliable;
+maybe I should go back 
+and read more about Schimmler's machine.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/parallelism.html">Parallelism</a> (8 notes)
+</li></ul></div></html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><title>A 2007 overview of matrix barcodes ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>A 2007 overview of matrix barcodes</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(2 minutes)</div><p>There are a bunch of 2-D barcode systems, with varying capacities.</p>
+<p>PDF-417 is one of the older and better-known systems.  It can handle
+up to 1108 bytes of binary data, and there are GPL PDF417 encoders and
+decoders ---
+<a href="http://www.totalshareware.com/ASP/detail_view.asp?application=41548">http://www.totalshareware.com/ASP/detail_view.asp?application=41548</a> is
+“Grandzebu”’s Windows XP version, and then there’s
+<a href="http://sourceforge.net/projects/pdf417encode/">http://sourceforge.net/projects/pdf417encode/</a> “pdf417_encode” by
+“jtlien”.  There’s a “pdf417decode” as well at
+<a href="http://dataconv.org/apps_barcode.html">http://dataconv.org/apps_barcode.html</a> the “ooosawaddee3pdf417”
+homepage --- this is a very slightly modified version of Ian
+Goldberg’s 1997 decoder from
+<a href="http://www.isaac.cs.berkeley.edu/tools/pdf417-1.0.tar.gz">http://www.isaac.cs.berkeley.edu/tools/pdf417-1.0.tar.gz</a> ---
+unfortunately that software does not have a free license, or any
+explicit license, actually.  There’s a SourceForge project at
+sf.net/projects/pdf417decode which claims to be GPL but seems to be
+the same unlicensed code, plus a bunch of new code to support error
+correction.  There’s a reasonably nice description of how PDF-417
+works at
+<a href="http://grandzebu.net/index.php?page=/informatique/codbar-en/pdf417.htm">http://grandzebu.net/index.php?page=/informatique/codbar-en/pdf417.htm</a>.</p>
+<p>DataMatrix/Semacode is a higher-capacity 2-D barcode, with up to 1556
+bytes; I don’t know if it’s patent-safe.  There’s a GPL decoder in C#
+at <a href="http://datamatrixdec.berlios.de/index.php/Main_Page">http://datamatrixdec.berlios.de/index.php/Main_Page</a> with a couple
+of releases from late 2006.</p>
+<p>QR Code is the highest-capacity 2-D barcode in common use, with up to
+2953 bytes (when it’s 177x177 pixels); with gzip -9, that’s enough
+space to encode the Project Gutenberg version of Genesis up to Genesis
+3:5, 1624 words. Denso-Wave has promised not to enforce its patents
+against it.  There seems to be a lot of activity around it lately,
+especially in Japan.  There’s a GPL decoder in Java at
+<a href="http://qrcode.sourceforge.jp/">http://qrcode.sourceforge.jp/</a> or
+<a href="http://sourceforge.jp/projects/qrcode/">http://sourceforge.jp/projects/qrcode/</a> --- ThoughtWorks’s .NET library
+doesn’t seem to be free software.  QR code is JIS-X-0510 and
+ISO/IEC18004.  There’s a comprehensive introduction at
+<a href="http://www.denso-wave.com/qrcode/qrfeature-e.html">http://www.denso-wave.com/qrcode/qrfeature-e.html</a> and an
+occasionally-updated blog in Japanese at <a href="http://www.qrcodeblog.com/">http://www.qrcodeblog.com/</a>.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/barcode.html">Barcode</a> (2 notes)
+</li></ul></div></html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html><title>Reducing the cost of self-verifying arithmetic with array operations ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Reducing the cost of self-verifying arithmetic with array operations</h1><div class="metadata">Kragen Javier Sitaker, 2019-06-23
+(15 minutes)</div>
+<p>Self-verifying arithmetic systems like interval arithmetic have been
+known for a long time, but, despite the potentially enormous costs of
+undetected arithmetic errors, have never achieved wide adoption in HPC
+because of their high computational cost.  Could amortizing their cost
+over an array make them affordable?</p>
+<table>
+<tr><td></td>
+    <th>Data type</th>
+    <th>Numerical accuracy</th></tr>
+<tr><th>Static</th>
+    <td>Fortran, C, OCaml</td>
+    <td>Conventional numerical analysis</td> </tr>
+<tr><th>Dynamic</th>
+    <td>Lisp, Python</td>
+    <td>Conventional interval or affine arithmetic</td> </tr>
+<tr><th>Per-array dynamic</th>
+    <td>APL, Numpy</td>
+    <td><b>¿?</b></td></tr>
+</table>
+
+<h2>Dynamic typing is expensive</h2>
+<p>In Python, an operation like <code>x = a + b</code> requires run-time type checks
+on <code>a</code>, <code>b</code>, or both, to determine what sort of addition operation is
+appropriate.  In CPython, this check (and the ensuing indirections and
+other interpreter overhead) takes two orders of magnitude more time
+than the addition operation itself: on the order of 100 ns on my
+laptop.  By contrast, statically-typed languages with polymorphic
+arithmetic operations, such as C or Fortran, typically determine the
+type at compile time, so only the addition operation need be emitted,
+not the polymorphic dispatch.  (Some dynamically-typed language
+implementations have lower overhead; Ur-Scheme takes on the order of
+5 ns to do the necessary type check and the addition.)</p>
+<p>A faster alternative, in an untyped language like Forth or like
+typical assembly languages, is to use monomorphic arithmetic
+operations, requiring the programmer to specify the type variant in
+the source program.  In 16-bit Forths, for example, you would use <code>+</code>
+to do 16-bit integer addition and <code>D+</code> to do 32-bit integer addition,
+<code>&lt;</code> to do signed 16-bit comparison and <code>U&lt;</code> to do unsigned 16-bit
+comparison.  This is dangerous, not only because it creates an
+unnecessary opportunity to make a programming error, but also because
+common programming errors will produce wrong answers rather than error
+messages.</p>
+<p>Dynamic type checks not only dispatch to the appropriate method for
+polymorphic operations, they can also detect programming errors:</p>
+<pre><code>&gt;&gt;&gt; 3 + []
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+TypeError: unsupported operand type(s) for +: 'int' and 'list'
+</code></pre>
+<p>In a language designed to be unsafe, though, they may not:</p>
+<pre><code>$ perl -le 'print(3 + [])'
+40902451
+</code></pre>
+<h2>Static typing gives a conservative approximation of safety</h2>
+<p>Dynamically-typed languages like Lisp or Python make it easy to write
+a function that can take arguments of more than one different type;
+here is a function in Dercuano which can take either a Unicode string
+or a byte string as its second argument:</p>
+<pre><code>def vomit_html(output_filename, html_contents):
+    dirname, _ = os.path.split(output_filename)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    if isinstance(html_contents, unicode):
+        html_contents = html_contents.encode('utf-8')
+
+    with open(output_filename + '.tmp', 'w') as f:
+        f.write(b'&lt;!DOCTYPE html&gt;\n' + html_contents)
+
+    os.rename(output_filename + '.tmp', output_filename)
+</code></pre>
+<p>Static type systems generally disallow this kind of thing:
+<code>html_contents</code> must be either of type <code>unicode</code> or of type <code>bytes</code>
+but not whichever the caller provides.  Or, if it’s of type
+<code>basestring</code> (the superclass of those two types in Python 2), the
+compiler will probably complain when you try to concatenate it to a
+<code>bytes</code> value, since you can’t concatenate a <code>unicode</code> to a <code>bytes</code>.
+(Except in Python 2, where sometimes you can, depending on what’s in
+it.  Unicode in Python is a mess.)</p>
+<p>But in dynamically-typed Python, this code runs successfully; if
+<code>html_contents</code> starts out as a <code>unicode</code>, it gets safely <code>.encode()</code>d
+to a <code>bytes</code> before reaching the fateful <code>bytes</code> concatenation.</p>
+<p>So it’s reasonable to say that a hypothetical static type checker that
+would reject this code would be judging conservatively, perhaps too
+conservatively.</p>
+<p>Even a dynamic type system is in some sense conservative — presumably
+addition is side-effect-free, so computing a sum <code>x + y</code> should always
+be safe unless you use the result.  But Python will still raise an
+exception if <code>x</code> is 3 and <code>y</code> is <code>[]</code>, even if you weren’t going to
+use the result.</p>
+<h2>Static type systems usually aren’t entirely static</h2>
+<p>If you want to build a linked list in a low-level language, you might
+declare it like this:</p>
+<pre><code>struct intlist { int car; struct intlist *cdr; };
+</code></pre>
+<p>Typically, though, that <code>cdr</code> doesn’t necessarily point at a <code>struct
+intlist</code>; it points at either a <code>struct intlist</code> or <code>NULL</code>.  There is
+no <code>struct intlist</code> at <code>NULL</code> for <code>NULL</code> to point at, so it’s
+logically rather dubious to think of it as a <code>struct intlist *</code>.  But
+the rules of C make an exception for <code>NULL</code>.  (This isn’t strictly
+necessary; you could make your <code>intlist</code> circular and keep a pointer
+to its head so you know when you’ve come back round to it again.)</p>
+<p>This does impose an obligation on your program to include a test
+whenever it’s going to use the <code>cdr</code> field — it must first test to see
+if it is in fact a pointer to a <code>struct intlist</code> or if it’s <code>NULL</code>.
+In a sense, this is a “dynamic type test”, but it’s explicit in your
+program.  It’s also not safe, because C is not really designed for
+safety — a forgotten <code>NULL</code> check will crash your program.  (What’s
+surprising is that this is even worse in Java, which <em>was</em> designed
+for safety — just designed badly.)</p>
+<p>You can persuade OCaml to accept a similar declaration, but since
+OCaml lacks the implicit <code>NULL</code> escape valve, the only way to
+construct the value is as a circular list:</p>
+<pre><code># type intlist = Ints of (int * intlist);;
+type intlist = Ints of (int * intlist)
+# let rec x = Ints(3, x);;
+val x : intlist = Ints (3, &lt;cycle&gt;)
+# let rec a = Ints(3, b) and b = Ints(4, a);;
+val a : intlist = Ints (3, Ints (4, &lt;cycle&gt;))
+val b : intlist = Ints (4, Ints (3, &lt;cycle&gt;))
+</code></pre>
+<p>To define a nil-terminated list in OCaml in the usual way, you must
+make the alternatives explicit with a sum type; the easiest way to do
+this is as follows:</p>
+<pre><code># type intlist = Ints of (int * intlist) | NoInts ;;
+type intlist = Ints of (int * intlist) | NoInts
+# Ints(3, Ints(4, NoInts));;
+- : intlist = Ints (3, Ints (4, NoInts))
+</code></pre>
+<p>To access the values contained within your variant record, you need to
+use pattern-matching to test the variant tag and dispatch to the
+appropriate code for the variant in question, binding the values you
+want from within it:</p>
+<pre><code># let rec illen = function NoInts -&gt; 0 | Ints(_, cdr) -&gt; 1 + illen cdr ;;
+val illen : intlist -&gt; int = &lt;fun&gt;
+# illen(Ints(3, Ints(4, NoInts)));;
+- : int = 2
+</code></pre>
+<p>If you forget to handle the <code>NoInts</code> case, the compiler will complain.</p>
+<p>(N.B. you would never really define a monomorphic <code>intlist</code> type in
+OCaml, both because defining a polymorphic type is easier and because
+there’s a built-in polymorphic <code>list</code> type with syntactic sugar; but a
+realistic example would require more than one line of code.)</p>
+<p>Statically-typed object-oriented languages give you such a dynamic
+type-check implicitly as part of method dispatch, although a code
+example would be a bit more verbose.</p>
+<p>So statically-typed languages generally require some kind of way to
+behave differently based on the run-time type of an object, which is
+to say, its <em>dynamic type</em>, and this escape-valve mechanism can be
+more or less safe.</p>
+<h2>Interval arithmetic can catch numerical errors</h2>
+<p>There are a few different ways to use interval arithmetic.  The most
+common one is to dynamically detect numerical instability: by, for
+example, storing upper and lower bounds for each intermediate value,
+and executing each numerical operation in an algorithm at least twice
+with different rounding modes, the final result of an algorithm
+provides error bounds that give us an interval that is guaranteed to
+contain the correct result.  This ensures that no loss-of-precision
+bugs in the middle of the algorithm can result in spurious answers.</p>
+<p>By using non-zero-sized intervals for the algorithmic inputs, we can
+additionally detect <em>numerical instability</em>, a generalization of the
+phenomenon of ill-conditioned matrices.</p>
+<p>Interval arithmetic provides a conservative approximation of the
+correct answer; expressions such as <em>x</em>(<em>x</em>+1) will produce spuriously
+large error bounds.  For example, given that <em>x</em> ∈ [-0.5, -0.4],
+standard interval arithmetic calculates [-0.5, -0.4] · [0.5, 0.6] =
+[-0.3, -0.2], which is a proper superset of the precise answer
+<em>x</em>(<em>x</em>+1) ∈ [-0.25, -0.24] — an order of magnitude tighter.</p>
+<p>The same purposes can be served by the more sophisticated variants of
+interval arithmetic, such as affine arithmetic, reduced affine
+arithmetic, and modal interval arithmetic; these still compute
+conservative approximations of the precisely correct answer, but are
+more precise than standard interval arithmetic, usually at greater
+computational cost.</p>
+<p>Although catching numerical errors due to rounding and numerical
+instability is the most common reason to use such self-verifying
+arithmetic systems, it is not the only reason, and some of the other
+reasons actually improve performance rather than worsening it.
+Similarly, dynamic typing can be used not only to catch type errors,
+but also for the whole panoply of object-oriented program design
+techniques.</p>
+<h2>Numerical analysis can catch those same errors statically</h2>
+<p>Typically, though, the performance cost of any kind of interval
+arithmetic has been considered far too high, and instead we analyze
+our algorithms statically to verify that they are numerically stable.
+This is an even more conservative approximation than standard interval
+arithmetic, in the sense that if there are any inputs for which the
+program will produce meaningless outputs, even vanishingly unlikely
+ones, our numerical analysis will tell us so, and we will look for a
+different approach.</p>
+<p>Some problems, though, are numerically unstable for certain cases in
+ways that can’t be fixed by a clever algorithm — ill-conditioned
+coefficient matrices being an example from the problem of solving a
+linear system.  So, we put code into our subroutine to dynamically
+determine whether the inputs we’re processing constitute an unstable
+instance or not — whether they meet the prerequisites for stability
+our static analysis has found.</p>
+<h2>There are strong parallels between dynamic typing and interval arithmetic</h2>
+<p>So there are some important parallels between dynamic typing and
+interval arithmetic: both approaches catch dangerous bugs that could
+otherwise cause programs to output wrong answers; both are
+conservative in the sense that they catch all possible bugs in their
+class, at the expense of some false alarms; both cost a lot of runtime
+performance; both have static-analysis alternatives that eliminate the
+runtime performance cost but are even more conservative; and both of
+those static-analysis alternatives generally require an “escape valve”
+to dynamic checking at times.</p>
+<h2>People use Python in HPC now because Numpy amortizes the dynamic type checks over large arrays</h2>
+<p>Traditionally, Python was a non-option for high-performance numerical
+computing because of the performance cost of its dynamic typing, but
+nowadays, probably the majority of high-performance numerical
+computing is done in Python.  This is possible because of Numpy, which
+provides APL-like or Octave-like array operations:</p>
+<pre><code>In [2]: import numpy
+
+In [4]: x = numpy.arange(4); x
+Out[4]: array([0, 1, 2, 3])
+
+In [5]: x**2
+Out[5]: array([0, 1, 4, 9])
+</code></pre>
+<p>A Numpy array contains an arbitrary number of values of (usually!) the
+same data type, so the data type is an attribute of the whole array
+rather than the individual values:</p>
+<pre><code>In [6]: x.dtype
+Out[6]: dtype('int64')
+
+In [7]: (x/2).dtype
+Out[7]: dtype('float64')
+</code></pre>
+<p>Although Numpy arithmetic operations (like the <code>**</code> and <code>/</code> used here)
+are polymorphic, just like ordinary Python operations (only more
+so — for example, Python has one floating-point data type, while Numpy
+has four), they can amortize the single type-check over the entire
+array.  So, while Python might take 100 ns to square a float, Numpy
+can do it in 3.8 ns, if it has enough floats to chew on:</p>
+<pre><code>In [13]: y = numpy.arange(100000)/2
+
+In [14]: %timeit y**2
+1000 loops, best of 3: 378 µs per loop
+</code></pre>
+<p>That is, squaring a hundred thousand floating-point numbers took
+378 μs, about 2 μs of which is overhead from Numpy and CPython, so
+squaring each one takes 3.78 ns.  This is about five times slower than
+a C loop not using SIMD instructions would be on my machine, which is
+typical for Numpy; the loops inside its subroutines still have
+significant overhead, just much less than Python’s.</p>
+<h2>Can we analogously amortize run-time numerical analysis over large arrays?</h2>
+<p>What if these arrays carried not only numerical data type information
+with them but also some kind of conservative error bound, like a
+shared interval-arithmetic bound?</p>
+<p>For simple cases it’s easy to see how this could work: if x = [3.3 4.1
+2.7 0.028] ±5% and y = [1.0 1.5 0.8 0.005] ±4%, then we can compute x
++ y by adding them elementwise and tacking on the ±5%, the maximum of
+the two error bounds, as the new error bound.  (Plus an ε appropriate
+to the floating-point format to account for the possible error from
+rounding the result of addition.)  But that’s only because the values
+have the same sign; if they had opposite signs, you would get
+cancellation, and a 5% error in each of the original values might add
+up to a lot more than 5% of the sum.  You could calculate a
+catastrophic-cancellation factor in such cases and use it to inflate
+the error bound, and maybe you could have all-positive and
+all-negative boolean flags on your arrays, or even auxiliary max and
+min values, to avoid element-by-element inspection for catastrophic
+cancellation in most cases.</p>
+<p>Elementwise multiplication is even easier, since there are no such
+special cases — you can just multiply the error factors, 1.05·1.04 =
+1.092, and add the ε appropriate to your floating-point format.
+Division is no trickier, unless the error bars cross zero.</p>
+<p>But maybe some other form, other than a simple “±0.35%”, would be most
+suitable for matrix-matrix or matrix-vector multiplies.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/c.html">C</a> (28 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li><li><a href="../topics/arrays.html">Arrays</a> (17 notes)
+</li><li><a href="../topics/apl.html">APL</a> (9 notes)
+</li><li><a href="../topics/numpy.html">Numpy</a> (6 notes)
+</li></ul></div></html>

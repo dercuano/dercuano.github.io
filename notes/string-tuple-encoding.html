@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html><title>String tuple encoding ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>String tuple encoding</h1><div class="metadata">Kragen Javier Sitaker, 2017-04-28
+(2 minutes)</div><p>A number of algorithms and data structures depend on the
+lexicographical ordering of bytestrings; for example, tries, LevelDB,
+<code>LC_ALL=C /bin/sort</code>, the American Flag Sort, and suffix array
+construction algorithms.  These are often asymptotically higher in
+performance than alternatives based entirely on item-to-item
+comparisons, and often have better constant factors as well.  So it
+can be useful to find bytestring encodings of different abstract data
+types that preserves those data types’ natural orderings.</p>
+<p>There is existing work on this.  Dean Landolt’s <a href="https://github.com/deanlandolt/bytewise"><code>bytewise</code></a> is a
+library for encoding arbitary JS data structures as byte strings for
+just such purposes.  UTF-8 is an algorithm for transforming a sequence
+of Unicode codepoints into a sequence of bytes or vice versa, and it
+preserves lexicographical ordering in precisely the way I’m talking
+about here.</p>
+<p>This note, however, is about a specific subproblem: the problem of
+encoding a tuple of bytestrings as a bytestring while preserving
+lexicographical order.  That is, if the alphabet of bytes is <code>Σ</code>, we
+want an injective mapping <code>Σ**</code> → <code>Σ*</code> that is a homomorphism when we
+consider the elements of <code>Σ**</code> and <code>Σ*</code> as elements of a totally
+ordered set whose order is defined lexicographically.</p>
+<h2>Bytestuffing</h2>
+<p>The approach taken by <code>bytewise</code> for arrays is to encode them as an
+array type byte 0xa0, then each item followed by a NUL byte 0x00, then
+a final terminating NUL byte 0x00.  This is clearly correct if the
+encoded items in the array cannot contain NUL bytes, but of course
+they can if they themselves are arrays (or, as it happens, numbers,
+buffers, or some other types).  So <code>bytewise</code> bytestuffs the item
+encodings as follows: an embedded 0x00 as 0x01 0x01 and an embedded
+0x01 as 0x01 0x02, and symmetrically, but for other reasons, 0xff and
+0xfe are bytestuffed to 0xfe 0xfe and 0xfe 0xfd.  This correctly
+preserves the lexicographical ordering.</p>
+<p>The example currently given in the README is that <code>new
+Buffer('ff00fe01', 'hex')</code> encodes as (hex) 60ff00fe01, <code>'foo'</code>
+encodes as (ASCII) 'pfoo', <code>['foo']</code> encodes as (C) <code>"\xa0pfoo\0\0"</code>,
+and <code>[ new Buffer('ff00fe01', 'hex') ]</code> encodes as (hex)
+a060fefe0101fefd01020000.</p>
+<p>While this is correct, it has the disadvantage that, for a single
+level of bytestuffing, the worst-case encoded size is double the
+decoded size, and, as it happens, the encoding of a value needing
+bytestuffing will </p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/sorting.html">Sorting</a> (8 notes)
+</li><li><a href="../topics/bytestrings.html">Bytestrings</a> (3 notes)
+</li><li><a href="../topics/grt.html">Grt</a> (2 notes)
+</li><li><a href="../topics/asciibetical-homomorphism.html">Asciibetical homomorphism</a> (2 notes)
+</li></ul></div></html>

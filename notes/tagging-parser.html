@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html><title>Tagging parsers ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Tagging parsers</h1><div class="metadata">Kragen Javier Sitaker, 2018-11-23 (updated 2018-12-10)
+(9 minutes)</div>
+<p>See also <a href="../notes/minimal-imperative-language.html">Minimal imperative language</a>.</p>
+<p>I’ve written a <a href="https://github.com/kragen/peg-bootstrap">PEG parser generator</a> with inline semantic actions
+in itself; it was 66 lines of code, although it was fairly minimal.  A
+more complete implementation would be a bit longer.  An embedded DSL
+for Python that parses to syntax trees, called <a href="http://canonical.org/~kragen/sw/dev3/tack.py">Tack, was 27 lines of
+code</a>, but eliminating the extra crap from the syntax tree took
+<a href="http://canonical.org/~kragen/sw/dev3/tacktest.py">another 13 lines</a> on top of the grammar itself.</p>
+<p>Inline semantic actions have the difficulty that they are
+host-language-specific, so if you want to parse the same data format
+in different programming languages, you need to rewrite the grammar
+over and over again.  In today’s polyglot programming environment,
+this is a serious disadvantage for the development of grammar
+libraries over time, as each host language has its own private set of
+grammars.</p>
+<p>(And of course embedded DSLs have this problem to an even greater
+degree.)</p>
+<p>As an example grammar, consider this numerical expression grammar, in
+a very minimal PEG language:</p>
+<pre><code>sp &lt;- ' ' / '\n' / '\t'.
+_ &lt;- sp _ / .
+digit &lt;- '0' / '1' / '2' / '3' / '4' / '5' / '6' / '7' / '8' / '9'.
+digits &lt;- digit digits / digit.
+num &lt;- (digits ('.' digits / '.' / ) / '.' digits) _.
+i &lt;- num / '(' _ a ')' _.
+e &lt;- i '**' _ i / i.
+m &lt;- e ('/' / '*') _ m / e.
+a &lt;- m ('+' / '-') _ a / m.
+</code></pre>
+<p>If we have repetition <code>*</code> and nonempty repetition <code>+</code> in the language,
+we can simplify it a bit:</p>
+<pre><code>_ &lt;- (' ' / '\n' / '\t')*.
+digit &lt;- '0' / '1' / '2' / '3' / '4' / '5' / '6' / '7' / '8' / '9'.
+num &lt;- (digit+ ('.' digit* / ) / '.' digit+) _.
+i &lt;- num / '(' _ a ')' _.
+e &lt;- i '**' _ i / i.
+m &lt;- e (('/' / '*') _ e)*.
+a &lt;- m (('+' / '-') _ m)*.
+</code></pre>
+<p>This is more or less the example grammar I used for Tack, but the tree
+Tack builds for it includes all the whitespace and is tagged with all
+the nonterminals.  (Additionally, because Tack doesn’t support
+repetition, it associates the wrong way.)</p>
+<h2>XML</h2>
+<p>A possible solution that occurred to me was to put XML-like tags into
+your grammar, instead of relying on the nonterminals.  Then the
+parser’s job is merely to associate these tags with points in the
+input text.  For example:</p>
+<pre><code>_: (' ' | '\n' | '\t')*.
+digit: '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'.
+atom: &lt;num&gt; (digit+ ('.' digit* | ) | '.' digit+) &lt;/num&gt; _ | '(' _ a ')' _.
+e: &lt;exp&gt; &lt;base&gt;atom&lt;/base&gt; '**' _ &lt;pow&gt;atom&lt;/pow&gt; &lt;/exp&gt; | atom.
+m: &lt;term&gt; e (&lt;op&gt;('/' | '*' | '%')&lt;/op&gt; _ e)+ &lt;/term&gt; | e.
+a: &lt;sum&gt; m (&lt;op&gt;('+' | '-')&lt;/op&gt; _ m)+ &lt;/sum&gt; | m.
+</code></pre>
+<p>We can think of the parser as adding markup to the text.  In fact, we
+can actually implement it that way, if we like.  So, given the text
+<code>13 + 4 * 5 + 4 ** 3 * 1</code>, it will convert it to the following, with
+some liberty given to spacing:</p>
+<pre><code>&lt;sum&gt;
+  &lt;num&gt;13&lt;/num&gt;
+  &lt;op&gt;+&lt;/op&gt;
+  &lt;term&gt;&lt;num&gt;4&lt;/num&gt; &lt;op&gt;*&lt;/op&gt; &lt;num&gt;5&lt;/num&gt;&lt;/term&gt;
+  &lt;op&gt;+&lt;/op&gt;
+  &lt;term&gt;
+    &lt;exp&gt;&lt;base&gt;&lt;num&gt;4&lt;/num&gt;&lt;/base&gt; ** &lt;pow&gt;&lt;num&gt;3&lt;/num&gt;&lt;/pow&gt;&lt;/exp&gt;
+    &lt;op&gt;*&lt;/op&gt;
+    &lt;num&gt;1&lt;/num&gt;
+  &lt;/term&gt;
+&lt;/sum&gt;
+</code></pre>
+<p>This may not be the easiest way to read it, but it makes it super easy
+to apply stylesheets to it, and each span of text is tagged for the
+necessary processing.</p>
+<p>If we weren’t trying to look like XML, a terser and perhaps clearer
+syntax would be the following:</p>
+<pre><code>_: (' ' | '\n' | '\t')*.
+digit: '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'.
+atom: &lt;num digit+ ('.' digit* | ) | '.' digit+&gt; _ | '(' _ a ')' _.
+e: &lt;exp &lt;base atom&gt; '**' _ &lt;pow atom&gt;&gt; | atom.
+m: &lt;term e (&lt;op '/' | '*' | '%'&gt; _ e)+&gt; | e.
+a: &lt;sum m (&lt;op '+' | '-'&gt; _ m)+&gt; | m.
+</code></pre>
+<p>Or maybe with more C-like syntax:</p>
+<pre><code>_: (' ' | '\n' | '\t')*;
+digit: '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
+atom: num { digit+ ('.' digit* | ) | '.' digit+ } _ | '(' _ a ')' _;
+e: exp { base { atom } '**' _ pow { atom } } | atom;
+m: term { e (op { '/' | '*' | '%' } _ e)+ } | e;
+a: sum { m (op { '+' | '-' } _ m)+ } | m;
+</code></pre>
+<p>Or syntax chosen to be less noisy and more compact, using <code>;</code> for
+alternation, <code>{}</code> for grouping, <code>foo()</code> for tagging, and <code>.</code> for
+termination:</p>
+<pre><code>_: {' '; '\n'; '\t'}*.
+digit: '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'.
+atom: num(digit+ {'.' digit*; }; '.' digit+) _; '(' _ a ')' _.
+e: exp(base(atom) '**' _ pow(atom)); atom.
+m: term(e { op('/'; '*'; '%') _ e }+); e.
+a: sum(m { op('+'; '-') _ m }+); m.
+</code></pre>
+<h2>APIs</h2>
+<p>At the API level, aside from just generating some kind of
+S-expressions or XML, you could imagine either DOM-style or SAX-style
+interfaces.  SAX-style interfaces offer the possibility of rejecting a
+candidate parse from the host language; for example, when parsing C,
+you need to distinguish between type identifiers and other
+identifiers, which is beyond the powers of PEGs, but straightforward
+if the parser can call out to a host-language symbol table.  But this
+is somewhat more complicated than in real SAX, since it means we need
+to invoke host-language actions for tentative parses that may fail.</p>
+<h2>JSON</h2>
+<p>Nowadays, of course, JSON — arbitrarily nested dicts and lists, in
+Python parlance — is a much more popular data model than XML.  What
+would this expression grammar look like if it were to produce a JSON
+structure instead?  Maybe like this:</p>
+<pre><code>_ = (' ' | '\n' | '\t')*.
+digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'.
+atom = #(digit+ ('.' digit* | ) | '.' digit+) _ | '(' _ a ')' _.
+e = { type: `exp` base: atom '**' _ exp: atom } | atom.
+m = { type: `term` head: e factors: {rator: ('/' | '*' | '%') _ rand: e}+ } | e.
+a = { type: `sum` head: m terms: {rator: ('+' | '-') _ rand: m}+ } | m.
+</code></pre>
+<p>Here <code>{}</code> constructs a finite map (an “object”), <code>+</code> or <code>*</code> makes a
+list of each of the things it matched if they yielded some value
+(rather than just matching text), <code>#</code> converts the matched text into a
+number (perhaps overly specific to this purpose), <code>`backquotes`</code>
+enclose a literal string to be inserted into the JSON (rather than
+matched against the input), and <code>foo: bar</code> assigns the value produced
+by <code>bar</code> to the key <code>foo</code> in the object at hand.  Every element of the
+grammar parses to some value (usually a string) but in the absence of
+some capturing key, the value is discarded.  So the example <code>13 + 4 *
+5 + 4 ** 3 * 1</code> from before becomes the following:</p>
+<pre><code>{ "type": "sum"
+, "head": 13
+, "terms": [ { "rator": "+"
+             , "rand": { "type": "term"
+                       , "head": 4
+                       , "factors": [{"rator": "*", "rand": 5}]
+                       }
+             }
+           , { "rator": "+"
+             , "rand": { "type": "term"
+                       , "head": {"type": "exp" , "base": 4 , "exp": 3}
+                       , "factors": [{"rator": "*", "rand": 1}]
+                       }
+             }
+           ]
+}
+</code></pre>
+<h2>OMeta</h2>
+<p><a href="http://www.vpri.org/pdf/tr2007003_ometa.pdf">OMeta</a> has the following syntax:</p>
+<pre><code>meta E {
+  dig ::= '0' | ... | '9';
+  num ::= &lt;dig&gt;+;
+  fac ::= &lt;fac&gt; '*' &lt;num&gt;
+        | &lt;fac&gt; '/' &lt;num&gt;
+        | &lt;num&gt;;
+  exp ::= &lt;exp&gt; '+' &lt;fac&gt;
+        | &lt;exp&gt; '-' &lt;fac&gt;
+        | &lt;fac&gt;;
+}
+</code></pre>
+<p>It also supports ~negation and <code>kleene*</code> closure.  Note that it’s
+using left-recursion, which is generally fatal to PEGs, but they found
+a hack to Packrat parsing that allows it to work in cases like this
+one (though they never characterized cleanly which cases it worked
+for).  This allows them to easily get the right associativity in this
+case.</p>
+<p>They used inline semantic actions like peg-bootstrap, with
+postposition identifiers:</p>
+<pre><code>exp ::= &lt;exp&gt;:x '+' &lt;fac&gt;:y =&gt; `(+ ,x ,y)
+      | &lt;exp&gt;:x '-' &lt;fac&gt;:y =&gt; `(- ,x ,y)
+      | &lt;fac&gt;;
+</code></pre>
+<p>They also had inline semantic predicates:</p>
+<pre><code>largeNumber ::= &lt;number&gt;:n ?(&gt; n 100) =&gt; n;
+</code></pre>
+<p>And they took advantage of the angle brackets to provide parameters to
+parameterized productions:</p>
+<pre><code>cRange x y ::= &lt;char&gt;:c ?(&gt;= c x) ?(&lt;= c y) =&gt; c;
+... &lt;cRange 'a' 'z'&gt; ...
+</code></pre>
+<p>and they take advantage of this to hack a tokenizer into some of their
+grammars.</p>
+<h2>Perl6 regexes</h2>
+<p><a href="https://docs.perl6.org/language/regexes">Perl 6 regexes</a> permit things like this:</p>
+<pre><code>my regex header { \s* '[' (\w+) ']' \h* \n+ }
+my regex identifier  { \w+ }
+my regex kvpair { \s* &lt;key=identifier&gt; '=' &lt;value=identifier&gt; \n+ }
+my regex section {
+    &lt;header&gt;
+    &lt;kvpair&gt;*
+}
+</code></pre>
+<p>Here <code>&lt;header&gt;</code> is invoking the regex named <code>header</code>, and
+<code>&lt;key=identifier&gt;</code> invokes the regex named <code>identifier</code> and binds its
+results to the variable <code>key</code>, which would default to <code>identifier</code> if
+it weren't specified (so <code>&lt;header&gt;</code> saves the result under the name
+<code>header</code>.)</p>
+<h2>Inside-out quotes and inline definition (nested rather than flat)</h2>
+<p>The above suffers a bit from excessive quoting, especially in lines
+like this:</p>
+<pre><code>digit = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'.
+</code></pre>
+<p>Wouldn’t it be nicer to be able to write <code>0|1|2|3|4|5|6|7|8|9</code> as we
+can in regular expressions?  (In this case, of course, <code>[0-9]</code> or <code>\d</code>
+might be nicer still.)</p>
+<p>We could use a Perl-regexp-like notation in which alphanumeric text
+matches itself by default, without needing quotes, and uses
+non-alphanumeric characters to escape to metacharacter land.
+Furthermore we can embed our nonterminals within an expression.
+(Perhaps this is similar to Perl 6 patterns?)  This requires two
+different ways of tagging segments of the pattern; for example, we
+could use <code>&lt;&gt;</code> and <code>[]</code>.</p>
+<pre><code>[e &lt;exp &lt;base atom&gt; '**' _ &lt;pow atom&gt;&gt;; atom]
+</code></pre>
+<p>Or we could use capital and small letters.</p>
+<h2>AST rewriting</h2>
+<p>In addition to the DSL for defining PEGs, it might be useful to have a
+DSL for describing structural rewritings of ASTs in terms of
+pattern-replacement pairs.  It could use a pure tree-rewriting
+paradigm, but still support iterative computation.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/parsing.html">Parsing</a> (15 notes)
+</li><li><a href="../topics/automata-theory.html">Automata theory</a> (11 notes)
+</li><li><a href="../topics/pegs.html">Parsing Expression Grammars (PEGs)</a> (4 notes)
+</li><li><a href="../topics/ometa.html">OMeta</a> (3 notes)
+</li><li><a href="../topics/json.html">JSON</a> (2 notes)
+</li><li>XML</li><li>Perl 6</li></ul></div></html>

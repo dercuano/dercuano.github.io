@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html><title>Free software debugging ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Free software debugging</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(2 minutes)</div><p>Chapter 2 of Andreas Zeller's book "Why Programs Fail" describes the
+following life cycle for a software problem that involves a bug fix:</p>
+<blockquote>
+<ol>
+<li>The user informs the vendor about the problem.</li>
+<li>The vendor reproduces the problem.</li>
+<li>The vendor isolates the problem circumstances.</li>
+<li>The vendor locates and fixes the defect locally.</li>
+<li>The vendor delivers the fix to the user.</li>
+<li>[implicitly] The vendor delivers the fix to other users.</li>
+</ol>
+</blockquote>
+<p>One of the advantages of free software is that it often allows the
+following lifecycle instead:</p>
+<blockquote>
+<ol>
+<li>The user reproduces the problem.</li>
+<li>The user isolates the problem circumstances.</li>
+<li>The user locates and fixes the defect locally.</li>
+<li>The user publishes the fix so that other users can use it.</li>
+<li>The user informs the maintainer about the problem.</li>
+<li>The maintainer delivers the fix to other users.</li>
+</ol>
+</blockquote>
+<p>When the problem is sufficiently important to the user, this is much
+preferable to the traditional cycle described above; the time from
+step #1 to step #3 can often be minutes or hours instead of weeks,
+months, or years --- and many problems never get fixed, either because
+they're put in place deliberately by vendors, or because they're not
+important to the vendor.</p>
+<p>In addition to giving the user their bug fix more quickly, it also
+often reduces the total amount of work involved.  Zeller's steps #1
+and #2 often involve a lot of communication back and forth between the
+vendor and the user, as the user tries to supply enough information
+for the vendor to reproduce the problem, perhaps weeks or months after
+the fact, but without including any confidential information.  An
+omitted step (in both sequences) is prioritization of the problem,
+which is dependent (in Zeller's sequence) on the information provided
+by the user; if it appears to be a problem that doesn't affect many
+people, the vendor is likely not to bother to reproduce and isolate it
+quickly.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/politics.html">Politics</a> (39 notes)
+</li><li><a href="../topics/incentive-design.html">Incentive design</a> (5 notes)
+</li><li><a href="../topics/free-software.html">Free software</a> (3 notes)
+</li></ul></div></html>

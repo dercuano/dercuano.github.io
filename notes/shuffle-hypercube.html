@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html><title>Bitsliced operations with a hypercube of shuffle operations ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Bitsliced operations with a hypercube of shuffle operations</h1><div class="metadata">Kragen Javier Sitaker, 2016-11-30
+(2 minutes)</div><p>Doing bit-parallel operations with bit-parallel instructions on big
+bitvectors is a useful way to do computations with very high
+efficiency when you have enough independent computations.  Bringing
+together bits from different bitplanes requires some kind of
+bit-shuffling or transposition operations, but the question remains
+which of the involute number of possible permutations should be
+provided.  For example, if each of the 64 bits of a 64-bit output word
+can be a copy of any of the 64 bits of the input word, there are 64⁶⁴
+possible operations; specifying one of them would require 384 bits.</p>
+<p>In essence this is a new face of the “topomania” problem faced in
+parallel computer design in the 1980s and early 1990s, with bit
+positions in all the register taking the role of processors.  The
+typical early solution was a hypercube topology, in which, say, a
+1024-processor CM-1 would have 10 communication links per processor.</p>
+<p>This seems like a perfectly adequate solution to me.  Given a 256-bit
+register, 16 bit-shuffling operations suffice to construct a useful
+hypercube:</p>
+<pre><code>rot(0) exchanges even and odd bits, taking ...ABCDEFGH to ...BADCFEHG
+rot(1) exchanges even and odd bitpairs: ...ABCDEFGH → ...CDABGHEF
+rot(2) exchanges even and odd nibbles: ...ABCDEFGH → ...EFGHABCD
+rot(3) exchanges even and odd bytes;
+rot(4) exchanges even and odd wydes;
+rot(5) exchanges even and odd 32-bit words;
+rot(6) exchanges even and odd 64-bit words;
+rot(7) exchanges the two 128-bit halves of the register.
+</code></pre>
+<p>To these rot(n) operations we add copy(n) operations which discard
+half of the bits (say, the high half) instead of exchanging them:</p>
+<pre><code>copy(0): ...ABCDEFGH → ...BBDDFFHH
+copy(1): ...ABCDEFGH → ...CDCDGHGH
+copy(2): ...ABCDEFGH → ...EFGHEFGH
+</code></pre>
+<p>etc.</p>
+<p>It’s not very important, I think, which direction the copy operations
+copy; copy(n) ∘ rot(n) will copy in the other direction instead.</p>
+<p>I think this provides adequate routing facilities for many aggregate
+computations.  Together with an analogous set of instructions for
+filling registers with index bit patterns (…10101010, …11001100,
+…11110000, …) it should enable fairly general and efficient bit-sliced
+programming.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/instruction-sets.html">Instruction sets</a> (40 notes)
+</li><li><a href="../topics/parallelism.html">Parallelism</a> (8 notes)
+</li></ul></div></html>

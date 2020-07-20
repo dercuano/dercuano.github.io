@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html><title>Dercuano stylesheet notes ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Dercuano stylesheet notes</h1><div class="metadata">Kragen Javier Sitaker, 2019-04-28 (updated 2019-05-09)
+(72 minutes)</div><p>I wanted to spiff up the Dercuano display a little so that it would be
+pleasant to read, but more with the objective of being like a book
+than being like an advertising brochure.  [When I started writing
+this, the only CSS thing I’d done was give it a max-width to keep the
+lines from being 2000 pixels long.]</p>
+<p>But what does a book look like?  What does a good web page look like?
+Are they different?</p>
+<h2>Medium</h2>
+<p>Marcin Wichary of Medium wrote an article entitled, “Crafting link
+underlines on Medium,” in which he talks about how to get link
+underlines to work.  He describes a CSS hack using background images
+“synthesized <em>via</em>” gradients, and also describes a further hack using
+a white CSS text shadow to make it clear descenders, which they
+apparently don’t actually use — but Gwern does something like this,
+see <a href="#gwern">below</a>.</p>
+<p>I looked at Medium to see how they’re doing things.  They set the
+article title and article text in a serif font (falling back to
+Georgia if their proprietary font fails to load) and article section
+titles in a sans-serif font (falling back, similarly, to Helvetica);
+everything uses rgba(0, 0, 0, 0.84) except for the line underneath the
+title in gray and the pullquotes.  (0.84 is the fourth root of ½.)
+The article had a font-size of 21 pixels and a line-height of 1.4; the
+main article title had font-size of 46 pixels; and the subtitles were
+somewhere in between in size.  The subtitles were somewhat bold and
+left-aligned.</p>
+<p>The article section titles have some vertical whitespace around them,
+but I don’t remember how much.</p>
+<p>Article category links are at the end of the article in light gray
+boxes with rounded corners, generally all on the same line.</p>
+<p>They’re using a different serif font with Clarendon slab serifs for
+drop-caps, and to get hanging punctuation on paragraphs that open with
+open-quotes, they use a paragraph-opening-with-open-quotes class to
+set text-indent to -0.4em.</p>
+<p>The body text is set in a single column with a max-width of 700
+pixels, which works out to 33 ems.  It’s centered with <code>margin: foopx
+auto</code> at the appropriate level of nesting; inline images are also
+centered but in a wider column, so they can reach the margins on a
+small screen (Wichary pompously dubs this “our signature full-bleed,
+blurred images” in his post).
+Despite using a serif font like a real book, they use a
+ragged right margin, at least in Chrome — possibly a concession to the
+lack of hyphenation.</p>
+<p>At times they use thin spaces around their em dashes, as I do.</p>
+<p>Medium goes to some trouble to use hanging punctuation, like
+Gutenberg, but it only works sometimes.</p>
+<h2>Font files: ET Book!</h2>
+<p>I looked at downloading Noto to bundle, but Noto is humongous; the
+whole bundle is 1.1 GB, and even just a CJK ideograph bundle is 100+
+megs.  So I pretty much have to rely on system fonts for Dercuano,
+since keeping the download bundle self-sufficient and small is pretty
+much the whole point.  (Also, I can’t find a Noto subset that includes
+the Latin letters this text is written in.)</p>
+<p>Later, though, on <a href="https://fernandoi.cl/blog/posts/altair/">Fernando Irarrázaval’s blog</a>, I found the ET Book
+Bembo-like font family, which has been released under the MIT license
+by Edward Tufte and its authors, Dmitry Krasny and Bonnie Scranton.
+The four fonts I’m including, three of which I’m using, gzip to 180K,
+even though they cover all of Latin-1, plus a bit more!  And it’s
+beautiful, especially the italic, and it has old-style figures.  It
+even has ligature glyphs, although mysteriously the browser doesn’t
+use them, apparently because the font isn’t specifying the necessary
+context rules.</p>
+<p>So I’ve switched to ET Book.  But the 22px size I was using before
+(DejaVu Serif, the system default) is a lot bigger than the 22px size
+of ET Book.  The equivalent ET Book size is nearly 28px.  Now DejaVu
+Sans Mono looks dramatically oversized, its x-height being nearly as
+tall as the Antiqua capitals.  So I twiddled several things to
+compensate:</p>
+<ul>
+<li>I used ET Book 26px as the default, reducing the line-height from
+  1.5 to 1.4 to compensate;</li>
+<li>I reduced <code>&lt;pre&gt;</code> and also <code>&lt;code&gt;</code> to font-size: 80%;</li>
+<li>I shortened max-width from 45em to 35em.</li>
+</ul>
+<p>These are somewhat suboptimal if ET Book doesn’t load for some reason
+(maybe your browser doesn’t support .ttf webfonts, although Firefox
+and Chromium do,
+or if you’re experiencing a Firefox bug, as I think I am at the moment)
+but not catastrophic.  In particular the line length
+in ET Book is a little longer than I would like so that it's not
+uncomfortably short if ET Book fails to load.</p>
+<p>Characters not covered by ET Book are typically problematic, e.g., the
+lowercase Greek in the title of <a href="../notes/plato-inferior.html">Plato was not particularly democratic; ἄρχειν is not “participating in politics”</a>, because they
+are taller, wider, bolder, and have less stress than ET Book, at least
+on my machine.  I’m not sure what to do about that; shipping Cardo is
+not an option, as it would add a megabyte or more to the package size.
+I might be able to scale the letterforms and bearings in ET Book by
+125% to fix it (and undo the stylesheet changes).</p>
+<p>The biggest coverage problem is the numeric superscripts: ⁰¹²³⁴⁵⁶⁷⁸⁹.
+ET Book covers ¹²³, while the others come from a fallback font, with
+fairly disastrous effects on the readability of things like “<em>x</em>⁶²”,
+which looks more like “<em>x</em><sup>6<sub>2</sub></sup>” than the intended
+“<em>x</em><sup>62</sup>”.</p>
+<p>Mark Shoulson points out that in addition to lacking ligature tables,
+leading to the same missing ligatures I complain about in <em>The Grammar
+of Graphics</em>,
+the font also lacks kerning tables, leading to kerning that looks precisely
+like the kerning I complain of below in <a href="#ticktock"><em>Tick, Tock</em></a>.</p>
+<h2>Books</h2>
+<p>There’s an interesting question as to whether type should be larger or
+smaller on a computer screen than in a book.  On a computer screen, of
+course, you never run out of paper; the “paper” is free; so maybe you
+should use larger type.  But often the screen is smaller than a
+two-page spread in a book, and if you have two books open at once they
+have to share the same screen; so maybe you should use smaller type.
+But often the screen is of much worse resolution, so maybe you should
+use larger type.  And maybe the screen is further away, so maybe you
+should use larger type.</p>
+<p>But probably the differences from standard book practices for books
+should be justifiable.  For example, books don’t have to be readable
+on a cellphone screen, and when they can take advantage of color or
+even grayscale, it adds substantial extra cost, and it suffers a
+substantial loss of resolution due to halftoning.  Furthermore,
+printing with movable type <em>on top of</em> a color or even grayscale
+background, as opposed to inserting figures, is basically impossible.
+So there might be reasons other than imitating sales brochures for
+using color.</p>
+<p>In the other direction, common browsers (notoriously Chromium) still
+don’t do hyphenation, and their paragraph-filling algorithms are
+minimialistic at best, and justification in browsers never adds
+letter-spacing, so enabling justification in CSS gives you wildly
+varying word spacing, which looks shitty.  So if you’re targeting web
+browsers you need to suck it up and accept ragged right margins.  Or,
+if you’re sufficiently eccentric, ragged left or ventilated prose.</p>
+<p>The rigors of five and a half centuries of metal type printing,
+concurrent with the birth of capitalism, salutary as they have been
+for human attempts at civilization, have not been kind to typography.
+The aesthetic experience of reading has been compromised by first one
+and then another vulgar commercial innovation — lining numerals,
+sans-serif fonts, copyright, typewriter fonts, banner ads, paywalls,
+product placement — while the limitations of metal type have been
+embraced as virtues by generations of typographers.  Rubrication is no
+longer red, but black, and color is indeed omitted almost entirely;
+swashes are rare flourishes; illustrations are separated from text by
+rigid rectangular borders and even omitted altogether; drop caps and
+other initials are abjured or relegated to extreme rarity, perhaps one
+per thousand pages; border ornamentation is minimal when it is present
+at all; marginalia are omitted; justification of lines can only be
+done by altering spacing rather than stretching glyphs; letters are
+present only in one to four sizes rather than a full variety; etc.</p>
+<p>The major overall limitation, really, is that in movable-type
+printing, things cannot overlap.  Swashes cannot overlap other letters
+or margins; words cannot protrude into margins; text blocks cannot
+overlap illustrations; descenders of one line cannot overlap ascenders
+of another, creating a pressure toward greater and greater x-heights,
+destroying much of the beauty of minuscule; diacritics cannot overlap
+multiple letters; and only through the hacks of kerning and ligatures
+could we even get reasonable spacing for most letter combinations
+involving capitals and “f”.</p>
+<p>To be sure, these last centuries have brought beneficial innovations
+as well.  The ample use of whitespace to improve readability,
+beginning with division into paragraphs; boldface for scannability;
+the elimination of scribal abbreviations, and especially the
+abominable Tironian notes, which saved precious parchment at the price
+of promoting ignorance among the people; the improved calligraphic
+quality of commonplace fonts over all but the best scribal
+calligraphy; photographic printing; four-color halftoning; data plots,
+and especially the work done by Tufte to improve them; algorithmic
+rendering; the modern language of mathematical formulas; hyperlinks;
+simulation; animation; interactivity; but most of all, mechanical
+reproducibility.</p>
+<h3><em>T<sub>E</sub>X: the Program</em></h3>
+<p>This book is arguably some kind of referent for readable typesetting,
+but maybe not the copy of it I’m looking at.  On my monitor at a
+comfortable zoom, the line spacing in its paragraphs is about 32
+pixels, the x-height is about 11 pixels, and the spacing of lowercase
+“m”s is about 25 pixels; and a line is about 1350 pixels wide, which
+is a bit wide for my taste (about 19 words per line!) but certainly
+helps with the justification.  And the paragraphs in the book are
+mostly very short, so long lines don’t impede readability as much as
+they might.</p>
+<p>If we take the font size (1 em) to be nominally 24 pixels, that works
+out to a CSS line-height of 1.33 (ems), a width of 56.25 ems, an “m”
+of 1.04 ems, and an x-height of 0.46 ems, which is pretty readable.</p>
+<p>At this zoom, the page is 285 mm wide, which is 1.36× the 210-mm width
+of A4 paper and 1.32× the 216-mm width of US letter-size paper it was
+most probably formatted for, and those 1350-pixel lines are 217 mm
+wide, which is 161 μm per pixel (158 dpi).  We can conclude that the
+book was set in type of around 24 pix · 1.32 · 161 μm/pix = 5.1 mm =
+14.5 PostScript points.</p>
+<p>Each section (of which most consist of a single paragraph) begins with
+a boldfaced paragraph number for hyperlinking, and some of them also
+include a boldfaced topic for that “part”, which is typically several
+pages’ worth, and begins at the top of a new page.  This inline “part
+header” is the same size as the rest of the text.  Between sections,
+there is a blank space (a vertical skip) of about a line in height,
+and there is a smaller vertical skip between text and code.  Code is
+annotated below with a backlink in smaller type: “This code is used in
+section 726,” and sometimes also, “See also sections 20, 26, ...”.
+The smaller type is reduced in size by about a factor of 1.4.</p>
+<p>There is no further rubrication other than the index and table of
+contents at the end of the book.</p>
+<h3 id="ticktock"><em>TickTock</em></h3>
+
+<p>This is a Dean R. Koontz thriller, or possibly a comedic satire of
+thrillers.  The copy I have here is a Ballantine paperback, justified
+with narrow margins (9 mm) in a traditional curved-serif font, with
+paragraph indents and no extra vertical space between paragraphs.  The
+apostrophes are poorly kerned with too much space to their right;
+combinations like “ov”, “Vi”, and “To” are also kerned,
+or rather not kerned, with too much
+space — perhaps if Koontz had known his book would be printed like
+this, he wouldn’t have named his main character “Tommy”.  There are 32
+lines per page; the last 31 of them measure 147 mm
+in total height, giving 4.7 mm or
+13.4 PostScript points per line; the spacing between letters “m” is
+about 4.0 mm or about 11 points.  This suggests that the book is set
+in 12-point type with about an extra 0.12 ems of leading between the
+lines.</p>
+<p>This book was printed in 1996, so it doesn’t have any vertical
+typewriter quotes; all of its quotes and apostrophes are of the proper
+9, double 6, and double 9 types.</p>
+<p>Each page holds about 290 words, which works out to 9.1 words per
+line; within paragraph bodies (excluding indents and last lines) the
+average is closer to 10.
+The lines measure 85 mm wide, which would be 20 ems if my 12-point-type
+guess above is correct.
+Typically there are zero to two hyphenations
+per page, so at times the word spacing is a bit uneven, but the
+average word length is pretty short, so it’s not as bad as you’d
+think; to illustrate the word length, here’s a randomly chosen
+paragraph on p. 210:</p>
+<blockquote>
+<p>“But I <em>don’t</em> believe they come all the way across the galaxy to
+kidnap people and take them up in flying saucers and examine their
+genitals.”</p>
+</blockquote>
+<p>There are abundant italics, but outside of titles, there is no
+boldface.</p>
+<p>The main book title on the title page (in bold capitals) has a
+line-height of about 15 mm (43 points), and the author’s name is set
+below it (in bold capitals) with a line-height of about 11 mm (31
+points).  Each chapter title (“ONE”, “TWO”, “A NOTE TO THE READER”,
+etc.) is set (in bold capitals) with a line-height of about 7 mm,
+underlined with the same small illustration.  Chapter titles start on
+new pages, but many start on even pages, leaving no pages blank.
+Other than page headers, there is no other rubrication or division in
+the book, such as horizontal rules or lines of asterisks.</p>
+<p>The book feels a bit crowded with its 2-em margins, short lines,
+narrow leading, and no vertical skips.  But I suppose lulling you into
+too much tranquility would defeat the purpose of the book, as well as
+cutting into Ballantine’s profits with extra paper costs.</p>
+<h3><em>The Grammar of Graphics</em></h3>
+<p>This is a recent (2005) semi-academic book published in hardcover by
+Springer, with, unusually, bright white glossy paper and
+color — apparently finely halftoned CMYK, on every page.  That’s
+because it’s a treatise on the visual display of quantitative
+information, and the authors have dedicated a great deal of care to
+its visual appearance; they set it in Times Roman and Times Italic
+with FrameMaker.  There is a strong hierarchical structure to the
+book, with numbered section headings that frequently run four levels
+deep (“<em>6.2.5.3 Fisher’s z Scale</em>”), which are all in Times Italic.
+There are occasional subheadings before level-4 headings, which are not
+numbered.  Paragraphs are indented (except when following a heading)
+and justified, but with no extra vertical skip between them.</p>
+<p>There are about 46 lines per page, although there is extra leading
+around headings, figures, equations, and blockquotes, and the text
+never runs for an entire page without being interrupted with headings,
+figures, equations, or blockquotes.  Lines are 115 mm long, typically
+containing about 12–14 words, and the lines within a single paragraph
+are rather tight; 10 lines are 40 mm high, giving 4.0 mm or 11.3
+points as the line height, and the escapement of an “m” also measures
+4.0 mm.  (XXX apparently it’s more like 3.0 mm?)  Hyphenation is quite
+frequent, so whitespace is very consistent despite justification.
+Margins are a generous 20mm to the sides and 22mm at the bottom of the
+page; the top margin below the page heading is smaller, more like 9mm,
+but there’s another 15mm above the page heading.</p>
+<p>This suggests that the text is set in 11-point Times Roman with no
+leading and 30-em lines.</p>
+<p>Level-1 headings (“14. Time”) are chapter headings.  The chapter
+number is set in bold italic with a line height of about 16 mm
+(44 pt), while the chapter name is set below it below an 8-mm skip in
+medium italic at about 8 mm (22 pt).  Both of these parts of the
+heading are right-aligned.  The page heading above the chapter title is
+omitted, and blank pages are used to ensure that chapters always begin
+on odd pages.  Below the chapter heading, there is a skip of some 24 mm
+above the body text.</p>
+<p>Level-2 headings (“14.1 Mathematics of Time”) are set in italic, with
+the heading number in bold, and are set somewhat larger than the body
+text, perhaps twice the point size (8 mm, 22 pt), though it seems to
+be about 25% smaller than the chapter title somehow.  There is only a
+small extra skip below them, but about a one-line skip above them.
+There is an extra large space, about a quad, between the number and
+the title; they also do this after bullets in bulleted lists, and
+Knuth also did it after section numbers.</p>
+<p>Level-3 headings (“14.1.1 Deterministic Models of Time”) are set in the
+same bold/bold-italic combination of styles, but in a slightly smaller
+font-size, again by about 25%, but still about a 50% larger point size
+than the body text.  These <em>do</em> have extra leading below them, though
+less than above.</p>
+<p>Level-4 headings (“14.1.1 Orbits and Vibrations”) are set entirely in
+bold italic, and the body text is smaller than they are by about 25%.
+Perhaps the bold is intended to add contrast with the body text to
+compensate for the smaller difference in size, or perhaps bold was not
+used in the larger titles simply to avoid overwhelming the reader.
+Again, they have extra leading above and below.</p>
+<p>Level-5 subheadings (e.g., “Updates” on p. 438, within §14.3.3.1
+“Data”) are the same size and with apparently the same leading as
+level-4 headings, but without numbers.</p>
+<p>FrameMaker’s typesetting of the equations is very much inferior to
+T<sub>E</sub>X’s, with poor kerning, parentheses that fail to enclose
+and whose line thickness never varies (though that of the letters and
+digits does), and so on.  Aside from that, though, its layout is much
+the same.</p>
+<p>The leading above headings, of course, goes away when they are at the
+top of a page.</p>
+<p>They use a monoline sans-serif font for the names of their data
+series.</p>
+<p>Figures are captioned below in italic; text never flows around
+figures.</p>
+<p>I think a good approximation of the layout can be expressed as follows:</p>
+<ol>
+<li>Body text is 11-point Times Roman with 30-em justified paragraphs.
+   Paragraphs that don’t follow headings are indented by two ems.  Body
+   text has no extra leading, even between paragraphs.</li>
+<li>The text sizes of headings of levels 4, 3, 2, and 1 are a geometric
+   progression ending at 22 points; this would make them 13.1-point,
+   15.6-point, 18.5-point, and 22-point, or, expressed in ems of the
+   body text, 1.19 ems, 1.41 ems, 1.68 ems, and 2.0 ems.</li>
+<li>Except that chapter numbers are on a separate line in 44-point text.</li>
+<li>Chapter headings are right-aligned with page breaks to an odd page
+   before them.  All other headings are left-aligned with leading above
+   them equal to their line-height and leading below equal to the
+   line-height of the body text.</li>
+</ol>
+<p>Occasionally two headings (of different levels) occur in succession.</p>
+<p>Although the fonts used are pretty nice, and the layout and design are
+reasonable (aside from the truly lamentable formulas), the text is
+mysteriously entirely missing ligatures; “fi” and “ffi” do not appear
+as joined “ﬁ” and “ﬃ” as they should.</p>
+<h3><em>How to Make a Telescope</em></h3>
+<p>This is a 1957 English translation, published in the US by
+Interscience Publishers, of Jean Texereau’s 1951 French text <em>La
+construction du télescope d’amateur</em>.  This copy was apparently
+acquired by the Northtown–Shiloh Library in Dayton in 1958 (and
+rebound by The Kalmbacher Bookbinding Co., in Toledo), so it was
+probably printed in 1957.  Like <em>Grammar of Graphics</em>, it’s printed
+entirely on glossy paper, although it’s yellowed a bit in the ensuing
+60 years; the purpose is again fine halftoning, but this time only in
+black and white.</p>
+<p>Its body text is set in a serif font
+in justified paragraphs with about twice as much space
+after periods and colons as between words.  The paragraphs
+occasionally have figures centered in the middle of them; they never
+flow around figures, and they are all indented, by about three or four
+ems.  More surprisingly, section headings within chapters (“II-18.  The
+Polishing Operation” — bold, in the same size as the body text, with
+leading below and even more extra leading above) are also indented by
+the same amount as the paragraphs.  10 lines occupy 42 mm, so the line
+spacing is 11.9 points — might as well call it 12 points.</p>
+<p>The chapter titles (“II.  Making the Main Mirror”) are preceded by
+page breaks to put them at the top of an odd-numbered page, and with a
+page-width vertical rule underneath the (right-justified) Roman
+numeral, below which is a vertical skip of some 17 mm, and
+right-justified, given extra letter-spacing, in a sans-serif font, in
+all capitals, in a somewhat larger text size (perhaps 16 points rather
+than 12), is the title.  Beneath the title is another 20mm of leading
+and then the section heading of the first section of the chapter.</p>
+<p>The Roman numerals at the openings of chapters are still larger than
+the chapter titles themselves; perhaps they reach 24 points.</p>
+<p>Some of the numbered sections are contain unnumbered subsections,
+indicated in the table of contents; the subsection titles occur at the
+beginning of a paragraph in italic.</p>
+<p>References are given in footnotes in a somewhat smaller font, perhaps
+9 pt.</p>
+<p>Data tables are captioned above in all capitals (in the same font as
+the body text) and divided into sections with page-width horizontal
+rules.  Columns are separated by whitespace with no rules.  Figures
+are captioned below in the same smaller font used for footnotes.</p>
+<h3><em>The Palmer Method of Business Writing</em></h3>
+<p>This book was published in 1915; <a href="https://archive.org/details/palmermethodofbu00palmrich">the copy I’m looking at</a> was
+digitized from the collection of the University of California, and I
+downloaded the DjVu from the Internet Archive.  A Microsoft watermark
+contaminates every page.  It’s a penmanship textbook.  Both its layout
+and its textual tone are considerably more bombastic than the other
+specimens I looked at above.</p>
+<p>I don’t have a reliable way to determine its absolute size, since I
+have only a DjVu scan.</p>
+<p>Sans-serif fonts make no appearance whatsoever, except possibly in the
+legend on the original book cover, “THE A. N. PALMER COMPANY, New
+York, …”, which I can’t be sure of because DjVu has corrupted it too
+badly.  The book is full of black-and-white photos (presumably
+halftoned) and illustrations (which are not); at times the text flows
+around them, but usually they are placed above and below the text.</p>
+<p>The pages are, unusually, in landscape orientation, and seem to have
+been bound on a short edge; the ratio is about 5 parts length to 3
+parts height.  Although the typography is somewhat inconsistent, often
+varying in the body text size from page to page, it is mostly set in
+two columns, with extra spacing separating sentences
+(plus spaces inside quote marks), but
+headings and most of the abundant illustrations span both columns.
+Occasionally body text also spans both columns, typically for very
+short sections.  Boldface is used liberally, for all the headings and
+occasionally for emphasis in the body text, while italic is entirely
+absent.</p>
+<p>The body text is set fairly tight with no apparent leading.  The
+columns are about 35 ems wide, and separated by about two ems.  The
+paragraphs, even the first, are indented by about three ems, and are
+of course justified, with only very occasional hyphenation, resulting
+in substantial variation in word spacing.  Occasionally there is a
+vertical skip of a line or so between paragraphs, but not usually.
+Evidently no concern has been given to preventing widows and orphans,
+as they occur frequently, while unequal column lengths never occur at
+all.</p>
+<p>The headings found throughout the book (“LESSON 80”, “Drill 95”) are
+centered and boldfaced.  Typically each section has a title (“LESSON
+76”) which may be broken onto two lines (“LESSON 70”, “Drill 85”) or
+written on a single line with an em dash, and may sections also have a
+subtitle (“TO RELIEVE MUSCULAR TENSION”); the subtitle is about 1.5
+times the point size of the body text, and the title is about 1.5
+times larger than that.  These headings have equal and miserly leading
+above and below.</p>
+<p>Semantically the “Drills” are subordinate to the “lessons” in the
+sense that some lessons contain more than one drill, and may contain
+other sections, whether or not headed by what I’ve called a
+“subtitle”, that aren’t part of a “drill”.</p>
+<p>Many pages have a centered boldface injunction at the bottom in the
+same point size as the body text, saying things like, “It is not
+Palmer Method if the lines are tremulous.  Study the instructions for
+speed requirements.”  On p. 19 instead this same injunction is
+repeated in large boldface type at the top of the page, with the
+period removed so it will fit.  Truly, the typographic crimes of this
+manual are manifold.</p>
+<p>Some paragraphs, though indented as usual, begin with an inline heading
+in boldface followed by an em dash or colon:</p>
+<blockquote>
+<p><strong>Height</strong>—Reference has already been made to one-sixteenth of an</p>
+<p><strong>To the teacher:</strong>  If you have studied the lessons in advance, have</p>
+</blockquote>
+<p>As an interesting side note, where arrows are present in the diagrams,
+they are fletched.</p>
+<h3><em>Standard Handbook for Electrical Engineers</em></h3>
+<p>This is the <a href="https://archive.org/details/standardhandbook00fowluoft">1922 Fifth Edition</a>, scanned from a copy at the University
+of Toronto library.  It’s printed by The Maple Press of York, PA, but
+copyright by the McGraw–Hill Book Company.</p>
+<p>It does use italics, as well as small caps, but still has no
+sans-serif fonts.</p>
+<p>The book is divided into “sections” rather than “chapters”.  Section
+titles are centered, bold, in all caps, with extra letter-spacing and
+a largish vertical skip above them, and a short centered horizontal
+rule below them above the subtitles, if present, and body text.  The
+title is about 1.5 times the point size of the body text.  Paragraphs
+are indented (by about one em), even the first, and justified with
+generous hyphenation, and line spacing is somewhat loose.  Margins are
+very narrow (on p. 377 the operator scanned their finger, and much of
+the material near the spine is lost to the Scribe’s glass join).
+There is extra spacing between sentences,
+and quotes seem to be concatenated apostrophes,
+perhaps with extra whitespace inside of them.  There are places where
+letter-spacing is compromised for the sake of justification, as on
+p. 62.</p>
+<p>(Because p. 19 has a ruler printed on it, I can report an absolute
+text size for this book: at “300%” zoom, 30mm of the original book is
+58mm on my screen, so the actual zoom is 193%.  9 lines of body text
+being 37 mm on my screen means that they were 19.1 mm in the original
+book, so the body text was printed at the minuscule size of 6
+PostScript points!)</p>
+<p>Section subtitles are centered, bold, in all caps, at a size
+intermediate between that of the body text and the section title, so
+about 1.2 times the point size of the body text.  At times there is an
+additional sub-subtitle in centered italics at the normal body text
+style.  There is some inconsistency.  We have:</p>
+<p><center></p>
+<blockquote>
+<p><strong>SECTION 2</strong>  </p>
+<hr />
+<p><strong>ELECTRIC AND MAGNETIC CIRCUITS</strong><br />
+<strong>BY VLADIMIR KARAPETOFF,</strong><br />
+<em>Professor of Electrical Engineering, Cornell University, Fellow,
+American Institute of Electrical Engineers</em><br />
+<strong>CONTENTS</strong>
+</center></p>
+</blockquote>
+<p>Here “SECTION 2” is what I’ve been calling a “section title”,
+“ELECTRIC AND MAGNETIC CIRCUITS” is formatted at the same point size
+but bolder and without the extra letter-spacing; the author’s byline
+is formatted at the intermediate font size I called a “subtitle”
+before; his credentials are centered, wrapped, in italics; and
+“CONTENTS” is formatted as a subsection heading as described later.
+But then, on the next page, we have:</p>
+<p><center></p>
+<blockquote>
+<p><strong>SECTION 2</strong>  </p>
+<hr />
+<p><strong>ELECTRIC AND MAGNETIC CIRCUITS</strong><br />
+<strong>ELECTRIC POTENTIAL</strong>
+</center></p>
+</blockquote>
+<p>And here we have returned to the formatting I described above: section
+title, rule, subtitle, subsection heading.</p>
+<p>Sections are mostly divided into subsections, which have their own
+(centered, bold, all-caps) headings, usually at the same point size as
+the body text, with a little extra leading above and
+below — especially above, in cases where the page is a bit loose.  In
+some cases they use a larger font, as on p. 576, and may have a
+subsection subtitle (centered, all-caps, bold, at the size of the body
+text), as on p. 897, where it gives the author’s name.</p>
+<p>Within the body of the book, paragraphs are numbered and begin with a
+boldface title, which sometimes forms part of a sentence, e.g.,
+“<strong>5. The English weights and measures</strong> are based upon old Roman
+weights and measures.”  Paragraph numbering does not restart after
+subsection headings.  At times the numbering becomes hierarchical,
+perhaps to maintain numbering compatibility across editions, with
+numbers such as <strong>2.</strong>, <strong>3(a₁)</strong>, <strong>3(b₂)</strong>, and <strong>3(B)</strong>, which
+inexplicably comes between paragraphs <strong>3(b₂)</strong> and <strong>3(c₁)</strong>.
+Hyperlinks between paragraphs also use bold for the paragraph number:
+“(Par.<strong>102</strong>).”  In the introductory part, a larger text size is
+used, making the paragraphs about 25 ems wide, but in the body of the
+book, the paragraphs are about 32 ems wide due to their smaller font
+size.</p>
+<p>Occasionally an numbered “paragraph” is divided into multiple
+typographical paragraphs, each indented and commonly with a boldface
+title.</p>
+<p>Text flows around figures, which are captioned below and numbered
+using small caps for the abbreviation “Fig.”.  The caption is
+typically formatted as a wrapped centered paragraph, but sometimes
+justified.</p>
+<p>Footnotes are used frequently to cite sources, separated from the body
+text on the page with a page-width horizontal rule; they are not
+numbered but use the symbols *, †, ‡, §, ||, ¶, and then **, ††,
+etc.  In other cases sources are simply cited in the body text, or in
+a bibliography at the end of a section.  (In one case Simpson’s Rule
+is given in a footnote stretched across two pages.)</p>
+<p>Equations are centered, inserted into the middle of sentences with no
+extra leading, and some of them are numbered on the right.  The line
+before the equation is not justified, as if it ended a paragraph
+(difficult to avoid in cases where it consists simply of, say, “or”,
+as on p. 59), but the line after it is not indented, and typically
+continues the sentence containing the equation.  In some cases, the
+line with the equation ends with a comma or semicolon that forms part
+of the sentence.</p>
+<p>Amusingly, integrals are sometimes written using “∂” for the
+differential, sometimes written with an italic <em>d</em>, and sometimes omit
+the differential entirely.</p>
+<p>Boldface is used within paragraphs for emphasis, perhaps to aid
+skimming:</p>
+<blockquote>
+<p><strong>11. The meter</strong> was selected as a length equal to the <strong>ten
+millionth part</strong> of the <strong>northern quadrant of the earth</strong>, or
+distance from pole to equator…</p>
+</blockquote>
+<p>Page headers have the section title, centered in italic caps, and on
+the side away from the fold, give the section and paragraph numbers in
+bold, e.g., “Sec. 1—5 <em>UNITS, FACTORS, AND TABLES</em>” or “<em>UNITS,
+FACTORS, AND TABLES</em> Sec. 1–11”.</p>
+<p>Extra leading is often but not always used between paragraphs, perhaps
+to stretch the page to the right height; in these cases extra leading
+is also used above subsection headings, as mentioned above.</p>
+<p>Ordered lists are usually indicated with parenthesized italic letters
+(<em>a</em>) (<em>b</em>) (<em>c</em>) and occasionally with numbers and periods
+1. 2. 3. or numbers with parentheses (1) (2) (3).  Occasionally they
+are split into a paragraph (not part of the normal paragraph
+numbering) per item, and those paragraphs are indented as usual.
+Occasionally, as on p. 1505, the list items are given a hanging indent
+of another couple of ems (so the first line is indented by one em and
+subsequent lines by three), and even nested lists are found, with the
+nested list items indented to an intermediate level.  No extra leading
+is used in any case.  Bulleted lists do not occur.</p>
+<p>Tables generally use both horizontal and vertical rules to separate
+rows and columns, broken at intersections, and are usually printed in
+landscape mode.  They are numbered and captioned in bold above.  Table
+column and row headings are centered but otherwise use the same
+typography as table contents.  Table section headings (spanning all
+columns) are additionally boldfaced.  In some cases, instead of
+horizontal rules, they use dot leaders, or are split into five-row
+groupings using whitespace.  Table borders are heavier rules.
+Numerical table columns are usually decimal-point-aligned, using
+lining (“capital”) figures.  Sometimes table contents are flowed
+across multiple “supercolumns” separated by double vertical rules.</p>
+<p>The mini-table of contents at the start of section 2 is split into two
+columns and uses hanging indents to continue subsection names across
+lines.</p>
+<p>On p. 881 we have a tree structure depicted with braces “{” for
+branching and blocks of text for the nodes.</p>
+<p>Unidirectional arrows in diagrams are usually fletched, but not
+always.  Dimension arrows are not fletched and use the long-short-long
+dash pattern which to me indicates a center line.  Open-triangle
+arrowheads (with a line through the middle), single-barbed arrowheads,
+and open-line arrowheads both appear, but solid-triangle arrowheads do
+not.</p>
+<p>Plots of quantitative data are uniformly grid-ruled, with the rules
+often broken to preserve readability of legend text that runs along a
+plotted line.  In places, as on p. 584, an area of the grid is removed
+to make space for a plot caption, but plots are usually just captioned
+externally as figures.  Qualitative plots usually have only the axes
+ruled.</p>
+<h3><em>The Book of Useful Knowledge: A Cyclopædia of Six Thousand Practical Receipts</em></h3>
+<p><a href="https://archive.org/details/acyclopaediasix01coolgoog">This book, by an Arnold James Cooley</a> (“Practical Chemist”), was
+published in 1850 in New York, Philadelphia, and Cincinnati, a reprint
+of the original London edition (and thus presumably done without the
+consent of the author).  The full title and subtitle is “The Book of
+Useful Knowledge: A Cyclopædia of Six Thousand Practical Receipts, and
+Collateral Information in the Arts, Manufactures, and Trades,
+including Medicine, Pharmacy, and Domestic Economy.  Designed as a
+Compendious Book of Reference for the Manufacturer, Tradesman,
+Amateur, and Heads of Families.”  This is centered on the title page
+in somewhere between eight and twelve different fonts, one of them a
+blackletter, but of course no sans-serif fonts.</p>
+<p>The scan is, unfortunately, by Google, so the scan quality is very
+poor, and I have no idea of the original physical size.</p>
+<p>The main body of the text is a series of alphabetized entries, each
+beginning with an all-caps headword, set in two columns of 68 lines
+with a vertical rule between them; most paragraphs within each entry
+begin with an italicized header.  Paragraphs, even the initial
+paragraph of each entry, are all indented by about one em.  No leading
+seems to be used.  The columns are only about 20 ems wide, and of
+course are justified with heavy hyphenation.</p>
+<p>Occasionally an entry is subdivided into sequences of paragraphs with
+a centered italic header with a blank line above it.</p>
+<p>The end of the body text is followed by the notation, centered, in
+boldface, in all capitals, with extra letter-spacing, near the bottom
+of the page: “THE END.”</p>
+<p>Frequent use of italics for emphasis gives an impression of great
+excitability:</p>
+<blockquote>
+<p>then spread it <em>thinly</em> on a dish, and expose it before the fire, or
+to a current of dry air, until nearly dry.  It will then keep for
+years in wide-mouthed bottles or pots, covered over with bladder. 
+For <em>use</em>, a little is dissolved in water.</p>
+</blockquote>
+<p>There is extra spacing betwee sentences,
+and it also uses thin spaces before the
+colons and abundant semicolons and following open double- and
+single-quotes, as in “do the ‘ important’ at”.</p>
+<p>A typical entry begins:</p>
+<blockquote>
+<p>ABRASION.  A superficial injury of the skin, resulting from the
+partial removal of the cuticle by friction.</p>
+<p><em>Treat.</em>  When the injured surface is small, and unexposed, no
+application is generally required,…</p>
+</blockquote>
+<p>Trailing punctuation goes inside close parentheses:</p>
+<blockquote>
+<p>not only suffers refraction at the spherical surface, (called
+spherical aberration,) but the different colored rays, forming the
+beam of light,</p>
+</blockquote>
+<p>Each page has a horizontal rule above its body text, above which are
+the guidewords for that page (or their first three letters, at any
+rate) and its page number.</p>
+<p>Page margins are fairly generous, but column margins are quite
+cramped — perhaps a single em of column separation, with that vertical
+rule running down the middle of it.</p>
+<p>Tables have horizontal rules delimiting them and separating their
+header, but not separating their rows; by contrast, they separate
+their columns with vertical rules, but usually have no vertical
+borders.  Often table row boundaries are indicated only by braces “}”,
+and intermittent dot leaders facilitate column-to-column traversal.
+They are neither numbered, but sometimes captioned above.  As in the
+<em>Standard Handbook</em>, tables are sometimes flowed into “supercolumns”
+separated by double vertical rules.  Lining figures are used.  Decimal
+points are vertically centered: “its sp. gr. about 1·069 or 1·070;”,
+and numeric columns are aligned by them.</p>
+<p>Some simpler tables (e.g., the alkaloids on p. 47) are simply two
+columns of text joined by dot leaders with italic headers at the top.</p>
+<p>In a few cases, the columns end to make room for a large table, like
+the table captioned “I. <em>French Decimal Measures of Length</em>”, on
+p. 419.</p>
+<p>Text flows around small figures; large figures interrupt paragraphs.
+As with tables, figures are neither numbered nor captioned, but
+sometimes they include a legend set in smaller type below them.</p>
+<p>Footnotes are set in smaller type below a horizontal rule at the
+bottom of a column; they are linked with * and †.</p>
+<p>Hyperlinks to other Cyclopædia entries are at times merely indicated
+with notations such as “, (which see.)” or even “; to each of which
+the reader is referred, in their alphabetical places.”.  Small caps
+are used frequently for synonyms and surnames and I think they may
+also indicate hyperlinks, as they traditionally do in dictionaries:
+“(See BREWING.)”  Sometimes they seem to merely indicate emphasis, as
+in the bipartite name given for the almond tree.</p>
+<p>Ordered lists are sequences of paragraphs, indented as usual by about
+an em, but beginning with the ordinals “1st.”, “2d.”, “3d.”, “4th.”,
+etc., or the Hindu-Arabic numerals “1.”, “2.”, “3.”, etc., or
+italicized letters “<em>a</em>.”, “<em>b</em>.”, etc., or the Roman numerals “I.”,
+“II.”, “III.”, etc.  Commonly these varying forms of numeration
+indicate nested list structures, but no typographical cues as to the
+hierarchy are visible.</p>
+<p>Bulleted lists do not occur, though simple tables fulfill their
+function.  On p. 108, for example, we have this table of plants for
+attracting bees:</p>
+<table><tr><td>
+<i>Shrubs, &c.</i><br />Rosemary,<br />Broom,<br />Heath,<br />Furze,<br />Fruit-blossoms. 
+</td><td>
+<i>Flowers.</i><br />Mignonette,<br />Lemon thyme,<br />Borage,<br />White clover,<br />Bean-flowers.
+</td></tr></table>
+
+<p>The book uses a number of ideograms that are no longer in use,
+although perhaps surprisingly, Unicode has them.  Its rendering of “%”
+uses a horizontal bar, and many recipes are given in apothecaries'
+weight, using lower-case
+j-terminated Roman numerals, in scruples (written as “℈”, as in “℈iv”),
+drachms (written “ʒ”; now often called “drams”,
+though using that spelling now
+implies you’re talking about avoirdupois drams),
+and ounces (written “℥”).  This is explained on
+p. 561.  Thus “ʒij” means “two [apothecaries’] drams”,
+which is to say, a
+quarter of an apothecaries’ ounce (which was the same as the troy ounce)
+or 7.78 g in modern
+units.
+The Roman numerals here also represented ½ with “ss”.</p>
+<p>Greek words appear commonly in the etymologies of terms, but the Greek
+font used is to my eye quite poor; it has serifs, but its capital
+height is just a little taller than the x-height of the Roman font
+used, and its own x-height is smaller still.  Typically it is
+oblique. The forms also seem somewhat crude and irregular to me, but
+that may be merely an artifact of the very poor scan quality common to
+Google Books scans and the small font size.</p>
+<h3><em>The Mechanism of Weaving</em></h3>
+<p><a href="https://archive.org/details/mechanismweavin00foxgoog">This book was unfortunately scanned by Google</a>, so the scan is of
+extremely poor quality.</p>
+<p>Published in London in 1894 and in New York by MacMillan.  Everything
+is Roman or italic except the word “London” on the title page, which
+is blackletter and includes many fonts, and the lettering in the
+illustrations.  Headings are all-caps, bold, centered, and at times
+with extra letter-spacing.  The table of contents uses indentation to
+show structure, with sparse dot leaders, as well as small caps for
+top-level headings; and the index, set in two columns separated by a
+vertical rule, also uses indentation to show structure.  The index has
+a blank line before each new letter.</p>
+<p>Line spacing is somewhat loose.  There are 33 lines per page.
+Paragraphs are justified and indented by about two ems, except for (at
+times) the first paragraph after a heading, whose first word is
+instead rendered with small caps.  In one unusual case on p. 250, the
+section heading begins a sentence completed in the body text; the same
+thing happens with a subsection heading on p. 311.  Paragraphs are not
+separated by extra leading.  There is extra spacing between sentences,
+and thin spaces
+before semicolons and colons and inside double quotes.  Hyphenation is
+sparse, and word spacing is consequently somewhat uneven.</p>
+<p>The text is divided into parts, which are divided into sections, which
+contain subsections.  Any of these may begin in the middle of a page.
+Subsection headers are in small caps of the size of the body text;
+section headers are slightly larger (say 1.2× the point size), in
+caps; part headers (“PART I”) are slightly larger still (say 1.5× the
+point size of the body text), also in caps, with a bit of extra
+letter-spacing.  All three types of headings are centered and given
+extra leading, about a line’s worth; part headers have even more extra
+leading above them, maybe two lines’ worth.  Subsection headers may
+have a little extra leading above them, but perhaps only when preceded
+by a paragraph; it varies from page to page.</p>
+<p>Widows occur frequently, and on p. 56, there’s a totally avoidable
+orphan due to placing a figure between the first line of text and the
+other four lines on the page.</p>
+<p>Illustrations are numbered below in small caps (“FIG. 1”).
+Unfortunately they are rarely on the same page as the text about them,
+even though text sometimes flows around them.  Italics are used in the
+text for letters referencing figures, and mysteriously at the end of
+the preface for the word “September”, but barely used at all for
+emphasis, though occasionally for Latin phrases like <em>vice versa</em>.</p>
+<p>Illustrations contain hand-inked letters and digits which do not have
+serifs, though they are rarely monoline, so you could reasonably argue
+that this book <em>does</em> include sans-serif text.  But the first
+occurrence of a sans-serif letter in text as such is an “X” in the
+middle of p. 138 (“fulcrumed at X”), and it happens again on p. 391,
+though, as I said before, typically italic is used for this.  (Of
+course, the multiplication sign × is always monoline and never has
+serifs.)  You could argue that sans-serif is playing a role here
+similar to the role played by typewriter text in modern texts about
+programming.</p>
+<p>(This book was printed in 1894.  Sometime between 1890 and 1898, the
+Berthold Type Foundry released Akzidenz-Grotesk, one of the “German
+sans-serifs” that started appearing toward the end of the 19th
+century, and the first one to become popular.  But it was intended for
+use in advertising rather than running text.  Wikipedia tells me that
+“Egyptian”-style letters — meaning primitive monoline sans-serif
+letterforms modeled after surviving inscriptions from classical Egypt
+and Italy — became popular for advertising signs in England in the
+late 1700s.  Caslon released his “Two Lines English Egyptian” font in
+1816, but it is only known from specimen books.)</p>
+<p>Tables have ruled borders, ruled column separators, and a rule between
+the headers and the table body, with rules interrupted where they
+would cross, but no ruled row separators.  They are not numbered or
+captioned.  Lining figures are used in tables and text, though page
+numbers use old-style figures.  Decimal points are vertically centered
+(“1·125”) but vulgar fractions (“1⅛”) are used more often; inversely,
+periods are used at times in formulas to indicate multiplication,
+though “×” is used more often.</p>
+<p>Tables with no rules occur occasionally as well, in the form of a
+non-indented paragraph set in smaller type with extra leading above
+and below, consisting of many nearly identical lines with the
+identical parts replaced with ditto marks (double low 9 quotation
+marks, here.)  An example is on p. 121.  In a more unusual case on
+p. 264, the table has a horizontal rule and a total placed beneath it,
+and the paragraph continues from there.</p>
+<p>In one case, a numbered list (“1.”, “2.”, “3.”) is indented by the
+same amount as a paragraph, but then a hanging indent is used so that
+later lines in the list are indented more deeply.  They have short
+vertical skips above and below them, but as with paragraphs, none
+within.  In another case (p. 275–8) the list items are paragraphs
+leading with a parenthesized number (“(1) Power consumed.”) which
+function as headings for the following paragraphs, but are not
+otherwise typographically distinguished.</p>
+<p>Formulas, when interrupting a paragraph, are set in slightly smaller
+type, but are not numbered.  Sometimes tall formulas in running text
+are accommodated with more leading.</p>
+<p>Inches are indicated by oblique double prime signs, which differ from
+the “” signs used for quotes; similarly, the prime signs used to
+indicate parts of figures are distinct from apostrophes.  Em dashes
+are used (often immediately after colons) and almost never have spaces
+around them (except once on p. 326), but en dashes are not used; on
+p. 119 and p. 167 a hyphen is instead used to indicate a range of
+years. (Conversely, on p. 247 there are spaces around two otherwise
+ordinary hyphens, and again on p. 249 and p. 260.)  The ideogram “∴”
+is used to mean “therefore”, and “a:b::c:d” is used to mean “a÷b =
+c÷d”.  Arrows are extensively fletched, but otherwise the visual
+language of the illustrations is quite modern — dashed lines indicate
+hidden lines; gears are indicated by a circle at their pitch radius
+plus dash-dot lines at their root and outermost radii; hatched
+potato-chip cutaways are used to suggest round shafts; in one place a
+line alternating short and long dashes indicates the line above a
+center of rotation; hatches up to a line suggest a solid surface.</p>
+<h3>First Folio <em>The Tragedie of Othello</em></h3>
+<p>Looking at <a href="https://en.wikipedia.org/wiki/File:Othello_F1.jpg">this scan from Shakespeare’s First folio from
+Wikipedia</a>, which
+is set in a Humanist roman and italic, I see vertical and horizontal
+rules around the whole page.  The play’s title is split across two
+page-width lines: “THE TRAGEDIE OF”, in large roman type with large
+but somewhat uneven letter-spacing, and below “Othello, the Moore of
+Venice”, in smaller type.  The body text is set in two columns with an
+additional rule between them, mostly with a ragged right margin due to
+the iambic pentameter of the text, but justified where the text runs
+to longer lines.  There is a act/scene title running across both
+columns, “Actus Primus.  Scœna Prima.” between horizontal rules, and
+on the facing page, “Scene Secunda” is in the same italic font, with
+column-wide horizontal rules above and below.  Italics are used to
+distinguish characters’ names and, strangely enough, nationalities.
+Spaces are somewhat uneven, but generally there is extra space after
+sentence-ending periods, and spaces appear before colons, semicolons,
+and question marks, though sometimes they are omitted entirely around
+colons and commas.  Occasionally spaces occur inside parentheses and
+occasionally not outside.  There is no boldface and of course no
+sans serif.</p>
+<p>Hyphenation is occasionally used.  The spelling and lettering is as
+you’d expect for the 17th century: i/j, u/v, ſ/s are alternate forms
+of the same letters governed by position, and ligatures include ff,
+ſt, ct, ſh, ſſ.  (I don’t actually see any “j”s, but I assume they
+would occur if a word ended in an “i”.)  On one occasion, perhaps to
+save a bit of space, “my” is spelled “ỹ”.  Most nouns and occasionally
+adjectives are capitalized.</p>
+<p>“THE TRAGEDIE OF” is about four times the point size of the body text,
+and “Othello, the Moore of Venice” about twice the point size of the
+body text.  “Actus Primus.”, etc., is about 1.4× the point size of the
+body text.  The first paragraph is begins with an ornamental capital
+“N” from Rodorigo’s opening line, “NEuer tell me,I take it much
+vnkindly”, which is about three and a half lines tall.</p>
+<p>These titles have a bit of extra leading above and below: the play
+title has about half a line above, half a line below its second line,
+and almost a whole line below its lower line.  At times stage
+directions are centered in a column, in italics, with a line of
+leading above and below; other times they are simply italics on a
+normally spaced line.  No extra leading is used between lines of body
+text; each time a new character speaks, it begins a new indented
+paragraph, again set tight with no extra leading.  There are 66 lines
+per column (not counting catchwords) at the normal line height.</p>
+<p>Wikipedia tells me that the First Folio has a page height of 320 mm.
+About an eighth of that (≈40mm) is a margin at the bottom of the page,
+and about another sixteenth (≈20mm) at the top, so only about 260 mm
+holds those 66 lines, so the line height is about 3.9 mm, or 11
+PostScript points.  Just as in <em>Tick, Tock</em>, about 9–12 words fit into
+a column, when the lines aren’t being broken to fit into iambic
+pentameter.</p>
+<h2>Wikipedia</h2>
+<p>Wikipedia regrettably uses almost exclusively sans-serif type.
+Figures are very frequent, and almost always floated right, with
+captions below in the regular body text style.  My tables of contents,
+like Gwern’s, are directly modeled on MediaWiki’s.  (I don't remember
+if UseModWiki had them.)</p>
+<p>Wikipedia has <code>border-bottom: 1px solid #a2a9b1</code> to underline its
+<code>&lt;h1&gt;</code>s and <code>&lt;h2&gt;</code>s.  (The rule applies to other headings, but for them
+it’s overridden with a <code>border-bottom: 0</code>.)  This is not entirely
+unobtrusive, but it’s less obtrusive than horizontal rules in black
+ink typically are in books.</p>
+<p>They also have navigational links in the left, top, and bottom margins
+of the article; these margins are a somewhat darker background color.
+Category links are at the bottom of the article.  Since these margins
+take up a lot of screen real estate, Wikipedia uses a totally
+different style on hand computers.</p>
+<p>Wikipedia tables have a variety of formats, but commonly
+(class="wikitable") they are captioned above in bold (and not
+numbered), have uniform-width rules around them, separate both rows
+and columns with rules, and use a darker background (#f8f9fa) than the
+surrounding text’s #fff — darker still for the headers (#eaecf0),
+which are bold and centered; they have substantial padding <code>(padding:
+0.2em 0.4em</code>) in the table cells.</p>
+<h2 id="gwern">Gwern</h2>
+
+<p>Gwern’s website is set in a serif font (body text and headers too)
+with justified paragraphs, indented where they follow other paragraphs
+(<code>p+p { text-indent: 2.5em }</code>); headings with some extra leading; drop
+caps (in some cases, like
+<a href="https://www.gwern.net/nootropics/Magnesium">magnesium</a>, quite
+elaborate ones); no leading between paragraphs; and browser-provided
+hyphenation.  Some of the headings use small caps (with
+<code>font-feature-settings: 'smcp'</code>
+rather than <code>font-variant: small-caps</code>), though this varies by epoch; others
+use caps.  He mostly uses old-style numerals (<code>font-variant-numeric:
+oldstyle-nums</code>).  These would be unremarkable choices for a book, but
+on a web page they seem radical.  There is more leading above headings
+than below.  He’s also using quite a number of less book-like choices:
+right-aligned second-level headings (underlined in black) (though
+several of the books I’ve looked at have some right-aligned headings),
+darker backgrounds with borders for blockquotes, underlined links,
+bulleted lists with four-pointed star bullets, varying gray levels in
+text, letter-sized logotype icons inserted into text, looser line
+spacing (line-height: 1.5), relatively long line length (50 ems or
+so).</p>
+<p>His <code>&lt;h3&gt;</code>s are a bit outdented (as well as bold and all-caps), and
+his <code>&lt;h4&gt;</code>s are also outdented, which could in theory make them stand
+out when scanning visually.</p>
+<p>Generally there is an abstract of a few hundred words beneath the
+metadata, next to the table of contents (see below), in a
+double-bordered gray box, before the article proper begins.</p>
+<p>When he has nested blockquotes, the inner one has an even darker
+background than the outer one, which is achieved with a <code>blockquote
+blockquote</code> rule rather than alpha-blending.  (It would appear that
+his blockquotes actually alternate in color.)</p>
+<p>He’s also using the hack mentioned earlier for underlining links:
+<code>text-decoration: none</code> to disable the normal underline, then a
+background image synthesized from gradients, with 12 overlaid white
+text-shadows to make holes in the underline around descenders.
+(This hack is unnecessary in recent versions of Chromium, which
+perforate the default link underline for descenders.)</p>
+<p>Unlike Wikipedia and Medium, he puts his category links at the top of
+the article, after a brief summary paragraph in italics (a summary
+rather like the extended titles in Victorian-era books, more than
+100-word abstracts of modern research papers).</p>
+<p>Often Gwern captions his figures below in bold, with
+syntax-highlighted source code above (generally R with ggplot,
+sometimes Haskell, sometimes CSV); the source code plays the role of
+equations, but it is not centered; instead it is formatted as is
+conventional for source code, except on a light grey (#fafafa)
+background with a box around it (and limited in height, with
+scrollbars for overflow).  On the occasions when he does use
+equations, they are typically done with MathJax (including its fonts:
+MJXc-TeX-math-Iw sure gives nice italics, and it seems to be 19K), and
+when they are not inline, they are centered with 1.25 ems of leading
+(<code>margin: 1.25em auto</code>), which I think may be MathJax’s default.  (See
+<a href="../notes/dercuano-formula-display.html">Dercuano formula display</a> for my thoughts on what to do for
+this.)</p>
+<p>In the rare case where Gwern has tables, they are very fancy indeed,
+with an italic centered caption at the top with heavy rules above and
+below (matching a heavy rule at the bottom of the table) with half a
+line or so of leading, bold column headers with sorting buttons in
+them (switching from black-on-white to text-shadowed white-on-blue
+when activated), alternating light-gray and white row backgrounds with
+a smaller font size, and about half a line of leading above and below
+data rows (<code>padding: 7px 10px</code>) except in very long tables, and a
+short gap (≈2px) in the gray background between columns.  Additional
+mouseover handlers add dotted outlines to table rows and light-blue
+background to table headers.  The sorting (and probably the
+mouseovers) is done with something called tablesorter.js via jQuery.
+The only real imperfections are that the sorting defaults to
+ascending, the table headers can scroll out of view, and numeric
+columns are left-aligned (but correctly sorted numerically!)  He’s
+using <code>font-variant-numeric: tabular-nums</code> but I think I’d prefer the
+old-style numbers.</p>
+<p>For headers and body text, he uses Source Serif Pro (by Frank
+Grießhammer, licensed under the SIL OFL by Adobe in 2014; it’s 72
+kilobytes, though that seems to be just ASCII and an accent or two,
+and it’s just the Roman; the italic is another 38K, and there are
+seven more variants), falling back to Baskerville or Libre
+Baskerville; for source code, Liberation Mono, falling back to
+Consolas or even Courier.  The roman Source Serif Pro is very nice,
+but its italic is insufficiently italic for my tastes, more like a
+oblique/italic hybrid.  Actually, I’m not totally sure his italic font
+doesn’t vary from article to article.</p>
+<p>His tables of contents are similar to mine, but he flows the text
+around them, and uses varying text weights, sizes, and colors to
+distinguish importance levels — outline numbers are in light grey,
+text in a lighter grey.  He does use sans-serif fonts for the table of
+contents.</p>
+<p>Eccentrically, he adds a light gray background to <code>&lt;q&gt;</code>s.</p>
+<h2><a href="https://fernandoi.cl/blog/posts/altair/">Fernando Irarrázaval’s blog</a></h2>
+<p>Fernando Irarrázaval has a very pretty blog.  He’s using ET Book (it’s
+where I first saw it), falling back to Palatino for characters like
+<em><strong>∞</strong></em>, and he has a .newthought class to make the first word of a
+blog post small-caps and half a magstep larger (1.4 rem, while the
+body text is 1.2 rem).  He takes advantage of the ample margins on
+modern screens to replace “footnotes” with “sidenotes” in the margin,
+in smaller text (1 rem), with the numbers in red ink.  (The ample
+margins are due to the fact that they basically don’t support
+multi-column text.  I don’t know what his hand computer strategy is;
+hand computers barely have enough room for a single column.)  Source
+code blocks have a light grey background, and syntax highlighting done
+server-side with Pygments.  As you’d expect from a Tufte fan, tables
+have a single thin rule separating headers from body.  Figures are
+centered but sometimes are “captioned” in the margin to the right, as
+well as having source code above.  His <code>&lt;ul&gt;</code>s are without bullets,
+but with plenty of whitespace, to the point of having uncomfortably
+short line lengths.</p>
+<h2>Firefox default styles</h2>
+<p>Firefox’s default for body text on my laptop is 16 pixels with
+font-weight 400, for <code>&lt;h1&gt;</code> it’s 32 pixels with font-weight 700, and
+for <code>&lt;h2&gt;</code> it’s 24 pixels with font-weight 700.</p>
+<p>As I said before, my pixels are about 161 μm, so 16 pixels is 7.3
+points, which seems pretty small to me.  The 14.5 points at which
+<em>T<sub>E</sub>X</em> is set seems more reasonable, and the 19 points to
+which I had it zoomed is eminently readable.</p>
+<p>Firefox’s default margins for <code>&lt;h2&gt;</code> etc. are equal on top and bottom,
+which is semantically wrong, though it duplicates formatting
+that is common with T<sub>E</sub>X; headings belong to the text below them,
+not the text above them.  Right now I have an <code>&lt;h2&gt;</code> with 29.6px
+margin-bottom and a font-size of 35.7px, and an <code>&lt;h3&gt;</code> with 29.4px
+margin-bottom and a font-size of 29.4px.  And the <code>&lt;h1&gt;</code> on top of
+everything has a 28.1px margin-bottom and a font-size of 42px.</p>
+<h2>Typewriter type</h2>
+<p>One complicating factor is that I use Markdown’s typewriter type <code>&lt;pre&gt;</code>
+fairly often to “quote” things from character-cell terminals, which
+normally have at least 80 columns.  It would be nice for those quotes
+to fit into the column.  Here’s an 80-column box:</p>
+<pre><code>0123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789
+|                                                                              |
+0123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789
+</code></pre>
+<p>If that doesn’t fit nicely into the column of text, the aesthetic
+experience is suboptimal.  With a max-width of 40em and the same font
+size among the paragraph text and the typewriter text it only fits up
+to about column 66, so I need about 21% more width, or 17.5% less,
+from the other point of view.  Right now, I’m using 21-pixel body
+text, which is pretty ideal from a readability point of view.  I
+should be able to make a reasonable compromise and get things to fit:
+6.6% larger body text, 6.6% longer lines, and 6.2% smaller typewriter
+text; that works out to about 43em width, 22px body text, and 19px
+typewriter text, giving a total compression of 24.5%.</p>
+<p>That worked nicely!  And 22 pixels (which Firefox is indeed
+interpreting as 22 of the literal screen pixels) is still only 10
+points on my screen, and I still get 25 or 30 lines in the browser
+window, so the larger size doesn’t compromise readability.</p>
+<p>Later I switched this to “80%” and applied it to <code>&lt;code&gt;</code> too, because
+once I switched to the old-style ET Book font with its small x-height,
+the much larger x-height of DejaVu Sans Mono made it jump out of lines
+unpleasantly.  80% works out to 18px rather than 19px at the default
+font size of 22px; at the new larger 26px size, it’s 21px.</p>
+<p>A possible tweak might be to add 10% (I don’t know, 0.03em or so) of
+letter-spacing to body text to reduce the number of words per line,
+since at 43em it’s a bit longer than I think is ideal.</p>
+<h2>Looser letter spacing</h2>
+<p>As Aristotle Pagaltzis taught me, to some extent, we can trade off
+text size against letter spacing; one of the bottlenecks in reading is
+apparently the crowding of information per unit area in the fovea.  So
+text can be hard to read because, although each letterform is
+individually fine, there are too many of them in too little space.
+This means that if you shrink the letterforms but leave them at the
+same number of letters per square inch, you can maintain the same
+readability, up to a point.</p>
+<p>I may try this with the body text: add an extra 10% letter-spacing and
+line-height and reduce the font-size by a corresponding 9.1%.</p>
+<p>As it says in <em>The Palmer Method</em> I examined:</p>
+<blockquote>
+<p>[S]tudents sometimes think that large figures are necessarily
+plainer, but such is not the case.  Examine carefully the diagram.
+At the left are figures that are absolutely plain; one could not be
+mistaken for another, and yet their extreme size in the small spaces
+makes them difficult to read.  At the right are the same figures, no
+more perfect, but not so large.  Please note carefully that these,
+surrounded by white paper, and much smaller, are more legible, even
+at a distance, than the large figures at the left.</p>
+</blockquote>
+<p>I tried that, and also a more extreme version where I changed
+max-width from 45em to 54em, the font-size from 22px to 18.3px, the
+line-height from 1.4 to 1.68, and added .2em of letter-spacing.  The
+result still took up about the same space and was still readable from
+the same distance as the normal text, but it feels noticeably less
+comfortable.  Instead of spacious, it feels fussy.  The looser
+line-spacing does seem like an improvement, so I increased it to 1.5.</p>
+<h2>Smaller headings</h2>
+<p>Since yesterday I’ve been using these sizes, which closely coincide
+with the size hierarchy from <em>The Grammar of Graphics</em>:</p>
+<pre><code>h1 { font-size: 2em }
+h2 { font-size: 1.7em }
+h3 { font-size: 1.4em }
+h4 { font-size: 1.2em }
+h5 { font-size: 1.1em }
+h6 { font-size: 1em }
+</code></pre>
+<p>However, because most articles only use a single <code>&lt;h1&gt;</code> and some
+<code>&lt;h2&gt;</code>s and occasionally an <code>&lt;h3&gt;</code>, most headings are 1.7em and 1.4em,
+which is a bit large.  Since I’m using a sans-serif font for all the
+headings (except <code>&lt;h1&gt;</code>), there’s little danger they’ll blend into the
+body text in any case, so perhaps I should make the last three levels
+the same size as the body text, distinguished only with different
+typography (say, bold, roman, and italic), permitting the use of sizes
+like 1.4em and 1.2em for <code>&lt;h2&gt;</code> and <code>&lt;h3&gt;</code>.</p>
+<p>(At the moment, actually, only <a href="../notes/low-power-micros.html">Low-power microcontrollers for a low-power computer</a> even used <code>&lt;h5&gt;</code>,
+and it only does so once; nothing used <code>&lt;h6&gt;</code>.)</p>
+<p>So that’s how I ended up with these somewhat less extreme font styles for
+headings:</p>
+<pre><code>h1 { font-size: 2em }
+h2 { font-size: 1.59em }
+h3 { font-size: 1.26em }
+h4, h5, h6 { font-size: 1em }
+h4 { font-weight: bold; font-style: italic }
+h5 { font-weight: normal; font-style: italic }
+h6 { font-weight: normal; font-style: normal }
+h2, h3, h4, h5, h6 { font-family: Helvetica,Arial,sans-serif }
+</code></pre>
+<p>Later, after spending probably an unhealthy amount of time looking at
+medieval manuscripts, incunabulae, and other printed books (from many
+centuries), I switched to using serif fonts for headers, just with
+small caps, extra letter-spacing, and red ink to make them stand out.
+(I’m not daring enough to use the #c54 kinds of bright reds used for
+headings and other rubrication in incunabulae and medieval
+manuscripts, but #600 seems like it should work.)</p>
+<p>Here’s the current cascade from <code>&lt;h3&gt;</code> on down, with some sample body
+text I didn’t write:</p>
+<h3>Waltz, nymph, for quick jigs vex Bud <code>&lt;h3&gt;</code></h3>
+<p>He made also ten lavers, and put five on the right hand, and five
+on the left, to wash in them: such things as they offered for the
+burnt offering they washed in them; but the sea was for the priests to
+wash in.</p>
+<h4>Waltz, nymph, for quick jigs vex Bud <code>&lt;h4&gt;</code></h4>
+<p>And there were six steps to the throne, with a footstool of gold,
+which were fastened to the throne, and stays on each side of the
+sitting place, and two lions standing by the stays:</p>
+<h5>Waltz, nymph, for quick jigs vex Bud <code>&lt;h5&gt;</code></h5>
+<p>And the Philistines gathered themselves together to fight with
+Israel, thirty thousand chariots, and six thousand horsemen, and
+people as the sand which is on the sea shore in multitude: and they
+came up, and pitched in Michmash, eastward from Bethaven.</p>
+<h6>Waltz, nymph, for quick jigs vex Bud <code>&lt;h6&gt;</code></h6>
+<p>The hand of the LORD was upon me, and carried me out in the
+spirit of the LORD, and set me down in the midst of the valley which
+was full of bones,</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/dercuano.html">Dercuano</a> (16 notes)
+</li><li><a href="../topics/fonts.html">Fonts</a> (9 notes)
+</li><li><a href="../topics/html.html">HTML</a> (6 notes)
+</li><li><a href="../topics/typography.html">Typography</a> (5 notes)
+</li><li><a href="../topics/css.html">CSS</a> (3 notes)
+</li></ul></div></html>

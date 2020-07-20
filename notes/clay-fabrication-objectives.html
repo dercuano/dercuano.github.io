@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html><title>Clay fabrication objectives ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Clay fabrication objectives</h1><div class="metadata">Kragen Javier Sitaker, 2017-01-16 (updated 2017-01-17)
+(3 minutes)</div><p>I’m doing some stuff in the ceramics lab, with the objective being to
+construct a self-replicating micromachine.  I have four key objectives
+to achieve this:</p>
+<ol>
+<li>
+<p>Full recursion: do the entire fabrication process, from separation
+   to firing and assembly, using entirely components that can be
+   fabricated with that process.  Alternatively, if this objective is
+   misguided (perhaps using metals, glasses, plaster, or plastics
+   would be more reasonable), I want to discover that.</p>
+</li>
+<li>
+<p>Material properties characterization, simulation, and optimization:
+    I want to have quantitative measurements of the main physical
+    properties of the material in both green and fired states.  In
+    particular:</p>
+<ol>
+<li>Tensile strength and modulus.</li>
+<li>Shear strength and modulus.</li>
+<li>Density.</li>
+<li>Thermal expansion.</li>
+<li>Separately, fracture resistance, even though that can in
+   theory be predicted from the other properties.</li>
+<li>Abrasion resistance.</li>
+<li>Dependences of these on relevant process parameters.</li>
+<li>Heat resistance (e.g. maximum service temperature,
+   softening point if any, sintering point, melting point,
+   perhaps variation of other properties with temperature
+   below the softening point).</li>
+<li>Creep, plastic deformation, and related complications;
+   although I expect these will be very low for fired clay
+   ware, plastic deformation is an enormously important
+   process for shaping wet clay, which can have almost zero
+   elastic deformation and creep but enormous plastic
+   elongation.</li>
+</ol>
+<p>Given an adequate numerical characterization of the materials’
+properties, simulation of its behavior under different
+circumstances should become possible; by running a series of such
+simulations with different designs and performing error and
+differentiation analyses on the simulations, a substantial degree
+of automation in design should become possible.  If the simulation
+performs adequately, it should be possible to run such
+optimization processes during the fabrication process in order to
+automatically improvise responses to newly available information.</p>
+<p>With the first two of these items, I can do FEA analyses and
+optimizations for static loading; with the third, I can do dynamic
+loading as well.  The others are useful for particular cases.</p>
+</li>
+<li>
+<p>Generation-time reduction by process intensification: I predict
+   that the primary figure of quality for self-replicating machinery
+   will be its mass growth rate, which needs to exceed the IRR of
+   available investments in order to be economic, and which is an
+   exponential function of the generation time.</p>
+</li>
+<li>
+<p>Miniaturization: somewhat secondary to the above three
+   considerations, smaller is better.  This is largely a means to an
+   end: thinner walls will dry faster and fire faster (up to a point),
+   linearly smaller machinery will have a proportionally shorter
+   generation time, and the demands its mass places on its mechanical
+   properties will be proportionally smaller, both permitting more
+   geometrical freedom and simplifying calculations.  Miniaturization
+   also helps with safety and cost of materials and energy.  However,
+   miniaturization has limits: it requires more precise manipulation
+   and measurement, surface effects like stiction and sliding wear
+   become more serious concerns, and in particular thermal processes
+   like firing pottery become more difficult to complete at smaller
+   scales.</p>
+</li>
+</ol><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/materials.html">Materials</a> (112 notes)
+</li><li><a href="../topics/mechanical.html">Mechanical things</a> (45 notes)
+</li><li><a href="../topics/self-replication.html">Self-replication</a> (24 notes)
+</li><li><a href="../topics/ceramic.html">Ceramic</a> (17 notes)
+</li><li><a href="../topics/process-intensification.html">Process intensification</a> (6 notes)
+</li></ul></div></html>

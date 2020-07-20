@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html><title>Sparse filter optimization ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Sparse filter optimization</h1><div class="metadata">Kragen Javier Sitaker, 2019-11-01
+(5 minutes)</div><p>I've written a few items about "sparse filtering" previously, by which
+I mean factoring a DSP filter into some network of filters which
+requires very few total operations per sample.  Generally I'm thinking
+in terms of single-rate LTI filtering, not multi-rate, nonlinear, or
+non-shift-invariant systems, and generally the nodes in the processing
+graph are basically comb filters of one kind or another.</p>
+<p>This is a difficult optimization problem, being essentially
+combinatorial in nature: even for small numbers of operations per
+sample such as 10, the signal flow graph can have any of a large
+number of topologies, and each processing node in the graph can be
+configured in a large variety of different ways.</p>
+<p>I just checked, and it seems that I haven't written down what now
+seems to me like the most straightforward way to handle this design
+problem, unless I'm not finding it.</p>
+<h2>Optimizing a fixed processing graph</h2>
+<p>Let's consider a processing graph made out of continuous-time delay,
+sum, and amplification nodes, and the problem to approximate a desired
+frequency and perhaps phase response with a fixed processing graph.
+The only parameters available are the delays and gains, and the
+frequency and phase response are continuous differentiable functions
+of them, so we can almost certainly use gradient descent and related
+methods (see, e.g., <a href="../notes/genetic-secants.html">Using the method of secants for general optimization</a> and <a href="../notes/adaptive-hill-climbing.html">Robust local search in vector spaces using adaptive step sizes, and thoughts on extending quasi-Newton methods</a>) to find a reasonable local optimum.  In
+fact, for many problems, the dimensionality is small enough that I
+think we can use interval arithmetic to find the <em>global</em> optimum.</p>
+<p>This is a continuous-time relaxation of the discrete-time problem we
+want to solve.  Once a good solution to the relaxation has been found,
+imposing a penalty for fractional-sample delays is likely to be
+sufficient to find a good solution of the discrete-time problem;
+branch-and-bound is a surer approach, though exponential-time.</p>
+<h2>Deriving the processing graph</h2>
+<p>How can we derive the processing graph?  A variety of approaches
+suggest themselves.  We could start with a too-complex processing
+graph and use optimization penalties to drive most of the amplifier
+gains to 0, then remove the now-useless connections.  We could start
+with a too-simple processing graph and alternate
+continuous-optimization phases with graph-mutation phases, which for
+example might replace a subgraph with two copies of that subgraph,
+each feeding to an attenuator, summed to form its original input, or
+insert a delay-0 element.  Alternatively, we could just randomly
+generate a lot of graphs and try to optimize each of them separately.</p>
+<p>A nontraditional choice that might improve the mutation properties of
+the graph is to use comb-filter nodes, which contain one delay, two
+gains, and a bit distinguishing whether they're feedforward or
+feedback, rather than separate delay and gain nodes.</p>
+<h2>Databases and meet-in-the-middle</h2>
+<p>Of course, exploration of any optimization space can be facilitated by
+database and meet-in-the-middle approaches.  In this case, we could
+begin any given search using a database of already-generated designs,
+starting the search from designs that already come close to meeting
+the desired specification; and, by dividing our desired frequency and
+phase response by that of every item in the database, we can get a set
+of frequency responses to search the database for.</p>
+<p>For example, suppose we want a zero-phase gain of between 0.9 and 1.1
+at 100 Hz and between 0.09 and 0.11 at 1000 Hz, and there's a
+signature in the database with a zero-phase gain of 0.5 at 100 Hz and
+2.0 at 1000 Hz.  So, if we found a system that had a zero-phase gain
+of between 1.8 and 2.2 at 100 Hz and between 0.045 and 0.055 at 1000
+Hz, we could cascade the two together to get the desired response.</p>
+<p>In practice, though, what we'd want to do is to find a database system
+or pair of database systems that get close to our objective (as
+measured by a response curve covering hundreds to millions of
+frequencies, or perhaps an affine-arithmetic approximation), then use
+local search as described earlier to converge precisely on that
+objective.</p>
+<p>Even on modern hardware, the database can reasonably weigh terabytes,
+containing millions to billions of known inexpensive candidate
+systems.  On future hardware we could conceivably tabulate trillions.</p>
+<h2>Cost functions</h2>
+<p>Aside from the penalty terms mentioned above, plus the penalty
+function for not meeting the desired response, there is some
+computational cost we're trying to minimize; this cost depends on the
+implementation technology.  For digital computation, components of the
+cost function might include memory buffers, required bit width of
+those buffers, multiplications, and even additions.  Analog signal
+processing is crucially limited by component precision and noise
+immunity, so you'd want to take the derivative of the system frequency
+response with respect to the vector of component values and injected
+noise and try to minimize that derivative; also, analog delay lines
+are not only bulky and expensive but also lossy.  All of these
+situations can be handled by tweaking the cost function.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/dsp.html">Digital signal processing (DSP)</a> (60 notes)
+</li><li><a href="../topics/optimization.html">Mathematical optimization</a> (29 notes)
+</li><li><a href="../topics/convolution.html">Convolution</a> (15 notes)
+</li><li><a href="../topics/sparse-filters.html">Sparse filters</a> (11 notes)
+</li></ul></div></html>

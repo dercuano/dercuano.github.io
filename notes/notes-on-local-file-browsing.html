@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html><title>Notes on local file browsing ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Notes on local file browsing</h1><div class="metadata">Kragen Javier Sitaker, 2019-09-15 (updated 2019-09-28)
+(4 minutes)</div><p>I’ve been struggling with local-files WWW browsing in Dercuano since
+its inception, and I’ve learned a few things in the process.</p>
+<h2>Android, the special shitty snowflake</h2>
+<p>As described in <a href="../notes/dercuano-hand-computers.html">How to make Dercuano work on hand computers?</a>, I think that probably
+PDF is a more feasible solution for <em>delivery to</em> hand computers, but
+I also want to do <em>development on</em> hand computers.</p>
+<p>I can build Dercuano on Android in Termux with no difficulty,
+especially now that I’ve spent the hour to port it to Python 3.
+However, browsing the built HTML tree is more difficult.</p>
+<p>Firefox Lite on Android can’t browse local files at all.  Chrome on
+Android can, using the normal file:///sdcard/whatever URLs, but not
+the entire filesystem.  So it’s necessary to put the files you’re
+browsing in /sdcard, even if it’s “emulated”, so that the browser has
+access to them.</p>
+<p>Opening HTML files in Android from Termux with <code>termux-open-url</code> does
+not work well, because it doesn’t use the file:// but rather a
+content:// URL which could perhaps in theory export the whole tree of
+HTML files (and CSS, and JS) but in practice doesn’t.  It’s rather
+fiddly to get the correct directory in Termux if you got there via
+symlinks; I’ve resorted to <code>termux-open-url "file://$(readlink -f
+"$(pwd)")/index.html"</code>, though maybe there’s an easier way.</p>
+<p>Chrome on Android is capable of saving HTML files you’re viewing,
+which it does in a MIME multipart/related document.  Firefox Lite does
+not deign to permit mere users such abilities.</p>
+<h2>Same-domain problems in filesystem browsing</h2>
+<p>Normal Firefox of course can browse local file URLs; however, it has
+some rather strange restrictions.
+<a href="../index.html">dercuano-20190915/index.html</a> can successfully load
+<a href="../liabilities/style.css">dercuano-20190915/liabilities/style.css</a>,
+which can then successfully load, for example,
+<a href="../liabilities/et-book-roman-old-style-figures.ttf">dercuano-20190915/liabilities/et-book-roman-old-style-figures.ttf</a>,
+and if you click from dercuano-20190915/index.html to, for example,
+dercuano-20190915/notes/notes-on-local-file-browsing.html, it can also
+load these files.  Similarly, both can load
+<a href="../liabilities/addtoc.js">addtoc.js</a> from the liabilities directory.
+However, if you open
+dercuano-20190915/notes/notes-on-local-file-browsing.html directly
+(for example, by pasting the URL, launching it from the command line,
+or clicking a bookmark), it can load the CSS and the JS but not the
+TTF, which gets an error message about cross-origin requests in the JS
+console.  So as long as you’re clicking around from the top level,
+you’re fine, but entering through another path will result in a
+mysterious font failure.</p>
+<p>Chromium also fails to load the fonts under similar but not identical
+circumstances.</p>
+<p>Whatever concept of “origin” the browsers are using isn’t exported to
+JS as <code>window.origin</code> or <code>document.domain</code>, which are consistently
+<code>"null"</code> (a string) and <code>""</code>, respectively.</p>
+<h2>localStorage</h2>
+<p>Somewhat surprisingly, both Firefox and Chromium support localStorage
+from local files; Firefox, for one, seems to use the same notion of
+“origin” that sometimes prevents it from loading the fonts.  In both
+cases localStorage survives browser restarts.  This suggests that it
+should be possible to use localStorage as a persistent cache, but it’s
+not safe as the only way to store important data.</p>
+<h2>data: URLs</h2>
+<p>Data URLs such as
+<a href="data:text/html,hello&lt;script&gt;alert('hi')%0a&lt;/script&gt;">data:text/html,hello<script>alert('hi')%0a</script></a>
+are apparently not supported by Firefox Lite, but they are supported
+by Android Chrome, and they support JS and base64.  Unfortunately I
+don’t think there’s a way to get them to be gzipped.  This is maybe a
+useful delivery mechanism for apps that can be encoded in a single QR
+code (size limit: 2953 bytes without chaining multiple QR codes, which
+is maybe enough for a decompressor).</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/dercuano.html">Dercuano</a> (16 notes)
+</li><li><a href="../topics/hand-computers.html">Hand computers</a> (10 notes)
+</li><li><a href="../topics/browsers.html">Browsers</a> (6 notes)
+</li><li><a href="../topics/android.html">Android</a> (2 notes)
+</li></ul></div></html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html><title>Parallel NFA evaluation ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Parallel NFA evaluation</h1><div class="metadata">Kragen Javier Sitaker, 2015-09-03 (updated 2015-10-01)
+(8 minutes)</div>
+<p>How can you parallelize or incrementalize the evaluation of a finite
+state machine?  Although this has been considered in the past in the
+context of parallelizing text search queries like WAIS across Thinking
+Machines, this is a particularly important problem right now, because
+tokenization is almost always the performance bottleneck of simple
+compilers and parsers, and parallelization is the key to performance
+on modern computers.</p>
+<h2>Background</h2>
+<p>All of this is well known; it’s included in <a href="https://www.cs.cmu.edu/~guyb/papers/Ble93.pdf">Blelloch’s 1993 review of
+parallel prefix sum computation</a> but was almost published by Ladner
+and Fischer in 1980, and then was published by Hillis and Steele in
+1986.</p>
+<h2>Explanation</h2>
+<p>A simple and general approach which yields logarithmic running time
+for an NFA on a sufficiently large parallel machine is as follows.
+Assume WOLOG that the text length <em>n</em> is a power of 2.  Begin with an
+ε-free NFA.  For each character <code>c[i]</code> for <code>i</code> from 0 to <em>n</em>-1 of the input
+text, in parallel, compute a relation <code>t[i, i+1]</code> as the set of edges in
+the NFA that transition on <code>c[i]</code>.  Then, in lg <em>n</em> parallel steps,
+coalesce adjacent intervals in <code>t</code> into larger intervals with this
+compose operation: compose(<em>a</em>, <em>b</em>), where <em>a</em> and <em>b</em> are relations, is the
+ordinary relational composition operation, which produces the
+relation (<code>s[j]</code>, <code>e[j]</code>) for the maximal set of <code>s[j]</code>, <code>e[j]</code> such that for
+each <code>j</code> there is at least one <code>m</code> such that (<code>s[j]</code>, <code>m</code>) is in <em>a</em>, and (<code>m</code>,
+<code>e[j]</code>) is in <em>b</em>.  In each parallel step <em>h</em>, we are coalescing intervals of
+size 2<em>ʰ</em>⁻¹ with this composition operation.</p>
+<p>That is, in step <em>h</em> &gt; 0, for each <code>i</code> divisible by 2<em>ʰ</em>, we compute</p>
+<blockquote>
+<p><code>t[i, i+2</code><em>ʰ</em><code>]</code> = compose(<code>t[i, i+2</code><em>ʰ</em><code>⁻¹]</code>, <code>t[i+2</code><em>ʰ</em><code>⁻¹, i+2</code><em>ʰ</em><code>])</code></p>
+</blockquote>
+<p>using the values we computed in step <em>h</em> - 1.</p>
+<p>The size of the relation for any given interval of any size is capped
+at the square of the number of states in the NFA, so in the worst
+case, it does not increase with the length of the text, so for a given
+NFA, this takes Ω(lg <em>n</em>) runtime in the worst case.  Average-case
+analysis is trickier, in part because it depends both on what an
+“average” NFA is and on what an “average” text is, but my intuition is
+that, in practical cases, the relation size for a text span of any
+length more than a few characters will be under, say, 10.</p>
+<p>Sooner or later you need to constrain the leftmost state to be the
+NFA’s initial state; it is probably best to do this by a special case
+in computing <code>t[0]</code>, since that will save work in all the nodes that
+include it.</p>
+<p>Having done this, you can propagate the results back down the tree of
+intervals in another lg <em>n</em> steps, providing you with the exact
+reachable set of NFA states at each character boundary in the initial
+input.</p>
+<p>This is the standard Blelloch prefix-sum algorithm, merely using the
+relational composition operator as the reduction operation rather than
+numerical addition.  (Apparently Kogge–Stone is more common in current
+codebases?)</p>
+<p>In theory, you can get about a 5% improvement in total runtime by
+coalescing triples of adjacent intervals in each step rather than
+pairs.  In practice, depending on the relative costs of communication
+and computation, the optimal branching factor may be something
+different from 2, 3, or 4.  For example, if communication has high
+latency, it may be 32 or 1024.  (This also depends on the
+characteristics of the NFA: a higher branching factor may reduce the
+size of the intermediate-result relations substantially.)</p>
+<p>Reducing an NFA to a DFA is useful for many computational models, but
+in this case, the larger number of states in the DFA is likely to be a
+handicap.  You probably want to be coalescing your intervals using the
+smallest alphabet of states you can get away with.</p>
+<p>In practice, you probably want to do most of the computation serially;
+if you have 8192 cores, the best you can do is an 8192× speedup
+(ignoring superlinear speedups from caching and the like) so you might
+as well start out generating 8192 <code>t[i, i+m]</code> values on the 8192 cores
+by linearly running the finite automaton over each of 8192 chunks
+(probably as a lazily-materialized DFA rather than as an NFA),
+followed by, say, 13 steps of alternating communication and
+coalescence.</p>
+<h2>Applications</h2>
+<p>Using Bjoern Hoehrmann’s new parsing algorithm “<a href="https://github.com/hoehrmann/demo-parselov">parselov</a>”, which
+conservatively approximates the language of a context-free grammar by
+compiling a stack-limited conservative approximation of its PDA into a
+finite automaton, it should be possible to perform nearly all of the
+work of parsing in parallel using this algorithm.  However, I’m not
+entirely sure how big parselov’s finite automaton is, and if it has a
+sufficiently large set of intermediate states, this might not work.</p>
+<p>Google Code Search used to provide a public regular expression search
+over all public code.  For normal kinds of regular expression
+searches, where you aren’t interested in matches bigger than a few
+megabytes, parallelization on a cluster is probably not useful.  If
+you do need larger matches, for example on genome or proteome
+searches, parallelism may be useful.</p>
+<p>Using <a href="http://julesjacobs.github.io/2015/06/17/disqus-levenshtein-simple-and-fast.html">Levenshtein automata</a>, you can generate reasonable-sized
+NFAs to find strings within a small Levenshtein distance of a given
+string.  (Baeza-Yates and Gonnet, I think, came up with a different
+way to do this that takes advantage of bit-parallelism in modern CPUs
+and is therefore usually faster in the serial case.)  However, if the
+text being searched is static enough to be indexed, it is probably
+faster to run Levenshtein automata on a suffix array of the text,
+especially now that we have compressed indexing and practical
+linear-time suffix-array construction algorithms.</p>
+<p>You can use a variant of this algorithm to incrementally update
+finite-state-machine results — the construction is the usual
+construction of an incremental algorithm from a parallel algorithm,
+where the high concurrency of the dependency graph of the values
+computed during the execution of the algorithm translates into being
+able to change some of the input without invalidating much of the
+total data flow graph.  Concretely, if one of the input blocks at the
+leaves of the tree changes, you recompute its mapping of starting
+parse states to ending parse states, then propagate that change back
+up and down the tree, potentially affecting the parses of all
+subsequent blocks.</p>
+<p>You can also use this approach to parse a <em>substring</em> of a sentence of
+a regular language, simply by starting the parse of the leftmost block
+with the “superposition” of all states, like the other blocks, rather
+than the usual initial state.  This is potentially useful, for
+example, for syntax highlighting in a text editor (or in a code
+snippet in a web page) or for parse-error recovery in a compiler.
+Moreover, the substring parse can then be extended in either direction
+by inspecting a larger part of the sentence.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/prefix-sums.html">Prefix sums</a> (18 notes)
+</li><li><a href="../topics/compilers.html">Compilers</a> (16 notes)
+</li><li><a href="../topics/automata-theory.html">Automata theory</a> (11 notes)
+</li><li><a href="../topics/parallelism.html">Parallelism</a> (8 notes)
+</li><li><a href="../topics/parselov.html">Parselov</a> (3 notes)
+</li></ul></div></html>

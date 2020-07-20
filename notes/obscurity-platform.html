@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html><title>Obscurity platform ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Obscurity platform</h1><div class="metadata">Kragen Javier Sitaker, 2018-04-27
+(1 minute)</div><p>One useful measure for security through obscurity might be running on
+a platform that doesn’t have a lot of out-of-the-box exploits
+available for it.  GEF supports x86, ARM, AARCH64, MIPS, PowerPC, and
+SPARC, but GDB also supports ARC, MicroBlaze, m68k, NDS32, Nios II,
+S/390, and TMS320C6x; of these, m68k is pretty comfortable and has a
+lot of tooling available, so might be a good choice.</p>
+<p>The J1A or RISC-V might also be pretty reasonable platforms, but a bit
+bleeding-edge.</p>
+<p>Linux on m68k seems to be pretty dead (web page not updated since
+2000; last Debian release Etch) and FreeBSD is gone too, but NetBSD
+still supports m68k.  Also HP-PA, SuperH, and VAX.  These are “Tier
+II” ports.  There are a number of JIT 68000 emulators for popular
+machines; Basilisk II (GPL) successfully runs old versions of MacOS,
+and there’s a reasonable amount of interest in QEMU support for it;
+QEMU at one point in 2014 got to being able to boot Linux/m68k on an
+emulated Mac, barely.  These unfortunately require Macintosh ROMs.</p>
+<p>GCC also, crucially, supports m68k, up to at least GCC 4.9 and maybe
+GCC 5, I’m not sure.</p>
+<p>(Unicorn also, unfortunately, supports m68k.)</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/instruction-sets.html">Instruction sets</a> (40 notes)
+</li><li><a href="../topics/security.html">Security</a> (9 notes)
+</li></ul></div></html>

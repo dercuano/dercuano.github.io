@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html><title>General purpose layout syntax ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>General purpose layout syntax</h1><div class="metadata">Kragen Javier Sitaker, 2017-11-10 (updated 2019-09-01)
+(34 minutes)</div><p>(<a href="../notes/quicklayout.html">Quicklayout</a> concerns the speed of text reflow.)</p>
+<p>Graphviz has this really clever way to handle layouts inside nodes of
+shape “record”.  Fields are separated by “|”, and by default are laid
+out left to right; within “{}” the default layout is transposed, top
+to bottom instead.  So “A|{B|C}|D”, for example, is a three-column
+layout with two rows, B and C, in the middle column.  Hboxes nest
+inside vboxes; vboxes nest inside hboxes.</p>
+<p>There are some other details, and now this is sort of deprecated in
+favor of a subset of HTML they’re implementing.  But I think the
+“|”-separation layout is brilliant, and can be extended in interesting
+ways.</p>
+<h2>First modification: use friendlier characters “[,]'\n”, and vertical by default</h2>
+<p>Instead of “{|}”, which are optimized for not occurring by accident,
+and “\” to escape them, let’s use “[,]” for nesting and separators,
+and “'” for quoting, as in Lisp.  So “65,535” is written as “65',535”.
+All of these characters are easily reachable on a standard QWERTY
+keyboard without shift or extreme reaches.</p>
+<p>Let’s make the top level of nesting be vertical by default, rather
+than Graphviz’s horizontal.</p>
+<p>Also, let’s add newline as a shorthand for “],[“.  This allows us to
+write this table</p>
+<pre><code>| a | b | c |
+| 1 | 2 | 3 |
+</code></pre>
+<p>as</p>
+<pre><code>[a,b,c
+1,2,3]
+</code></pre>
+<p>rather than “[a,b,c],[1,2,3]”.</p>
+<p>XXX maybe this should be reversed in some way?  Gotta think about
+that.</p>
+<p>I was thinking that maybe the quote or escape character should be “/”
+and should follow the character being quoted, but I think that’s
+probably bad in that it involves arbitrary lookahead to see if a
+sequence of escape characters is going to be even or odd and thus
+determine whether it quotes the character before it or not.</p>
+<h2>Second modification: table layout</h2>
+<p>Let’s establish the rule that sequences of sibling nested boxes, like
+the hboxes “a,b,c” and “1,2,3” in the previous example, have aligned
+fields, so they lay out as a table.  If there is an intervening
+sibling box with no nesting, that terminates the table.</p>
+<p>To soften this, let’s add boxes whose content is merely “continuation
+of box to the left” and “continuation of box above”.  For these we can
+use “&gt;” and “^” respectively rather than “,”, so that this table</p>
+<pre><code>procs -----------------------memory---------------------- ---swap-- -----io---- -system-- --------cpu--------
+ r  b         swpd         free         buff        cache   si   so    bi    bo   in   cs  us  sy  id  wa  st
+ 1  0            0      1738140       120936      1405284    0    0    22    14   55  961   2   2  97   0   0
+ 0  0            0      1737876       120936      1405292    0    0     0     0 1117 1180   1   2  97   0   0
+</code></pre>
+<p>can instead be written as follows:</p>
+<pre><code>[procs&gt;,memory&gt;&gt;&gt;,swap&gt;,io&gt;,system&gt;,cpu&gt;&gt;&gt;&gt;
+r,b,swpd,free,buff,cache,si,so,bi,bo,in,cs,us,sy,id,wa,st
+1,0,0,1738140,120936,1405284,0,0,22,14,55,961,2,2,97,0,0
+0,0,0,1737876,120936,1405292,0,0,0,0,1117,1180,1,2,97,0,0]
+</code></pre>
+<p>This provides substantial layout power and is actually easier to use
+than fixed-width ASCII table layout, as far as it goes.</p>
+<p>If you actually want hboxes vertically adjacent to one another not to
+share columns, you can add extra levels of nesting:
+“[[[a long name,b,c]]],[[[1,2,3 million tons]]]”.</p>
+<p>XXX the following part is half-baked.</p>
+<p>As a possible modification of this to support outline-type structures,
+you could maybe allow a nested box with fewer cells to partially
+terminate a table structure.  Take this example:</p>
+<pre><code>[+,usr&gt;
+,+,local&gt;
+,,+,bin&gt;
+,,,,ncftp
+,+,bin&gt;
+,,,bash]
+</code></pre>
+<p>Here the first line has three cells (the third of which is merged with
+the second), while the fourth line has five (the first four of which
+are empty).  The next line has only four cells again, so the boundary
+between the fourth and fifth cell on the previous line is forgotten.</p>
+<h2>Third modification: hashtags</h2>
+<p>To identify particular cells or classes of cells, we can insert
+hashtags into them which are not displayed by default.  Perhaps
+“[a #th,b #th,c #th #ch],[1,2,3]” tags all three of a, b, and c with “th”,
+but only c is tagged with “ch”, identifying it uniquely.  You can put
+the hashtags anywhere in the cell; at the beginning or the end,
+separating whitespace will be removed.</p>
+<p>There are at least five kinds of things you might want to do with
+hashtags: style cells, set or append to cell contents, link to cell
+contents, read cell contents, and listen for user interaction in
+cells.  All of these might query hashtags (or contents!) in the cell
+itself, in its ancestors, in its siblings, or in other cells aligned
+with it.  In a syntax for these, we need three or five directional
+indicators, plus some way to indicate whether we mean an immediate
+neighbor or an eventual one.</p>
+<p>For example, you might use “&gt;” to indicate an immediately preceding
+sibling node, “&gt;*” to indicate any sibling node, “/” (or maybe “.”)
+to indicate an immediate parent node, “/*” to indicate any ancestor
+node, “^” to indicate a corresponding node in the second dimension of
+the table (such as a column), and “^*” to indicate a previous node.
+So perhaps “th” indicates a cell tagged “th”, “ch” indicates the cell
+tagged ch, “ch^” indicates the cell below the cell tagged ch, “ch^^”
+indicates the cell two below it, “ch^*” indicates the entire column,
+and “ch^* sydney&gt;*” indicates any cell in any column containing the
+“ch” hashtag and any row containing the “sydney” hashtag.  (Or vice
+versa if the table is laid out in columns?  Bleh.  Also maybe one of
+these operators should be postfix and you should be able to stick them
+before or after the hashtag.)</p>
+<p>As an alternative to identifying cells with hashtags, you can identify
+them with search strings with "?string?" or maybe regexps.</p>
+<p>Of course there are other kinds of things than hashtags you might want
+to put into cells and not show up as pure text: sparklines, progress
+bars, character-level markup, URLs to link to, raster and vector
+images, and so on.</p>
+<p>You could use cursor movement commands as an alternative to hashtags
+as a way to identify text to modify.</p>
+<h2>Cheap in-memory representation</h2>
+<p>It would be nice if we could represent a node unambiguously as a
+pointer into the string representation (or <em>some</em> string
+representation), which would require that each tree node has a unique
+first byte in that string representation.  We might have to make some
+minimal changes.  Consider again “[a,b,c;1,2,3]”, which is a vbox
+containing two hboxes which each contain three leaf cells.  If we
+expand this to have a unique root node and expand out the “;”, it
+becomes “[[a,b,c],[1,2,3]]”, and now each node indeed has a unique
+first byte.  Also, the commas and “]”s are not the first byte of any
+node, so expanding out the “;” was unnecessary; “[[a,b,c;1,2,3]]” is
+adequate.  This gives us a 15-byte representation of the whole tree,
+although proceeding from one sibling node to the next may be somewhat
+slow.  (A cache for large jumps could limit this problem.)</p>
+<p>Compare this to a Lisp-style or C-style record-and-pointer
+representation:</p>
+<pre><code>digraph abc123 {
+    rankdir=LR;
+    node [shape=record];
+    subgraph rows {node [label="{count|3}|&lt;0&gt;|&lt;1&gt;|&lt;2&gt;"]; row0 row1;}
+    root [label="{count|2}|&lt;0&gt;|&lt;1&gt;"];
+    root:0 -&gt; row0; root:1 -&gt; row1;
+    row0:0 -&gt; a; row0:1 -&gt; b; row0:2 -&gt; c;
+    row1:0 -&gt; 1; row1:1 -&gt; 2; row1:2 -&gt; 3;
+}
+</code></pre>
+<p>Just the internal nodes of this tree take up 11 pointers of storage,
+typically 4 bytes each nowadays, and that’s not even counting the leaf
+nodes that contain the labels.  If you make linked lists of siblings
+you can ditch the count fields, but then you pay even more in
+next-sibling pointers:</p>
+<pre><code>digraph abc123 {
+    node [shape=record];
+    subgraph i {node [label="&lt;k&gt;kids|&lt;n&gt;next"]; d e f g h i j k;}
+    d:k -&gt; e:k -&gt; a;        e:n -&gt; f:k -&gt; b; f:n -&gt; g:k -&gt; c;
+    d:n -&gt; h:k -&gt; i:k -&gt; 1; i:n -&gt; j:k -&gt; 2; j:n -&gt; k:k -&gt; 3;
+}
+</code></pre>
+<p>This has 16 pointers instead of only 11, because it needs 8
+next-sibling pointers (two of which are null) instead of 3 count
+fields.</p>
+<h2>A friendlier syntax variant with more special cases</h2>
+<p>Suppose the top-level separator is “\n” and if there’s a “\t” it gets
+inferred as a second-level separator, and we use “{}” for further
+nesting.  Then we can ingest tab-separated values (with some strange
+quoting conventions) natively, without losing the power of nesting.
+The main disadvantage is that it’s much more irregular, and there are
+lots of cases where a level of nesting can fail to be inferred because
+there’s only one item.</p>
+<h2>Some failed ideas</h2>
+<p>ASCII has separate horizontal and vertical separators: HT and VT (^K).
+Suppose you adopt the rule that you infer a surrounding hbox when you
+find an HT, and a surrounding vbox when you find a VT.  Then maybe you
+could infer all your hboxes and vboxes instead of having to mark their
+beginnings explicitly, and then you would be winning because you would
+only have to mark the endings, with some third control character, like
+LF, which would end the current hbox or vbox.  For example, given this
+text:</p>
+<pre><code>a   b   c
+d   e   f
+</code></pre>
+<p>which is to say, <code>a&lt;HT&gt;b&lt;HT&gt;c&lt;LF&gt;d&lt;HT&gt;e&lt;HT&gt;f&lt;LF&gt;</code>, you would infer an
+hbox upon finding the HT after “a”, and then pack “a”, “b”, and “c”
+into it, and then end the inferred hbox upon finding the LF.  Then
+upon finding the HT after “d”, you would infer a new hbox (and perhaps
+a vbox to contain it and the previous hbox).  The idea was that you
+would never infer an <em>end</em> to any current box; they would all be
+explicit.</p>
+<p>This doesn’t work for a couple of reasons:</p>
+<ul>
+<li>You can put a vbox as the second field of an hbox with a sequence
+  like <code>a&lt;HT&gt;b&lt;VT&gt;c</code>, but never as the first, because you haven’t
+  inferred the hbox yet.  So the <code>&lt;VT&gt;</code> will be treated as a separator
+  for the surrounding vbox.</li>
+<li>It’s too easy to accidentally end the outer vbox.  For example,
+  <code>a&lt;HT&gt;b&lt;LF&gt;c&lt;LF&gt;</code> would end it, because no <code>&lt;HT&gt;</code> has yet been seen
+  to infer an hbox to pack the <code>c</code> into.  To be consistent, if more
+  text followed, you’d want to infer an outer wrapping hbox
+  surrounding that vbox, and so on.</li>
+<li>You can’t have a box with only one child.</li>
+</ul>
+<p>I also thought about using a stack machine model: first you output
+some boxes separated by separator bytes, and then you combine them by
+emitting some combining bytes that will join them into hboxes and
+vboxes.  This has most of the same problems and additionally makes
+text hard to edit.</p>
+<h2>Some better ideas</h2>
+<p>It’s probably best to stick to LF as the separator.  Then, what do we
+use for group start and group end codes?  Nonprintable characters
+would be nice.  ASCII-1967 has STX and ETX, ^B and ^C, which sound
+promising, but STX is really EOH (end of header).  And ^C has acquired
+the meanings of killing processes or copying text, either of which
+would be unfortunate to invoke accidentally.  ^R and ^T (DC2 and DC4)
+would work; they used to turn your paper tape punch on and off.  SO
+and SI (^N and ^O) would also work; on VT100s they select the
+graphical character set, which is a nicely parallel meaning, although
+they don’t nest there.</p>
+<p>ECMA-48 defines a variety of opening delimiters in whose closing
+delimiter is ST, String Terminator, 0x9c; specifically APC
+(application program command, 0x9f), DCS (device control string,
+0x90), OSC (operating system command, 0x9d), PM (privacy message,
+0x9e), and SOS (start of string, 0x98).  Nesting is explicitly
+forbidden; according to the spec, most of the strings need to be
+printable ASCII, not even printable ISO-8859-1.  There are also PU1
+and PU2 codes, 0x91 and 0x92.  These are all in the little-used C1
+control codes area of ISO-8859-1 (originally ANSI X3.64), which
+Windows-1252 repurposed for characters that are more commonly used.</p>
+<p>So our table might look like
+<code>&lt;DC2&gt;a&lt;LF&gt;b&lt;LF&gt;c&lt;DC4&gt;&lt;DC2&gt;1&lt;LF&gt;2&lt;LF&gt;3&lt;DC4&gt;</code>.  This is kind of
+suboptimal in a number of ways:</p>
+<ul>
+<li>as I said before, it’s more bytes than the usual CSV;</li>
+<li>with the unprintable delimiters, if rendered by a traditional
+  terminal, it’s actually even more misleading than before, because
+  “c1” appears as a single line.  Maybe it would work better to use CR
+  (^M) and VT (^K), which xterm, konsole, libvte display as if it were
+  ^J.</li>
+<li>if you’re editing it byte by byte, if you delete either the opening
+  or closing delimiter in the middle, you will get a change of
+  orientation of the text, which could be confusing.  Or maybe useful
+  if you actually wanted to transpose a table, I guess, but it also
+  transposes all the subtables.  Worse, though, all the text
+  afterwards will change orientation.</li>
+</ul>
+<p>A possible further alternative would be to determine box type by its
+internal delimiters (^I vs. ^J), but still have separate nesting
+delimiters (^K and ^M, say).  Then you could go one step closer to
+regular terminal ASCII interpretation by inferring (only) hboxes
+within vboxes when necessary to handle ^I and ^J occurring within the
+same container.  This requires four characters instead of three, but
+eliminates all the other problems previously mentioned.</p>
+<p>You still have the problem of unmatched delimiters swallowing the rest
+of the document, at least temporarily, when they’re inserted in the
+middle.  There must be some kind of possible solution to that but I
+don’t know what it is.  Maybe eliminating arbitrary nesting entirely
+and switching to transclusion of named chunks (maybe with Knuth-style
+1f, 1b labels) for nesting?  Sigh.</p>
+<h2>Use cases</h2>
+<p>The most obvious use case is a human being interactively preparing a
+two-dimensional nested layout of text for another human being to read,
+and I think this approach (supplemented with a few restructuring
+commands) is probably superior to anything I’ve seen for that purpose.</p>
+<p>The second most obvious case is to produce human-readable output from
+a computer program.  This syntax provides an easy way for program
+output to be tabular, nested, and semantically tagged for styling.</p>
+<p>You might also want to use that semantic tagging for data extraction
+and to specify additional transformations to make.</p>
+<p>The layout algorithm for this format is not quite as simple and fast
+as the layout algorithm for fixed-width ASCII text, but it’s
+dramatically simpler and faster than the CSS box model, especially if
+you don’t do word wrap.</p>
+<p>You also might want to use this data model for parsing data from other
+sources — HTML tables, spreadsheets, discussion threads, XML files,
+JSON, relational databases, that kind of thing.</p>
+<h2>Implementing a prototype</h2>
+<p>What would it take to get a prototype of this thing running so I can
+see what it feels like to type into it?  Probably the easiest
+substrate available is DHTML, and although part of my motivation is to
+have something that reliably lays out and redisplays faster than DHTML
+does, maybe a DHTML prototype would be adequate.</p>
+<p>Given that desire, though, it seems like I’ll still have to use JS to
+do all the computations.  In a situation like {{A|B}|{C|D}}|{E|F}, we
+have to satisfy the following constraints:</p>
+<ul>
+<li>{E|F} is below the ABCD row.</li>
+<li>{E|F} is the same width as the ABCD row.</li>
+<li>E is the same width as {A|B}</li>
+<li>F is the same width as {C|D}.</li>
+</ul>
+<p>So far so good — that’s just a 2×2 table.  But there’s more:</p>
+<ul>
+<li>{A|B} is to the left of {C|D}.</li>
+<li>A is the same height as C.</li>
+<li>B is the same height as D.</li>
+</ul>
+<p>Again, that’s okay; it’s just turned our 2×2 table into a 2×3 table.
+But there are cases where it’s essential to not have certain
+constraints that would flow from treating the whole thing as just one
+big table.  For example, if you replace A|B with {{A|B}}, the
+constraint with {C|D} goes away.  Maybe you can still use rowspan and
+colspan with nested tables to get this effect, I’m not sure.</p>
+<p>The interesting thing here is that each level of nesting has its own
+parallel cell constraints to deal with.  If a table like
+{a|b|c}|{d|e|f}|{g|h|i} is in a cell that has sibling cells, the
+table’s own rows (or columns) may be subject to alignment constraints
+with the contents of those sibling cells — but only to that one level,
+as the individual cells within those rows or columns will not be.</p>
+<p>I still feel that the whole thing can still be pretty much done with
+two passes: one pass to figure out which heights and widths have to be
+equal, and a second bottom-up pass to calculate them.</p>
+<p>Yes, it’s fairly simple.  If we just do nesting, without tables, each
+minimum width is either a constant, for text boxes; the maximum of
+some other widths, for a vbox; or a sum of other widths, for an hbox.
+These minimum widths are strictly arranged in a tree.  (A
+corresponding, parallel, and independent tree is present for heights.)
+So the minwidth of each hbox is a sum of maxima of minwidths of hboxes
+(or text boxes).  If we switch to strict tables, instead, the minwidth
+of a column is a maximum of sums of minwidths of vboxes.  I think this
+will be simple but I still don’t have it entirely clear in my mind.</p>
+<p>Ragged tables, where different rows or columns have different numbers
+of items, and so, for example, a column may only affect certain rows
+of a table, seem like they will be more complexity.</p>
+<p>We can compile the layout into a tree of data dependencies: the
+minwidth of a column is the maximum minwidth of its cells; the
+minwidth of a table is the sum of the minwidths of its columns; and so
+on.  Ragged tables make the topology more complicated because the
+minwidth of the table may come from a row which may actually have a
+contribution from the actual width of one of its cells that is imposed
+by the minwidth of a cell in a different row, while that row may have
+fewer cells and thus not actually impose its own row-minwidth on the
+table as a whole; I don’t know if there’s a way to ensure that the
+dependencies in that case are noncircular, but I suspect so.</p>
+<p>Other approaches to the layout problem include, of course the CSS box
+model, and TeX’s boxes-and-glue model, in which each character is a
+box, hboxes line up vboxes or vrules or characters on a baseline, and
+vboxes string together hboxes; TeX flows the text into a bunch of
+hboxes of length <code>\hsize</code>.  Glue has nine-dimensional flexibility: a
+default size, a maximum shrink, a maximum stretch, and then three more
+optional transfinite levels of maximum shrinks and stretches.  This
+allows space between words to be flexible, but not take advantage of
+that flexibility when you want to, say, center a line with equal
+infinite stretches on both left and right.</p>
+<h2>Quasi-unrelated: escape sequence tags</h2>
+<p>How do you specify things like font size, borders, padding, and the
+like?  The standard ASCII approach is using escape sequences, but
+those have some big problems; they involve a mode switch, and so as
+you’re typing them (or receiving them) you can’t see what’s going on.
+And if there’s an interrupted transmission, they can eat some
+following text.</p>
+<p>The org-mode approach to handling links is kind of nice.  If you type
+<code>[[http://x.org/][foo]</code>, it’s just text; but once you add a final <code>]</code>,
+it just displays as <code>foo</code> with underlines, and it’s a link.  Movement
+commands skip the hidden characters, but if you delete one of them,
+the pattern breaks and the remainder becomes visible.</p>
+<p>WordPerfect’s Alt-F3 “Reveal Codes” screen was one of its most
+distinctive features.  It displayed boldfaced escape sequences like
+[HRt] for a paragraph break (“hard return”), [UND] and [und] for
+beginning and ending underlines, [Just:Left] for a beginning of
+left-justification, and so on.  But this didn’t provide any clue as to
+how you would go about typing them.  The current “WordPerfect” product
+still has such a feature, but now it draws little tags around the
+“codes”.</p>
+<p>HTML tags are nice but require a WordPerfect-like mode switch to make
+them effective.</p>
+<p>So here’s a thought.  If we’re going to have inline markup, maybe
+instead of <em>preceding</em> an escape sequence with an escape character, we
+should <em>follow</em> it.  Maybe you write <code>just:left</code> or <code>border:black</code> or
+<code>href:http://x.org/</code> or <code>18pt</code> or <code>sparkline:3,5,1,18,12,19</code> in your
+document and then add a ^] (GS, group separator) to interpret the text
+back to and including the previous whitespace as an “escape sequence”,
+thus removing it from view.  This solves most of the problems of
+escape sequences and provides a sort of command line; it also allows a
+sort of immediate feedback as you’re typing the escape sequence or
+receiving it, and it’s harmless if the escape sequence is truncated.
+The choice of whitespace as the other delimiter ensures that a
+corrupted escape sequence can’t eat too much text.  If you’re
+receiving data really slowly then you will have transient mysterious
+text appearing on the screen but that’s hardly the worst display
+problem resulting from slow data reception.</p>
+<h2>Cursor positioning escape sequences</h2>
+<p>The best way for software to position the cursor in such a terminal,
+aside from cursor forward and back, is probably with escape sequences
+to push, pop, search, and move-to-end.  Then you can insert text by
+sending it, or delete text with the DEL character, say.</p>
+<h2>Simplifying by dropping row/column transposition</h2>
+<p>All of the above ideas are complicated by the conflicting desires to
+support HT as an unambiguously horizontal separator and LF as an
+unambiguously vertical separator, on one hand, and on the other to
+conceptually have only three kinds of delimiter <code>{|}</code>; and also to
+simply be made of nested hboxes and boxes, on one hand, and on the
+other to support tabular layout.</p>
+<p>Suppose that we resign ourselves to having four kinds of delimiter
+instead of three, and to making things out of nested tables instead of
+nested boxes.  Let’s say our tables do use HT and LF as horizontal and
+vertical separators, respectively, and we use two other characters for
+table nesting; let’s say DC2 and DC4, ^R and ^T.  The requested height
+of a table is the sum of the requested heights of its rows, and the
+requested height of a row is the maximum of the requested heights of
+its cells, and <em>mutatis mutandis</em> for width and columns.  In a very
+simple model where cells can only contain either a table or a string,
+the width and height of the cell is just the width and height of the
+table or of the string; if a cell can contain a sequence of characters
+and tables in some way, then we need some kind of layout rule; several
+adequate possibilities occur to me.</p>
+<p>(VT, ^K, and FF, ^L, are obvious choices for table <em>separators</em> but
+not so obvious for table beginner-and-enders — should they begin
+nested tables, terminate them, or begin one and start a sibling?
+Perhaps better to use characters without so much baggage.)</p>
+<p>This seems like it will be simpler to implement and to use, at least
+until we add rowspan and colspan and partial termination back in.</p>
+<p>With these rules, there is the possibility that table cells receive a
+size that is different from what they requested, at least by being
+larger in either or both dimensions, and there are a variety of
+options as to how to handle that: left/top alignment, right/bottom
+alignment, centering, and stretching.  You could extend this principle
+to the top-level document as well, enabling it to fill a larger window
+than it has explicitly requested.</p>
+<p>A trickier question is how to handle canvases that are <em>smaller</em> than
+requested, for example to fit the entire canvas on the screen or to
+fit a column or row of the table into that entire canvas.  The CSS2
+<code>overflow</code> options here are <code>visible</code> (like T<sub>E</sub>X with
+overfull hboxes), <code>hidden</code> (discard, mostly like a terminal with
+line-wrap turned off), <code>scroll</code> (display scrollbars), and <code>auto</code>
+(which is <code>scroll</code> but hides the scrollbars when unnecessary); to this
+CSS3 (I think) adds <code>unset</code>.  But this omits the choice of whether and
+how to do line-wrapping, which in CSS is socked away in the
+<code>white-space</code> and <code>hyphens</code> properties, and doesn’t offer the
+traditional terminal option of wrapping per character rather than per
+word.  An additional option used in, for example, Android’s keyboard
+autocomplete suggestions, is to squish or stretch the contents on the
+relevant axis, to fill the box (such approaches to filling lines,
+impossible in the hot-lead era, are sometimes called
+“microtypography”), and the obvious other alternative is to repeat it,
+as in dot leaders for tables of contents.</p>
+<p>(HTML layout doesn’t normally deal with a <em>vertical</em> box becoming
+full, but this is a thing we might want in order to take advantage of
+modern big displays with multicolumn layouts, and it’s necessary for
+rendering to paper.)</p>
+<p>The usual way to handle overflow in ASCII terminal applications is to
+rely on applications that painted the screen to insert hard line
+breaks and extra spaces to wrap and justify paragraphs as desired,
+which clearly has drawbacks when you’re using ASCII as a document
+format rather than an interactive screen-painting protocol, and
+accounts for the near-unreadability of most ASCII text documents on
+modern hand computers.  So, having overflow-handling options would be
+pretty useful.</p>
+<p>In particular, being able to flow table rows from the bottom of one
+page onto the top of another is pretty important.</p>
+<p>T<sub>E</sub>X glue has a three-level stretchiness hierarchy — any
+amount of elasticity at a higher level of the hierarchy is infinite as
+seen from any lower level — and also separate stretchiness and
+shrinkiness quantities at each of these levels.  Despite this level of
+complexity (I hesitate to say “expressiveness”) the layout engine,
+except for paragraph filling, is a simple solver of a system of linear
+equations.  (Not to undersell that — closed-form linear solvers use
+things like QR factorization which take O(N³) time, while iterative
+linear-solver algorithms like successive over-relaxation, though only
+O(N²), have complicated convergence characteristics.)</p>
+<p>A remaining lacuna is how to handle ragged tables; above I suggested
+that each column should end when it reaches a row that doesn’t contain
+a cell for it, but perhaps there should be a special case that ends
+all the columns when there’s a blank line (without even a space).
+Without such a special case, there’s no way to end the first column
+other than ending the entire table with, perhaps, an additional ^T.
+The result would be that single-column lines of text would either tend
+to be outrageously squished by other columns, or would push those
+other columns over outrageously, even if they occurred far earlier in
+the text.</p>
+<h3>Layout properties</h3>
+<p>T<sub>E</sub>X has a zillion layout properties it stores in
+“registers”, which are automatically restored to their previous value
+on the exit from the nesting level where they were defined.  CSS does
+something similar: most properties are inherited from the parent node
+if they are not locally overridden, but properties set in a child node
+never bubble up to a parent node, much less just the part of the
+parent node following the child node.  This is considerably saner than
+the approach that results implicitly from the state-machine model
+described by ANSI escape sequences and their more diverse
+predecessors.</p>
+<p>Traditional terminals quantize layout and colors to character-cell
+boundaries, as well as abjuring texture and quantizing colors to a
+small number of primary or near-primary colors, with aesthetically
+unpleasant results.  (You could argue that <em>traditional</em> terminals are
+black-and-white, or print on paper, but those aren’t the ones we
+emulate nowadays.)  On a bitmapped screen, just as on a
+phototypesetter, there’s no need to quantize in this way, and on
+modern computers, even quantizing coordinates to pixels is no longer a
+problem.  (Many computers nowadays have screens near 300 dpi, or 900
+dpi horizontally with subpixel rendering, and antialiasing
+subpixel-positioned text is no longer the performance nightmare it
+once was.)</p>
+<p>From HTML we know that a little bit of extra space around text before
+running into a color change can make an enormous difference to
+readability and aesthetics.  Compare <i style="display: inline-block;
+color: white; background-color: black">this, with no padding,</i> to
+<i style="display: inline-block; color: white; background-color:
+black; padding: 0.2em">this, with 0.2em padding.</i> (As of this
+writing, the ET Book font I’m using has substantial extra
+leading (vertical blank space) built into it, which shows up as
+built-in “padding” above and below, and building extra leading and
+letter spacing into your font in this way may be a reasonable hack to
+improve appearance in these situations.)  Similarly, when text is
+<span style="color: #966">highlighted in</span>
+<span style="color: #99c" >pastel colors</span>, it’s more readable
+and less visually noisy than when it’s <span style="color:
+red">highlighted in</span> <span style="color: blue">primary
+colors</span>.  And a <span style="background-color: #fef; padding:
+3px">pastel background box</span> is much more clearly visible <span
+style="background-color: #fef; padding: 2px; border: solid
+1px #dcd">with a thin border of the same color, but slightly
+darker</span>.</p>
+<p>In less Tufte-approved and more brochure-like directions, <span
+style="text-shadow: .1em .1em .05em rgba(0,0,0,.2)">text drop
+shadows</span> and <span style="padding: .2em; background-image:
+linear-gradient(rgba(255,255,255,.1) 0, rgba(0,0,0,.1))">background
+gradients</span> are also often nice-looking effects, especially when
+used as accents rather than for running text, or on top of a visually
+noisy or poorly contrasting background that could interfere with text
+readability.  Consider the difficulty of reading <span style="padding:
+.2em; background-image: linear-gradient(red 0, green 50%, black)">this
+problematic background</span> and <span style="padding: .2em;
+background-image: linear-gradient(red 0, green 50%, black);
+text-shadow: 0 0 .2em #fff, 0 0 .2em #fff, 0 0 .3em #fff">the same
+problematic background but with text-shadow</span>, and then consider
+that problematic backgrounds can come from data plots, 3-D renderings,
+or photographs as well as poorly chosen static gradients.</p>
+<p>Supporting all of these in a general-purpose layout syntax would be
+entirely reasonable, even without the complexities of the HTML box
+model.  You could quite reasonably have escape sequences that set such
+properties for the current table or (for character-level markup) for
+the span of text following the escape sequence, without importing all
+the complexities of the CSS box model and text-flow algorithms.</p>
+<h2>Page/column breaks and tables</h2>
+<p>On 2019-09-01, dpk commented on #swhack about the limitations of LaTeX
+tables; reformatted from IRC style, she said:</p>
+<blockquote>
+<p>This combination of things in LaTeX is annoyingly apparently
+  impossible: multiple-column mode; tables spanning multiple
+  pages/columns; groups of rows within said table which should not be
+  broken apart --- oh, and header rows on the said table which repeat
+  after every column/page break.</p>
+<p><code>tabular</code> (built-in) can’t break across multiple pages or columns at
+  all, so you try the <code>longtable</code> package.  First thing <code>longtable</code>
+  does is complain that it doesn’t work in multi-column mode, whether
+  from the <code>multicol</code> package or with the built-in <code>\twocolumn</code>.</p>
+<p>Some page recommends <code>supertabular</code>, which is apparently the
+  predecessor to <code>longtable</code> but does work in multi-column mode,
+  because why not remove features from things!  <code>supertabular</code> seems
+  to work, but then you notice you have groups of rows in the table
+  (pairs, in my case) that really need to be on the same page/in the
+  same column as one another, no matter what. <code>supertabular</code> doesn’t
+  appear to support this.</p>
+<p>But, oh look, there’s this package that lets you use the <code>\\*</code>
+  command instead of <code>\\</code> to insert a row break that isn’t allowed to
+  cross a page or column break. the package is ... <code>longtable</code>.  Which
+  you can’t use.</p>
+<p>Then you discover there’s a hack to make <code>longtable</code> work in
+  multi-column mode, ... but it doesn’t support printing the headers
+  of the table anew at the top of each new column.</p>
+<p>So, TL;DR, I am very annoyed.</p>
+</blockquote>
+<p>This combination of requirements is probably a good one to keep in
+mind for designing table-layout systems, since evidently it’s a
+combination of features that is difficult to provide if you didn’t
+plan for it from the beginning.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/guis.html">Graphical user interfaces</a> (23 notes)
+</li><li><a href="../topics/terminals.html">Terminals</a> (6 notes)
+</li><li><a href="../topics/layout.html">Layout</a> (4 notes)
+</li><li>Table layout</li></ul></div></html>

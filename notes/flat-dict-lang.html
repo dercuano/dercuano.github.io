@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html><title>A homoiconic language with a finite-map-based data model rather than lists? ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>A homoiconic language with a finite-map-based data model rather than lists?</h1><div class="metadata">Kragen Javier Sitaker, 2019-09-25 (updated 2019-09-28)
+(46 minutes)</div>
+<p>I wrote <a href="http://canonical.org/~kragen/sw/dev3/terp.lua">a mock Lisp the other night</a>, which was a surprisingly
+pleasant experience.  Thanks to LuaJIT, it took me only a couple of
+hours to get from nothing to generating reasonably fast native
+code — wasting only 70% of the CPU’s performance rather than 80% as
+with <a href="http://canonical.org/~kragen/sw/urscheme">Ur-Scheme</a> or 95% as with CPython.  The mock Lisp isn’t
+powerful enough for a metacircular interpreter, since it lacks data
+structures, but it’s powerful enough to write a recursive Fibonacci
+number function.</p>
+<p>This led me to wonder whether an imperative homoiconic programming
+language based on maps rather than lists could be a better alternative
+to Lisp.  I think it’ll necessarily have more redundancy than Lisp,
+since a map with <em>N</em> keys has <em>N</em>! equivalent permutations (so the
+parsing process discards lg (<em>N</em>!) bits), but that may not be a bad
+thing; after all, we can diminish redundancy further by dropping to
+Forth, PostScript, or APL.</p>
+<p>After examining some clumsy alternatives, I think I have a reasonable
+alternative based on a forgotten SourceForge project for text munging.</p>
+<h2>The magic of READ and PRINT</h2>
+<p>Although LuaJIT is amazing, the experience of debugging things at the
+LuaJIT REPL made me wish for Python, JS, OCaml, or Lisp — languages
+where your data structures can be automatically serialized in a
+parseable form, a very handy feature not only for interactive testing
+but also for network communication, ad-hoc filesystem persistence,
+manual fixup of broken systems, primitive user interfaces, and
+shared-nothing message-passing parallel and concurrent processing,
+as with fork().  Here’s
+a rehearsed interaction with the OCaml interpreter:</p>
+<pre><code>$ ocaml
+        OCaml version 4.02.3
+
+# type rope = Leaf of int * string | Cat of int * rope * rope ;;
+type rope = Leaf of int * string | Cat of int * rope * rope
+# let rope_length = function Leaf(a, _) -&gt; a | Cat(a, _, _) -&gt; a ;;
+val rope_length : rope -&gt; int = &lt;fun&gt;
+#   let leaf s = Leaf(String.length s, s)
+    let cat a b = Cat(rope_length a + rope_length b, a, b)
+    let cat2 a b = match (a, b) with 
+    | (Leaf(n1, s1), Leaf(n2, s2)) when n1+n2 &lt; 128 -&gt;
+        leaf(s1 ^ s2)
+    | (Cat(_, x, Leaf(n1, s1)), Leaf(n2, s2)) when n1+n2 &lt; 128 -&gt;
+        cat x (leaf(s1 ^ s2))
+    | (Leaf(n1, s1), Cat(_, Leaf(n2, s2), x)) when n1+n2 &lt; 128 -&gt;
+        cat (leaf(s1 ^ s2)) x
+    | (_, _) -&gt;
+        cat a b
+;;
+
+val leaf : string -&gt; rope = &lt;fun&gt;
+val cat : rope -&gt; rope -&gt; rope = &lt;fun&gt;
+val cat2 : rope -&gt; rope -&gt; rope = &lt;fun&gt;
+# cat2 (cat2 (leaf "x") (cat2 (cat2 (leaf "x")
+                                 (leaf (String.make 128 'h')))
+                       (leaf "x")))
+     (leaf "x")
+;;
+- : rope =
+Cat (132,
+ Cat (131, Leaf (1, "x"),
+  Cat (130,
+   Cat (129, Leaf (1, "x"),
+    Leaf (128,
+     "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh")),
+   Leaf (1, "x"))),
+ Leaf (1, "x"))
+#
+</code></pre>
+<p>(This experimentally confirms that the leafnode-coalescence strategy
+used by <code>cat2</code>, proposed in <a href="../notes/btree-ropes.html">B-Tree ropes</a>, does indeed
+experience pathological fragmentation for some workloads.)</p>
+<p>Here’s JS, though you can’t see the pleasant syntax highlighting Node
+applied to its output:</p>
+<pre><code>$ node
+&gt; x = {a: [3, 4], b: 5}
+{ a: [ 3, 4 ], b: 5 }
+&gt; x.b += 4
+9
+&gt; x.c = ['okay']
+[ 'okay' ]
+&gt; x.c.push('now')
+2
+&gt; x
+{ a: [ 3, 4 ], b: 9, c: [ 'okay', 'now' ] }
+&gt;
+</code></pre>
+<p>Here’s the same interaction in Python, which is quite a bit fussier
+than JS, but still comes through:</p>
+<pre><code>&gt;&gt;&gt; x = {"a": [3, 4], "b": 5}
+&gt;&gt;&gt; x["b"] += 4
+&gt;&gt;&gt; x["c"] = ['okay']
+&gt;&gt;&gt; x["c"].append('now')
+&gt;&gt;&gt; x
+{'c': ['okay', 'now'], 'a': [3, 4], 'b': 9}
+</code></pre>
+<h3>Lua has READ but not PRINT</h3>
+<p>Now contrast Lua, which is eminently capable of handling the same kind
+of flexible data structures, but doesn’t come with any way to print
+them:</p>
+<pre><code>$ luajit
+LuaJIT 2.0.4 -- Copyright (C) 2005-2015 Mike Pall. http://luajit.org/
+JIT: ON CMOV SSE2 SSE3 SSE4.1 fold cse dce fwd dse narrow loop abc sink fuse
+&gt; x = {a = {3, 4}, b = 5}
+&gt; x.b = x.b + 4
+&gt; x.c = {'okay'}
+&gt; table.insert(x.c, 'now')
+&gt; =x
+table: 0x40542160
+&gt; =x.a
+table: 0x405485a8
+&gt; =x.a[1]
+3
+&gt; =x.a[2]
+4
+&gt; =x.b
+9
+&gt; =#x.a
+2
+&gt; =#x.c
+2
+&gt; =x.c[1]
+okay
+&gt; =x.c[2]
+now
+&gt; =table.unpack(x)
+stdin:1: attempt to call field 'unpack' (a nil value)
+stack traceback:
+        stdin:1: in main chunk
+        [C]: at 0x004044a0
+</code></pre>
+<p>I guess <code>table.unpack</code> wasn’t added until Lua 5.2, and LuaJIT is a Lua
+5.1.  Doesn’t matter, because it wouldn’t have helped
+anyway — <code>table.unpack</code> is only for lists, not for dictionaries.
+There’s a <code>pairs</code> function in core Lua for iterating over
+dictionaries, but just printing it isn’t useful; it returns an
+iteration state, not an unpacked sequence:</p>
+<pre><code>&gt; =pairs(x)
+function: builtin#4     table: 0x4163d160       nil
+</code></pre>
+<p>You actually have to write code to iterate over the pairs:</p>
+<pre><code>&gt; for k, v in pairs(x) do print(k, v) end
+b       9
+a       table: 0x405485a8
+c       table: 0x40548920
+</code></pre>
+<p>And of course it doesn’t recurse; you have to do that yourself:</p>
+<pre><code>&gt; for k, v in pairs(x.a) do print(k, v) end
+1       3
+2       4
+&gt; for k, v in pairs(x.c) do print(k, v) end
+1       okay
+2       now
+&gt;
+</code></pre>
+<h2>S-expressions and their discontents</h2>
+<p>Lisp S-expressions are probably a sort of minimum-complexity way to
+give you fully general data structures that are readable and
+printable, with a syntax you can write in a single-rule BNF grammar:</p>
+<pre><code>sexp ::= [ \n]* "(" sexp* [ \n]* ")" | [ \n]* [-A-Za-z0-9*]+
+</code></pre>
+<p>And once you implement that, which is flexible enough to use for any
+kind of tree data structure, it’s straightforward to use them for your
+source code as well as your data structures, although many people
+complain about the clarity of the resulting code.  Here’s the
+recursive-descent parser I hacked together in half an hour (plus a
+couple of cleanups), using Lua’s built-in list structure and
+<code>string.match</code>, although I probably should have used LPEG:</p>
+<pre><code>function read_sexp(c, getc)
+   while c:match("[%s]") do c = getc() end
+   if c == '(' then return read_list(getc(), getc) end
+   return read_atom(c, getc)
+end
+
+function read_list(c, getc)
+   while c ~= nil and c:match("[%s]") do c = getc() end
+   if c == ')' then return nil end
+
+   local car, c2 = read_sexp(c, getc)
+   if c2 == nil then c2 = getc() end
+
+   return {car=car, cdr=read_list(c2, getc)}
+end
+
+function read_atom(c, getc)
+   local name = {}
+
+   while c ~= nil and c:match("[^%s()]") do
+      table.insert(name, c)
+      c = getc()
+   end
+
+   name = table.concat(name)
+   if not name:match("[^%d.]") then return tonumber(name), c end
+   return name, c
+end
+</code></pre>
+<p>With this, the compiler can successfully parse and compile programs
+such as the following:</p>
+<pre><code>(letrec (fib (lambda (n)
+               (if (&lt; n 2)
+                   1
+                   (+ (fib (- n 1)) (fib (- n 2))))))
+  (fib 40))
+</code></pre>
+<p>S-expressions have some real merits.  They have great simplicity of
+implementation, and they’re relatively light on delimiters, which
+makes them easy t type; compare JS’s <code>{ a: [ 3, 4 ], b: 9, c: [
+'okay', 'now' ] }</code> or Python’s <code>{'c': ['okay', 'now'], 'a': [3, 4],
+'b': 9}</code> to <code>(a (3 4) b 9 c (okay now))</code> or even <code>((a (3 4)) (b 9) (c
+(okay now)))</code>.</p>
+<h3>The discontents</h3>
+<p>However, S-expressions also have some real drawbacks.</p>
+<p>As you can see in the string <code>))))))</code> in the above mock Lisp program,
+they expose the deeply nested nature of the data structure rather
+crudely; this is often unhelpful to the humans.  Tim Peters’s line in
+the Zen of Python, “Flat is better than nested”, is a response to
+this.  Although the humans are capable of recursive thought, it is a
+lot of effort for them, so they do much better when they can stick to
+finite state machines and Markov chains.</p>
+<p>Code that stores data as S-expressions can be somewhat inscrutable and
+therefore bug-prone; consider this Elisp snippet from files.el:</p>
+<pre><code>      (if (and mode
+           (consp mode)
+           (cadr mode))
+      (setq mode (car mode)
+        name (substring name 0 (match-beginning 0)))
+    (setq name nil))
+</code></pre>
+<p>What are <code>(car mode)</code> and <code>(cadr mode)</code> (that is, the second item of
+the list <code>mode</code>)?  They’re some kind of fields of a data structure,
+but it’s hard to tell what they intend.  Fairly often Elisp will
+unpack such lists at the entry to a function or the top of a loop,
+which inflates the code a bit (this from Ken Manheimer’s allout.el
+outliner mode):</p>
+<pre><code>  (while pairs
+    (let* ((pair (pop pairs))
+           (name (car pair))
+           (value (cadr pair))
+           (qualifier (if (&gt; (length pair) 2)
+                          (caddr pair)))
+           prior-value)
+    ...
+</code></pre>
+<p>A perhaps more subtle problem of S-expressions is their extensibility.
+The last example above handles tuples of the structure <code>(name value)</code>,
+which may be extended with an optional <code>qualifier</code> to become <code>(name
+value qualifier)</code>.  Perhaps at some future point a <code>scope</code> or <code>mode</code>
+will be added.</p>
+<p>As with Protocol Buffers, it’s safe to add new items at the end of
+such tuple-shaped lists — but only if nobody else is doing so
+concurrently somewhere else, or you’ll end up misinterpreting each
+other’s data.  That is, if I add a <code>scope</code> item as the fourth item,
+and you add a <code>mode</code>, and for whatever reason I end up running my code
+on your data (from your .emacs.d/init.el, perhaps), something will go
+wrong.</p>
+<p>(An example of this is how Racket doesn’t really parse your program
+into cons nodes; instead it parses it into things that are similar to
+cons nodes but also contain file, line number, and column number
+information, so that it can report runtime errors in context.  Adding
+such a feature using normal cons nodes in a way that wouldn’t break
+existing users would be infeasible.)</p>
+<p>Lists being used as lists are much worse, though — there’s no way to
+add any extra data to them (other than per list item) without breaking
+backward compatibility.</p>
+<p>Finally, S-expressions use a buttload of memory, especially on 64-bit
+machines: at least two pointers per list item, plus potentially extra
+space for type tags, garbage collection tags, locks, and so on.</p>
+<p>These aren’t really drawbacks of Lisp, except for <code>))))))</code>; Common
+Lisp, Scheme, Racket, Clojure, and even Elisp have a variety of other
+data structures and aren’t limited to cons chains.  It’s a drawback of
+just storing data in cons chains.</p>
+<p>Problems like these are why awk, Python, JS, and Lua privilege finite
+maps (also known as dictionaries, tables, associative arrays, or
+hashes) over lists or arrays, and OCaml is instead based on
+discriminated unions (although it has lists and tuples).  Finite maps,
+sets of name-value pairs, have a sterling record of
+backward-compatibility in things like email headers, HTML element
+attributes, and library APIs.</p>
+<p>However, none of these non-Lisp languages has attempted to use the
+same syntax for code and for data.  I think it might be a fun thing to
+try.</p>
+<h2>Nested dicts</h2>
+<p>The simplest approach to a homoiconic language syntax consisting of
+finite maps is to just use S-expressions with an even number of items,
+and interpret them as finite maps.  Clojure does something like this:</p>
+<pre><code>user=&gt; {:a [3 4] :b 5}
+{:b 5, :a [3 4]}
+</code></pre>
+<p>(The leading <code>:</code> in Clojure marks a keyword, which is autoquoted in
+much the same way as in Common Lisp or Ruby.)</p>
+<p>The grammar for such a dictionary-expression approach is very nearly
+as simple as that for ordinary S-expressions:</p>
+<pre><code>dexp ::= [ \n]* "{" (dexp dexp)* [ \n]* "}" | [ \n]* [-A-Za-z0-9*]+
+</code></pre>
+<p>It remains to be seen how to encode programs in this form in a usable
+fashion.  First, though, some exploration of a subtle point that can
+produce a lot of confusion.</p>
+<h3>Reading, evaluation, and auto-quoting</h3>
+<p>There’s a subtle distinction which is glossed over above.  Python
+reads “dictionary displays” like <code>{3: 4}</code> differently from the way
+Lisp parses S-expressions.  Python, like Lua, JS, Ruby, and OCaml, is
+<em>evaluating</em> these expressions, with potentially Turing-complete
+consequences.  Lisp’s READ, by contrast, just <em>parses</em> them, though if
+you type them in at the REPL prompt it will evaluate them, and they
+may evaluate to themselves.  Here’s an edited interaction with the
+SBCL implementation of Common Lisp:</p>
+<pre><code>* (read)
+(x y z)
+(X Y Z)
+*
+</code></pre>
+<p>That is, I typed <code>(read)</code> at the prompt, and then it waited for
+another S-expression of input; I typed <code>(x y z)</code>, and it responded by
+parsing that and returning a list of those three symbols, which
+unfortunately it prefers to print in uppercase, as if it were still
+1962.  By contrast, if I type <code>(x y z)</code> at the prompt, first it parses
+(“reads”) that into the same list as before, and then attempts to
+evaluate it, which fails because I haven’t defined the variable <code>y</code>:</p>
+<pre><code>* (x y z)
+; in: X Y
+;     (X Y Z)
+</code></pre>
+<p>...(many lines omitted)...</p>
+<pre><code>debugger invoked on a UNBOUND-VARIABLE in thread
+#&lt;THREAD "main thread" RUNNING {100399C553}&gt;:
+  The variable Y is unbound.
+</code></pre>
+<p>If you actually want that list of three symbols, you can use <code>quote</code>,
+optionally abbreviated as <code>'</code>, both for input and for output:</p>
+<pre><code>* (quote (x y z))
+(X Y Z)
+* (list (quote x) (quote y) (quote z))
+(X Y Z)
+* '(x y z)
+(X Y Z)
+* (list 'x 'y 'z)
+(X Y Z)
+* '(quote (x y z))
+'(X Y Z)
+</code></pre>
+<p>It happens that, in Common Lisp and in Elisp, evaluation of lists does
+things such as call functions and apply macros, but evaluation of
+other data such as integers or strings just returns that data (it is
+“auto-quoting”).  In fact, this rule even extends to things like
+“vectors”, which is to say, arrays:</p>
+<pre><code>* (defvar x 99)
+X
+* #(3 x 9)
+#(3 X 9)
+</code></pre>
+<p>We got the symbol <code>X</code> rather than the value 99.  What happened is that
+the whole vector <code>#(3 X 9)</code> was read, and vectors are auto-quoting, so
+evaluating it simply returned the vector.  If we want to build up a
+vector from values computed at run-time, we have to call the function
+<code>vector</code>:</p>
+<pre><code>* (vector 3 x 9)
+#(3 99 9)
+</code></pre>
+<p>Smalltalk originally had the same problem, although Squeak has a fix.
+Clojure, on the other hand, follows Common Lisp by separating reading
+from evaluation, but follows Python by evaluating items inside of
+aggregate data structures unless they are explicitly quoted; like
+Elisp, JS, and Python, but unlike Common Lisp and Lua, it uses <code>[]</code> to
+delimit vectors/arrays:</p>
+<pre><code>$ clojure
+Clojure 1.6.0
+user=&gt; (def x 99)
+#'user/x
+user=&gt; [3 x 9]
+[3 99 9]
+user=&gt; '[3 x 9]
+[3 x 9]
+user=&gt; {x 3 (+ x 1) 4}
+{99 3, 100 4}
+user=&gt; '{x 3 (+ x 1) 4}
+{x 3, (+ x 1) 4}
+user=&gt; (type [3 x 9])
+clojure.lang.PersistentVector
+user=&gt; (type '[3 x 9])
+clojure.lang.PersistentVector
+user=&gt; ({x 3 (+ x 1) 4} x)
+3
+user=&gt; ({x 3 (+ x 1) 4} 'x)
+nil
+user=&gt; ('{x 3 (+ x 1) 4} 'x)
+3
+user=&gt; (read)
+[3 x 9]
+[3 x 9]
+</code></pre>
+<p>In Clojure, only primitive atomic data types like numbers, strings,
+and keywords are auto-quoting.  But it happens that, if the only
+things in your map or vector are auto-quoting, it evaluates to itself:</p>
+<pre><code>user=&gt; {:x 3 :y 4}
+{:y 4, :x 3}
+</code></pre>
+<p>(The comma is optional.)</p>
+<p>This can be confusing because it obscures the fact that an evaluation
+is happening, as in Python, unlike in Common Lisp.  Python is fussy
+enough to remind you of this if you forget, requiring a lot of extra
+line-noise punctuation in your literal “dictionary displays”:</p>
+<pre><code>&gt;&gt;&gt; x = {a: [3, 4], b: 5}
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+NameError: name 'a' is not defined
+&gt;&gt;&gt; x = {"a": [3, 4], "b": 5}
+&gt;&gt;&gt; x
+{'a': [3, 4], 'b': 5}
+</code></pre>
+<p>JS and Lua, on the other hand, have special cases in their syntax so
+that you can forget most of the time:</p>
+<pre><code>&gt; x = {a: [3, 4], b: 5}
+{ a: [ 3, 4 ], b: 5 }
+</code></pre>
+<p>Lua:</p>
+<pre><code>&gt; x = {a = {3, 4}, b = 5}
+</code></pre>
+<p>If you really want to force the evaluation of an expression for a key
+consisting of just a variable, there is special syntax for this in
+Lua:</p>
+<pre><code>&gt; a = 5
+&gt; x = {[a] = 8}
+&gt; =x[5]
+8
+&gt; =x.a
+nil
+</code></pre>
+<p>And in JS:</p>
+<pre><code>&gt; a = 8
+8
+&gt; x = {a: 4}
+{ a: 4 }
+&gt; x = {[a]: 4}
+{ '8': 4 }
+</code></pre>
+<h3>Encoding fundamental imperative-language constructs</h3>
+<p>An imperative programming language contains at least sequence,
+assignment, and looping; a normal programming language also contains
+identifiers, subroutine definitions, subroutine invocations,
+conditionals, and primitive operations.  How can you encode these
+usably in a tree of maps?</p>
+<p>I mean, obviously you can write an abstract syntax tree of the form</p>
+<pre><code>{nodetype binop operator +
+ left {nodetype identifier name x}
+ right {nodetype constant value 1}}
+</code></pre>
+<p>but this results in a very poor signal to noise ratio.  Even if you
+don’t use maps to represent the leafnodes, it’s pretty bad:</p>
+<pre><code>{nodetype binop operator + left x right 1}
+</code></pre>
+<p>But can we do better?</p>
+<p>Consider the example mock Lisp program I mentioned earlier:</p>
+<pre><code>(letrec (fib (lambda (n)
+               (if (&lt; n 2)
+                   1
+                   (+ (fib (- n 1)) (fib (- n 2))))))
+  (fib 40))
+</code></pre>
+<h4>Built-in operation invocations</h4>
+<p>A Smalltalk-like approach, treating things like addition like method
+calls, could reduce the noise factor somewhat:</p>
+<pre><code>{: x + 1}
+</code></pre>
+<p>We could treat function invocation in a similar way, providing named
+arguments.  With this approach the Lisp expression</p>
+<pre><code>(+ (fib (- n 1)) (fib (- n 2)))
+</code></pre>
+<p>becomes</p>
+<pre><code>{: {: fib n {: n - 1}} + {: fib n {: n - 2}}}
+</code></pre>
+<p>which seems, if not ideal, at least potentially tolerable.</p>
+<p>Because the sequence of name-value pairs is undefined, though, this
+could just as well be rendered as follows:</p>
+<pre><code>{+ {n {- 2 : n} : fib} : {n {- 1 : n} : fib}}
+</code></pre>
+<p>which seems pretty confusing; the interpreter is going to be looking
+for the <code>:</code> to see if the node is such a method-invocation node, and
+not having it first makes it harder to determine what is going to
+happen.</p>
+<h4>Conditionals</h4>
+<p>Lisp-style <code>cond</code> is not easy to obtain, but an if-then-else node is
+easy:</p>
+<pre><code>{if {: n &lt; 2}
+ then 1
+ else {: {: fib n {: n - 1}} + {: fib n {: n - 2}}}}
+</code></pre>
+<h4>Assignments</h4>
+<p>Lisp-like <code>let</code> or <code>letrec</code> fits very nicely into this sort of scheme;
+consider this Elisp (also from allout.el):</p>
+<pre><code>(let ((start (point))
+      (ol-start (overlay-start ol))
+      (ol-end (overlay-end ol))
+      first)
+  body)
+</code></pre>
+<p>This translates to</p>
+<pre><code>{let {start {: point}
+      ol-start {: overlay-start overlay ol}
+      ol-end {: overlay-end overlay ol}
+      first nil}
+ in body}
+</code></pre>
+<p>Imperative side-effecting assignments like this one (also from
+allout.el) demand a different approach:</p>
+<pre><code>      (when (not first)
+        (setq first (point)))
+</code></pre>
+<p>I mean there are lots of ways you could spell that:</p>
+<pre><code>{set first to {: point}}
+{let first = {: point}}
+{my first is {: point}}
+{make first be {: point}}
+</code></pre>
+<p>However, I favor these, because they comfortably support parallel
+assignments (like the many-argument <code>setq</code> in one of the examples
+above) and have less noise words:</p>
+<pre><code>{= {first {: point}}}
+{set! {first {: point}}}
+</code></pre>
+<h4>Subroutine definitions</h4>
+<p>Darius Bacon has been working on a new dialect of Scheme called
+“<a href="https://github.com/darius/cant/">Cant</a>”, previously “Squeam”, in which the fundamental
+procedure-call mechanism uses a pattern-matching mechanism on the
+argument list to select a method to invoke on the receiver object.
+That is, you don’t have procedures as such, just receivers.  This
+provides a very nice unification of ML-style pattern matching and
+Smalltalk-style object orientation.</p>
+<p>You could do something similar here, defining functions as sets of
+argument-list/body pairs.  To guarantee determinism the compiler would
+have to verify that the argument lists were mutually exclusive.</p>
+<p>This allows us to translate the Lisp above:</p>
+<pre><code>(letrec (fib (lambda (n)
+               (if (&lt; n 2)
+                   1
+                   (+ (fib (- n 1)) (fib (- n 2))))))
+  (fib 40))
+</code></pre>
+<p>as</p>
+<pre><code>{let {fib {lambda {{n {}}
+                   {if {: n &lt; 2}
+                    then 1
+                    else {: {: fib n {: n - 1}}
+                          + {: fib n {: n - 2}}}}}}}
+ in {: fib n 40}}
+</code></pre>
+<p>which in this case contains only a single argument list, containing
+<code>n</code>.  It’s not clear what kind of values to associate with the
+arguments; maybe <code>{n {default 2}}</code> would be a valid specification.</p>
+<h4>Looping</h4>
+<p>The Common Lisp LOOP macro provides a good example of how you can
+usefully specify a loop as a set of name-value pairs: <code>{while foo do
+bar}</code> and <code>{for i = 1 to 10 do bar}</code> are simple examples, but it is
+reasonable to support also <code>{for x in mylist collect {: f n x} when {:
+x &gt; 2}}</code> and the like.</p>
+<h4>Sequencing</h4>
+<p>I’ve saved the worst for last.  In the language as described above the
+only obvious way to sequence is by nesting; things that aren’t nested
+have no sequence.  You could potentially use line numbers:</p>
+<pre><code>{prog {10 {print "HOWIE IS AWESOME"}
+       20 {goto 10}}}
+</code></pre>
+<p>but failing that you are stuck with constructs of the form <code>{do x then
+y}</code>, which you must nest to get sequences of an arbitrary number of
+steps.</p>
+<h2>Flat dict syntax</h2>
+<p>So, what if we use infix syntax to build our dicts instead of
+circumfix syntax?  I think I’ve written a bit about this before; the
+idea is that you use parentheses merely for grouping, and you have two
+operators <code>:</code> and <code>,</code> which you can use to build up an arbitrary dict.
+<code>x: y</code> is a single-entry dict in which the key <code>x</code> has the value <code>y</code>,
+and <code>a, b</code>, with lower operator precedence, is the union of the dicts
+<code>a</code> and <code>b</code>, with some kind of rule about key conflicts (either it’s
+an error or there’s a defined winner).</p>
+<p>We need to change the name of the invocation-target tag <code>:</code> to
+something else, ideally something inoffensive; <code>.</code> is a reasonable
+candidate.</p>
+<p>So our translation above</p>
+<pre><code>{let {fib {lambda {{n {}}
+                   {if {: n &lt; 2}
+                    then 1
+                    else {: {: fib n {: n - 1}}
+                          + {: fib n {: n - 2}}}}}}}
+ in {: fib n 40}}
+</code></pre>
+<p>could be spelled</p>
+<pre><code>let: (fib: (lambda: ((n: ()):
+                     (if: (.: n, &lt;: 2),
+                      then: 1,
+                      else: (.: (.: fib, n: (.: n, -: 1)),
+                             +: (.: fib, n: (.: n, -: 2))))))),
+in: (.: fib, n: 40)
+</code></pre>
+<p>I think I’ve made it even worse, if that’s possible!  If we decree
+that <code>:</code> associates to the right, so <code>x: y: z</code> means <code>x: (y: z)</code>, we
+can remove all of the parentheses that neither contain a comma nor
+precede a colon:</p>
+<pre><code>let: fib: lambda: ((n: ()):
+                   (if: (.: n, &lt;: 2),
+                    then: 1,
+                    else: (.: (.: fib, n: (.: n, -: 1)),
+                           +: (.: fib, n: (.: n, -: 2))))),
+in: (.: fib, n: 40)
+</code></pre>
+<p>So far, so abysmal.  But consider the above example:</p>
+<pre><code>{set! {first {: point}}}
+</code></pre>
+<p>Now we can write this example as</p>
+<pre><code>set!: first: .: point
+</code></pre>
+<p>This gives us a potential way to write semantically nested execution
+sequences as syntactically flat ones, but at the cost of putting our
+statements in the “name” field of name-value pairs, which means that
+there’s no way to attach other data to these nodes in an unambiguous
+way.  (This is something that is already true of, for example,
+argument lists.)</p>
+<p>Consider this snippet of code from <a href="http://canonical.org/~kragen/sw/dev3/rotcube.cpp">this bit of C++ 3-D ASCII-art
+animation</a>:</p>
+<pre><code>  // Rotate by theta.
+  nx = c*xs[i] + s*zs[i];
+  zs[i] = -s * xs[i] + c*zs[i];
+  xs[i] = nx;
+</code></pre>
+<p>It’s necessary to either do the three statements in the order in which
+they’re written or to do parallel assignment.  For a moment let’s
+disregard the much better option of parallel assignment and pretend
+it’s a case where we have to write a sequence.  Which of the following
+horrors is the less bad translation?</p>
+<pre><code>{do {= {nx {. {. c * {. xs at i}} + {. s * {. zs at i}}}}}
+ then {do {. zs at i put {. {. {- s} * {. xs at i}}
+                          + {. c * {. zs at i}}}}
+       then {. xs at i put nx}}}
+</code></pre>
+<p>or</p>
+<pre><code>do: (=: nx: (.: (.: c, *: (.: xs, at: i)), +: (.: s, *: (.: zs, at: i)))):
+    (.: zs, at: i, put: (.: (.: -: s, *: (.: xs, at: i)),
+                         +: (.: c, *: (.: zs, at: i)))):
+    (.: xs, at: i, put: nx)
+</code></pre>
+<p>Well, they’re both pretty fucking bad compared to the FORTRAN-style
+code above, but I think the second one is worse.</p>
+<h2>Edge-labeled graphs: now is the winter of our discontent made glorious summer</h2>
+<p>Years ago I saw a project on SourceForge that treated text as an
+edge-labeled graph (similar to Suciu’s UnQL unstructured query
+language) delimited by whitespace and structured by indentation, and
+provided tools to query it and to reformat a number of Unix commands
+to make them more amenable to processing with it.  (Unfortunately, I
+forget the name, and I haven’t been able to find it again.)  So, for
+example, given this input:</p>
+<pre><code>time    real    0m1.694s
+        user    0m1.524s
+        sys     0m0.168s
+</code></pre>
+<p>it would decide that from the start node there was an arc labeled
+“time”, and from the node it led to three more arcs labeled “real”,
+“user”, and “sys”, each of which led to a node with one further arc
+labeled with a string such as “0m1.524s”.  This of course means that
+you can easily query <code>time.user</code> and get that response.</p>
+<p>(In a tree, it’s immaterial whether the labels are on the arcs or on
+the nodes they lead to, but in a more general graph it can matter.  It
+might make more sense to think of all of the following as having tags
+on nodes rather than edges.)</p>
+<p>Note how this generalizes a subset of the finite-map-tree model: the
+names are just strings, as in JS and Perl, rather than general
+objects, as in Python, Lua, and Clojure, but there’s no distinction
+between keys and values — the values are just the labels after the
+level where your query stopped traversing edges.  Also, the keys need
+not be unique.  (They may or may not be sequenced; those are different
+variants of the data model.)</p>
+<p>Suppose we try to use this approach for our homoiconic language,
+although using parentheses rather than indentation to indicate side
+branches — the above graph comes out as <code>time (real 0m1.694s) (user
+0m1.524s) sys 0m0.168s</code>.</p>
+<p>The grammar here is something like</p>
+<pre><code>tree ::= [ \n]* ("(" tree [ \n]* ")" | [-A-Za-z0-9*]+) tree | ε
+</code></pre>
+<p>Here the three alternatives amount to three different ways to grow a
+tree: by branching it, by extending a branch by a segment, and by
+terminating a branch.  This apparently has one more alternative than
+the original <code>sexp</code> grammar given above, but this is an illusion; the
+<code>sexp</code> grammar contained <code>sexp*</code>, which hides an alternative in its
+Kleene closure.</p>
+<h3>A homoiconic language using edge-labeled graphs?</h3>
+<p>In a sense, this is similar to the Lisp cons
+rotated 90°: nesting (car) is the default and parentheses turn it off!  But
+let’s say that the sequence of branches is not important, so the above example is
+equivalent to say <code>time (user 0m1.524s) (sys 0m0.168s) real 0m1.694s</code>.</p>
+<h4>Sequencing is now easy, but what do expressions look like?</h4>
+<p>With this approach, we could use sequencing not only for imperative statement
+sequences but also for argument lists.  A sequence of statements might
+look like <code>(some action) ; (some other action) ; a third action</code>, with
+<code>;</code> edges connecting the sequence of statement nodes.</p>
+<p>And the problem we previously had with difficulty
+determining what operation to invoke is gone — the label leading us into
+an expression node can be the variant tag that tells the interpreter
+unambiguously how to handle that expression — or, as in Common Lisp,
+either an identifier of a special form or the name of a function.
+This suggests that, as in Forth,
+variables (and perhaps constants) are just zero-argument
+functions, but in this case — unlike in Forth — they can look to see
+if they’re being invoked with arguments, such as maybe <code>=</code>.  (And you
+can of course have a FUNCALL function as in Common Lisp or a <code>value</code>
+message as in Smalltalk, so if you store a function pointer in a
+variable, you can still invoke it.)</p>
+<p>The fundamental benefit of property-list-like systems is that you can
+always attach new “properties” to some well-defined set of nodes
+without bothering the things that are already using those nodes,
+because they only look at the properties they care about.  In this
+system this is somewhat vitiated by the fact that since property
+values are just arc labels, just like property names, there are
+inevitably a lot of nodes where this benefit does not obtain — any new
+property you attach at those nodes might be mistaken for the property
+value!</p>
+<h4>Function calls are kind of hairy</h4>
+<p>Unary operations and commutative, associative operations like <code>+</code>
+might conceivably just attach their arguments directly to their node:
+<code>+ (x) (y) * (a) b</code>, for example, for <em>x</em> + <em>y</em> + <em>a</em> × <em>b</em>.  But more
+general function calls might require named arguments <code>fib (n 10)</code> or
+an argument sequence analogous to statement sequences <code>cat2 (leaf "x")
+, leaf "y"</code>.  Also, if duplicate edges are not allowed, <code>* (x) x</code>
+would be a problem.</p>
+<h4>What if math operators are messages sent to numbers?</h4>
+<p>As before, a possible alternative to applying (typically global and
+constant) functions to arguments is to send messages to objects, which
+would seem to allow syntax like <code>x + 1</code> or <code>xs (at i) put nx</code>.
+However, though the actors and closures models are formally
+equivalent, this poses a real problem for chains of operators of the
+kind we commonly see in mathematical expressions — it would seem to
+require the equivalent of Lisp’s FUNCALL function, GlyphicScript’s <code>;</code>
+operator, or Haskell’s <code>$</code> function to separate the two operators.
+For example, <em>x</em> + <em>y</em> - <em>a</em> × <em>b</em> could be written, for example, as
+<code>(o (f x + y) - a * b)</code> or as <code>(x + y) $ - a * b</code>.</p>
+<p>The problem with the obvious way of writing it <code>(x + y) - a * b</code> is, I
+think, that the root expression node has the <code>-</code> edge coming directly
+out of it, and we’re considering here a universe where root expression
+nodes instead have edges coming out of them that denote message
+receivers, not operators, and it isn’t clear who is supposed to be
+receiving the <code>-</code> message.  Maybe it could be made to work, though,
+even for things like <code>(x + y) - (a * b) - 3</code> and <code>x + (y) - (a * b) -
+3</code>, by making operators like <code>+</code> and <code>-</code> link together a sequence of
+expressions in the same way that <code>;</code> and <code>,</code> are suggested to do
+above.</p>
+<p>This will inevitably lead to somewhat of an impedance mismatch with
+conventional mathematical precedence, as did the systematic rules of
+APL and Smalltalk, which may lead to bugs in programs.  In this case,
+it might be possible to refuse to parse most expressions that have
+such problems, but not, for example, <code>a * b + c</code>.</p>
+<h4>How about currying?</h4>
+<p>If the difficulty only pertains to functions that must distinguish
+between their arguments, such as <code>&lt;</code> or <code>÷</code>, can we solve it by
+currying?  In the function paradigm, this seems to require a function
+analogous to FUNCALL or APPLY:</p>
+<pre><code>funcall (&lt; 2) x
+</code></pre>
+<p>Maybe in the message-receiver paradigm it works better?</p>
+<pre><code>x . (2 &lt;)
+</code></pre>
+<p>This (equivalent to <code>x . 2 &lt;</code>) doesn’t seem promising.</p>
+<h4>The other programming constructs are simple enough</h4>
+<p>By contrast with primitive operations and function calls,
+there are relatively few difficulties with looping,
+conditionals, assignment, and function declarations.</p>
+<p>A simple while loop poses no difficulty:</p>
+<pre><code>while (condition)
+   do body
+</code></pre>
+<p>Perhaps we can use <code>:</code> as a tag for such bodies:</p>
+<pre><code>for (x in mylist): some body expression
+</code></pre>
+<p>More generally, looping can be written in a way quite analogous to
+Common Lisp, introduced with a <code>loop</code> tag and containing an
+unsequenced set of keyword-driven clauses:</p>
+<pre><code>loop (for i = 1 to 10)
+     (for x in mylist)
+     (if ((&gt; x) (&lt; 2)) then collect i)
+</code></pre>
+<p>Conditionals can be written either in a variant of the if-then-else
+style described earlier, with the <code>if</code> pulled out into an introductory
+tag, as</p>
+<pre><code>if ((&lt; x) (&gt; 2)) (then 1) else recursive expression
+</code></pre>
+<p>or in a cond sequence, since now we have a reasonable way of writing
+sequences:</p>
+<pre><code>cond ((condition a) -&gt; consequent a)
+   | ((condition b) -&gt; consequent b)
+   | else other consequent
+</code></pre>
+<p>Or</p>
+<pre><code>if ((condition a) then consequent a)
+elseif ((condition b) then consequent b)
+else other consequent
+</code></pre>
+<p>And lambda-expressions can be written with a delimiter to distinguish
+the body from the argument list:</p>
+<pre><code>fn (x y z) =&gt; some expression of x y z
+λ (x y z) . some expression of x y z
+</code></pre>
+<p>Assignment could be written in a conventional way:</p>
+<pre><code>x = 3
+x ← 3
+x &lt;- 3
+x := 3
+</code></pre>
+<p>Or in a parallel-assignment way, like <code>letrec</code> or <code>setq</code>:</p>
+<pre><code>fn (a b) =&gt; (while (a): setq (b a) (a (b % a))); b
+</code></pre>
+<h4>What if we represent branching with infix operators rather than parens?</h4>
+<p>It’s rather jarring in the above that, for example, these two
+expressions are equivalent, even though the second looks like a
+typographical error:</p>
+<pre><code>while (a): setq (b a) (a (b % a))
+while (: setq (b a) (a (b % a))) a
+</code></pre>
+<p>The fact that the associative and commutative operation of attaching
+two branches x and y to the same node is represented using the
+asymmetric syntax <code>(x) y</code> is, I think, the root of this difficulty.
+In a one-dimensional media it is unavoidable that we put them in some
+order, but we could imagine using a more visually symmetrical operator
+to separate the two symmetrical branches.</p>
+<p>For example, <code>,</code>, as explored briefly in the ill-fated “Flat dict
+syntax” section above.  But we don’t want to write</p>
+<pre><code>while a, do setq ...
+</code></pre>
+<p>because as long as comma binds more loosely than juxtaposition (as it
+should), that attaches the <code>setq</code> and <code>while</code> edges to the same root.
+Instead we get</p>
+<pre><code>while (a, do setq (b a, a b % a))
+</code></pre>
+<p>which seems potentially reasonable, though perhaps it gives us back
+the extreme nesting we were hoping to escape.  It echoes Python’s
+named-parameter syntax, but more placidly; instead of <code>f(g=h, i=j)</code> we
+have <code>f(g h, i j)</code>.</p>
+<h4>Maybe we should use indentation rather than parentheses to indicate side branches</h4>
+<p>A purely indentation-based version of this syntax is doable, replacing
+the line-noise punctuation and recursive nesting parentheses with
+preattentively-comprehensible horizontal juxtaposition for path
+concatenation and vertical juxtaposition for branching.  Maybe using
+parentheses rather than indentation to indicate side branches wasn’t
+such a hot idea after all!</p>
+<pre><code>while a
+      do setq b a
+              a b % a
+</code></pre>
+<p>Alternatively, with more vertical syntax:</p>
+<pre><code>while
+  a
+  do
+    setq
+      b a
+      a b % a
+</code></pre>
+<p>These variants at last seem like they might actually be an ergonomic
+improvement over Lisp syntax rather than a regrettable compromise, at
+least if there’s a solution to the problem with arithmetic
+expressions.</p>
+<p>It unfortunately gets us back to the problem of representing sequences
+of statements with progressively increasing nesting:</p>
+<pre><code>do setq nx sum product c
+               *       xs at i
+           +   product s
+               *       zs at i
+   then do zs at i
+              put sum product - s
+                      *       xs at i
+                  +   product c
+                      *       zs at i
+           then xs at i
+                   put nx
+</code></pre>
+<p>Or maybe</p>
+<pre><code>let nx sum product c
+           *       xs at i
+       +   product s
+           *       zs at i
+    in do zs at i
+             put sum product - s
+                     *       xs at i
+                 +   product c
+                     *       zs at i
+          then xs at i
+                  put nx
+</code></pre>
+<p>Or maybe, using <code>,</code> as an argument-sequencing graph label this time
+instead of a syntactic branching operator:</p>
+<pre><code>let nx + * c
+           , xs at i
+         , * s
+             , zs at i
+    in do zs at i
+             put + * - s
+                     , xs at i
+                   , * c
+                       , zs at i
+          then xs at i
+                  put nx
+</code></pre>
+<p>This seems pretty bug-prone because it took me a couple of tries to
+get the <code>, zs at i</code> lines to the right indentation level.</p>
+<p>This is less nauseatingly bloated than the earlier versions but it
+still compares poorly to the C++ version:</p>
+<pre><code>  nx = c*xs[i] + s*zs[i];
+  zs[i] = -s * xs[i] + c*zs[i];
+  xs[i] = nx;
+</code></pre>
+<p>You could argue that maybe syntactic sugar can compensate, but the
+right syntactic sugar is precisely what I’m looking for here.</p>
+<p>I may be asking too much, since even in Common Lisp it’s still uglier
+and more bug-prone than the C++:</p>
+<pre><code>(let ((nx (+ (* c (aref xs i)) (* s (aref zs i)))))
+  (setf (aref zs i) (+ (* (- s) (aref xs i)) (* c (aref zs i))))
+  (setf (aref xs i) nx))
+</code></pre>
+<p>But that’s not in the same league of noise bloat as most of the
+examples above.</p>
+<p>We could imagine an infix-formula-evaluating macro like the ones in sh
+and Tcl, called, say, <code>[</code> (since <code>FORTRAN</code> would be a tasteless name,
+<em>Σ</em> is hard to type and too specific, and <code>eval</code> probably means
+something else):</p>
+<pre><code>let nx [ c
+         * xs at i
+         + [ s
+             * zs at i ] ]
+    in do zs at i
+             put [ - s
+                   * xs at i
+                   + [ c
+                       * zs at i ] ]
+          then xs at i
+                  put nx
+</code></pre>
+<p>However, that won’t work as written; <code>[</code> has no way to tell whether
+you wrote <code>x * y + z</code> or <code>x + z * y</code>.  If you want it to have a whole
+<em>sequence</em> of labels to compile, you have to put them on one line,
+which also means you can’t inline-evaluate arbitrary bits of code like
+<code>xs at i</code> without some kind of magic tag.  If you do it that way you
+could say</p>
+<pre><code>let nx [ c * [ xs at i ] + s * [ zs at i ] ]
+    in do zs at i
+             put [ - s * [ xs at i ] + c * [ zs at i ] ]
+          then xs at i
+                  put nx
+</code></pre>
+<p>In practice this is maybe not the best example since you would
+probably want array indexing in your numeric expression evaluator and
+also because a better way to do the whole calculation is</p>
+<pre><code>let xi xs at i
+    zi zs at i
+    in do xs at i
+             put [ c * xi + s * zi ]
+          then zs at i
+                  put [ - s * xi + c * zi ]
+</code></pre>
+<p>or maybe even some kind of parallel assignment.  I just picked an
+example that’s too easy, I guess.</p>
+<p>A potential problem with the proposed embedding syntax: what happens
+if you have branching inside the embedded expression?  I mean, you
+could imagine something like</p>
+<pre><code>[ 2 * [ gcd a x ] + 3 ]
+            b 2
+</code></pre>
+<p>where we invoke <code>gcd</code> with named arguments <code>a</code> and <code>b</code>, which upon
+some thought it can be seen can be made to work just fine — the <code>[</code>
+parser just needs to look down all the branches to find the
+terminating <code>]</code> of the embedded expression, not just one.  This gets
+uglier if you have two such things; this will not work:</p>
+<pre><code>[ 2 * [ gcd a x ] + 3 * [ lcm a x ] ]
+            b 2               b 2
+</code></pre>
+<p>But it will work if expressed this way:</p>
+<pre><code>[ 2 * [ gcd a x ] + 3 * [ lcm a x ] ]
+                              b 2
+            b 2
+</code></pre>
+<p>This is complex enough to be confusing.</p>
+<h5>How is that different from SRFI-49 I-expressions, Wisp, or LISPIN?</h5>
+<p>In the above proposal, as long as arcs out of a node remain unordered,
+these two expressions are equivalent:</p>
+<pre><code>a b c
+    d
+  e
+</code></pre>
+<p>and</p>
+<pre><code>a e
+  b d
+    c
+</code></pre>
+<p>as well as two more variations.  Moreover, as mentioned toward the
+beginning, code written for the following structure will also work on
+the above structure without change:</p>
+<pre><code>a b c
+</code></pre>
+<h5>An unpolished parser in Python</h5>
+<p>I just wrote <a href="http://canonical.org/~kragen/sw/dev3/treeify.py">the following simple parser in Python</a> which seems to
+handle the syntax outlined above properly and translates it into
+graphviz files you can view with, for example, <code>dot -Tx11</code>.  It’s
+maybe 50% longer than the S-expression parser above in Lua.  It
+contains some duplication to factor out, would need to be extended to
+handle quoted strings, can break its graphviz output if you put
+special characters in the input, wastes memory, doesn’t handle tabs,
+and (as always with Python) breaks on Unicode input in environmentally
+dependent ways, but hopefully it represents some kind of clarifying
+sketch.</p>
+<pre><code>from __future__ import print_function
+import re
+import sys
+
+
+def parse(lines):
+    stack = []
+    node_counter = 1
+    edges = []
+
+    for line in lines:
+        col = len(re.match(r'\s*', line).group(0))
+        while stack and stack[-1][0] &gt;= col:
+            stack.pop()
+        word, start, empty = [], col, ()
+
+        while col &lt; len(line):
+            c = line[col]
+            if word and re.match(r'\s', c):
+                nw = ''.join(word)
+                word[:] = empty
+                if stack:
+                    edges.append((stack[-1][2], nw, node_counter))
+                else:
+                    edges.append((0, nw, node_counter))
+                assert start is not None
+                stack.append((start, nw, node_counter))
+                node_counter += 1
+                start = None
+
+            elif re.match(r'\S', c):
+                if not word:
+                    start = col
+                word.append(c)
+
+            col += 1
+
+        if word:
+            nw = ''.join(word)
+            if stack:
+                edges.append((stack[-1][2], nw, node_counter))
+            else:
+                edges.append((0, nw, node_counter))
+
+            assert start is not None
+            stack.append((start, nw, node_counter))
+            node_counter += 1
+            start = None
+
+    return edges
+
+def graphviz(edges, name='cosas'):
+    yield 'digraph '; yield name; yield ' {\n'
+    yield '    rankdir=LR;\n'
+    yield '    node [label="", shape=circle];\n'
+    for start, label, end in edges:
+        yield '    '; yield str(start); yield ' -&gt; '; yield str(end)
+        yield ' [label="'; yield label; yield '"];\n'
+    yield '}\n'
+
+
+if __name__ == '__main__':
+    sys.stdout.writelines(graphviz(parse(sys.stdin)))
+</code></pre>
+<p>So for example it renders the first example above as follows:</p>
+<pre><code>digraph cosas {
+    rankdir=LR;
+    node [label="", shape=circle];
+    0 -&gt; 1 [label="while"];
+    1 -&gt; 2 [label="a"];
+    1 -&gt; 3 [label="do"];
+    3 -&gt; 4 [label="setq"];
+    4 -&gt; 5 [label="b"];
+    5 -&gt; 6 [label="a"];
+    4 -&gt; 7 [label="a"];
+    7 -&gt; 8 [label="b"];
+    8 -&gt; 9 [label="%"];
+    9 -&gt; 10 [label="a"];
+}
+</code></pre>
+<p>Since it took me about 40 minutes to write, test, and (mostly) debug
+that, including the graphviz output, this syntax is probably not too
+complex for a language whose first-draft compiler you want to write in
+an afternoon.</p>
+<h3>Functions for manipulating edge-labeled graphs</h3>
+<p>What is our equivalent of the ur-Lisp’s CAR CDR CONS NULL ATOM QUOTE
+EQ?  The fundamental traversal operation should presumably be
+<code>go(node, tag)</code>, which returns the node (if any) obtained by
+traversing the edge labeled <code>tag</code> from <code>node</code>, equivalent to
+<code>node[tag]</code> in JS or Lua syntax; if duplicate edges are allowed,
+probably both its <code>node</code> argument and its return value should be
+<em>sets</em> rather than individual nodes, and possibly <code>tag</code> should also be
+a set.  Invoking the tag as a function <code>tag(node)</code> is an alternative
+possibility.</p>
+<p>(If they are sets of nodes, we need to be able to iterate over them;
+we need to be able to test whether they are empty, but iterating over
+them with side effects may be an adequate interface for that.)</p>
+<p>In the case where they are indeed individual nodes, there is the
+possibility of returning nil, in which case we need a way to detect
+nil — in a functional paradigm, <code>isnil(node)</code>, but alternatives
+include treating nil as false in conditionals (making the function
+implicit); a pattern-matching <code>ifnil(node, consequent, alternate)</code>
+function which takes two functions to invoke, one with the node if it
+is not nil, and the other if it is; and the λ-calculus-like
+<code>node(consequent, alternate)</code>, which does the same without a separate
+function.</p>
+<p>It’s also necessary to iterate over the edges out of a node, since
+arbitrary values such as 57 are also stored as tags in the above
+model.  (This wouldn’t have to be the case — 57 could be a node, as it
+is in Lisp — but without this ability to iterate over edges you also
+can’t write PRINT or the macro transformer for LETREC.)  You can do
+this with a function <code>kids(node)</code> or <code>pairs(node)</code> which returns a
+list in the usual car–cdr or first–rest form; perhaps each node in the
+resulting list contains both a key — the edge label — and a
+value — the child node that it leads to.  (That’s superfluous, though,
+since <code>go(parent, tag)</code> will give you the child node.)</p>
+<p>If we consider tags to attach to nodes rather than to the edges
+leading to them, we might be able to conflate nodes with tags, so that
+the <code>go()</code> function above takes two arbitrary node arguments.  (The
+alternative is to have special “tag nodes”.)  But we still need to be
+able to compare tags for equality, thus <code>eq(tag1, tag2)</code> or
+<code>sametag(node1, node2)</code> is needed.</p>
+<p>With <code>go</code>, <code>isnil</code>, <code>kids</code>, and <code>eq</code> (or the other alternatives
+discussed above), we can traverse the graph as we please, just as with
+CAR, CDR, NULL, ATOM, and EQ.  However, constructing new graph
+structure — as with CONS — requires another operation: <code>add(node, tag,
+kid)</code>, which returns a new node identical to <code>node</code> except that it now
+has an edge with tag <code>tag</code> to node <code>kid</code>.  However, this is not quite
+enough — it doesn’t allow us to produce new nodes with no children.
+So we need <code>new()</code> to produce such a fresh node.</p>
+<p>And of course we can provide QUOTE (and, more interestingly,
+quasiquote) just as Lisp does.  That’s what homoiconicity means!</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/compilers.html">Compilers</a> (16 notes)
+</li><li><a href="../topics/js.html">JS</a> (12 notes)
+</li><li><a href="../topics/bootstrapping.html">Bootstrapping</a> (12 notes)
+</li><li><a href="../topics/lisp.html">Lisp</a> (9 notes)
+</li><li><a href="../topics/scheme.html">Scheme</a> (8 notes)
+</li><li><a href="../topics/ocaml.html">OCaml</a> (8 notes)
+</li><li><a href="../topics/lua.html">Lua</a> (5 notes)
+</li><li>LuaJIT</li><li>Clojure</li><li>Cant</li></ul></div></html>

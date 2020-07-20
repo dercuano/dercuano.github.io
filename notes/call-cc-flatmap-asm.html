@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html><title>Implementing flatMap in terms of call/cc, as in Raph Levien’s Io ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Implementing flatMap in terms of call/cc, as in Raph Levien’s Io</h1><div class="metadata">Kragen Javier Sitaker, 2015-09-03
+(3 minutes)</div><p>I think you can write <code>flatMap</code> and thus <code>map</code> and <code>filter</code> as
+higher-order functions in the backtracking monad if you have
+<code>call/cc</code>.  The iterator just takes a next-continuation and a
+fail-continuation (or end-continuation) as arguments.  <code>flatMap</code> then
+takes a function f and an iterator i and invokes the iterator i with a
+next-continuation it makes up, and the same end-continuation.  The new
+next-continuation invokes f with the item to get an iterator j and
+then invokes j with the original next-continuation and a new
+end-continuation it makes up, which returns from the made-up
+next-continuation.  Then <code>map</code> and <code>filter</code> are simply invocations of
+this <code>flatMap</code> with slightly modified functions.</p>
+<p>This structure allows you to do flatMap (and Python generator
+expressions) without arbitrary intermediate storage and therefore
+without a heap.  In fact, I suspect you can do it quite easily without
+a heap in assembly language, piling up the various stack frames of the
+dynamic nesting structure of iterators by pushing the stack pointer
+lower and lower, resuming back and forth between the various
+coroutines by storing and restoring PC and BP and whatever other
+callee-saved registers your ABI requires.</p>
+<p>Normally, I suppose, the fail continuation would just be the regular
+return path.</p>
+<p>This idea turns out to be central to <a href="http://canonical.org/~kragen/raph-io">Raph Levien’s Io
+language</a>; although <code>flatMap</code> is
+not in the Io material I've seen (which does not include the original
+paper) it is very short to define, though to my mind somewhat tricky:</p>
+<pre><code>flat-map: -&gt; f items k1;
+    k1 -&gt; return yield;
+    items return -&gt; item next;
+    f item -&gt; transformed-items;
+    transformed-items next -&gt; transformed-item next-transformed-item;
+    yield transformed-item;
+    next-transformed-item.
+</code></pre>
+<p>Here I have omitted as extraneous (and possibly ambiguous) the parens
+around action-valued variables as arguments that are used in the
+original paper; and I am using the convention from the paper that
+streams take as arguments first the return-continuation and then the
+yield-continuation.  So, for example, the return-continuation for
+transformed-items is the resumption continuation for the items stream.</p>
+<p>You can write <code>map</code> and <code>filter</code> in terms of <code>flat-map</code>, but you can
+also write them from scratch; we can use Levien’s convention that a
+boolean function takes if-true and if-false continuation parameters.</p>
+<pre><code>map: -&gt; f items k1;
+    k1 -&gt; return yield;
+    items return -&gt; item next;
+    f item -&gt; transformed-item;
+    yield item;
+    next.
+
+filter: -&gt; f items k1;
+    k1 -&gt; return yield;
+    items return -&gt; item next;
+    f item (yield item; next) next.
+</code></pre>
+<p>(Oh dude!  Raph put the paper online at
+<a href="http://www.levien.com/pubs/io_a_new_programming_notation.pdf">http://www.levien.com/pubs/io_a_new_programming_notation.pdf</a>!  That
+clears up a couple of my confusions.)</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/asm.html">Assembly language</a> (25 notes)
+</li><li><a href="../topics/io.html">Io</a> (2 notes)
+</li></ul></div></html>

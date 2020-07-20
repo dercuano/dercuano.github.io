@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html><title>Microsoft Windows uses \ for filenames because OS/8 programs used / for switches ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Microsoft Windows uses \ for filenames because OS/8 programs used / for switches</h1><div class="metadata">Kragen Javier Sitaker, 2019-05-25
+(2 minutes)</div>
+<p>A response to <a href="http://www.os2museum.com/wp/why-does-windows-really-use-backslash-as-path-separator/">Michal Necasek’s “Why Does Windows Really Use Backslash
+as Path
+Separator?”</a>,
+also posted <a href="https://news.ycombinator.com/item?id=20007305">on the orange
+website</a>.</p>
+<p>This is almost correct, but MS-DOS derives from the DEC small systems
+line (the PDP-8 and PDP-11), not the large systems line that ran
+TENEX, which took the name "TOPS-10" in the DEC Witness Protection
+Program (the PDP-6 and PDP-10).  TENEX's only real descendant in
+modern computing systems is the command-line editing (and filename
+completion?) in bash and zsh.</p>
+<p>Much to my surprise, it seems to be true that CP/M did not actually
+use / for flags, even in PIP, although other incarnations of PIP (like
+that in Heath's HDOS) did use /.  The CP/M 2.2 manual is at
+<a href="http://www.cpm.z80.de/manuals/cpm22-m.pdf">http://www.cpm.z80.de/manuals/cpm22-m.pdf</a> and documents the command
+lines of all the standard utilities, including the assembler, PIP, and
+the text editor.  (It also, in passing, documents the full 8080
+instruction set and OS API.)</p>
+<p>TENEX was born in 1969 but grew up in the 1970s, but the use of / for
+switches in DEC-land predates it;
+<a href="https://en.wikipedia.org/wiki/Concise_Command_Language">https://en.wikipedia.org/wiki/Concise_Command_Language</a> is somewhat
+confused, but it currently describes how the PDP-6 monitor program
+used / for switches in, presumably, 1964.</p>
+<p>DEC operating systems like the ones CP/M aped used / liberally for
+switches, and third-party programs we used on CP/M certainly did use /
+for switches.  This was not limited to the PDP-10 large systems
+operating systems; it was also true on OS/8 for the PDP-8, as
+described in <a href="https://www.pdp8.net/os/os8/index.shtml">https://www.pdp8.net/os/os8/index.shtml</a> (though, as you
+can see, some commands used - instead, like the later Unix).  The
+PDP-8 shipped in 1965, but OS/8 might be more recent than that.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/history.html">History</a> (71 notes)
+</li><li>Tenex</li><li>Pdp 8</li><li>Pdp 11</li></ul></div></html>

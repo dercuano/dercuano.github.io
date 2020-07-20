@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><title>Kinect modeling ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Kinect modeling</h1><div class="metadata">Kragen Javier Sitaker, 2016-09-16
+(1 minute)</div><p>So I have a bunch of depthmaps (aka range images) of a sculpture,
+acquired with a handheld Kinect.  Now I want to generate a 3-D model
+of them.</p>
+<p><a href="http://pointclouds.org/documentation/tutorials/in_hand_scanner.php#in-hand-scanner">http://pointclouds.org/documentation/tutorials/in_hand_scanner.php#in-hand-scanner</a>
+(dependent on color; uses ICP) and <a href="http://wiki.ros.org/rgbdslam">http://wiki.ros.org/rgbdslam</a> are
+two ROS-related things that do this kind of thing.
+<a href="http://pointclouds.org/documentation/tutorials/registration_api.php#registration-api">http://pointclouds.org/documentation/tutorials/registration_api.php#registration-api</a>
+has an overview of the process, including an alarmingly large number
+of options for how to do each step (although apparently SIFT and NARF
+are the usual feature detectors?), and
+<a href="http://pointclouds.org/documentation/tutorials/interactive_icp.php#interactive-icp">http://pointclouds.org/documentation/tutorials/interactive_icp.php#interactive-icp</a>
+has a demo thingy (which uses Blender, but only to generate the input
+as a .ply file), using the ICP algorithm that is also used in
+<a href="http://pointclouds.org/documentation/tutorials/iterative_closest_point.php#iterative-closest-point">http://pointclouds.org/documentation/tutorials/iterative_closest_point.php#iterative-closest-point</a>.
+It looks pretty easy to use but I don’t know how well it works for
+incomplete point clouds with errors.</p>
+<p>But I don’t really want a point cloud.  I want a triangle mesh so I
+can render it efficiently and then simulate projecting images onto the
+sculpture.</p>
+<p>NARF, the “normal aligned radial feature”, is
+<a href="https://www.willowgarage.com/sites/default/files/icra2011_3dfeatures.pdf">https://www.willowgarage.com/sites/default/files/icra2011_3dfeatures.pdf</a>.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/optimization.html">Mathematical optimization</a> (29 notes)
+</li><li><a href="../topics/3d-modeling.html">3-D modeling</a> (9 notes)
+</li><li>Kinect</li></ul></div></html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html><title>How can we usefully cache screen images for incrementalization? ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>How can we usefully cache screen images for incrementalization?</h1><div class="metadata">Kragen Javier Sitaker, 2013-05-17
+(18 minutes)</div><p>Earlier:
+<a href="http://lists.canonical.org/pipermail/kragen-tol/2012-July/000963.html">http://lists.canonical.org/pipermail/kragen-tol/2012-July/000963.html</a></p>
+<p>Okay, so, if you write your program purely in terms of pure functions,
+you can memoize those functions, perhaps applying a global caching
+policy to their results to optimize throughput or limit expected
+latency.  I've written about this a bit before.</p>
+<p>You can do a bit better than pure functions: you can run arbitrary
+code with read-only access to the entire program state, as long as its
+access to that state is mediated by a sort of
+software-transactional-memory layer that records everything it reads.
+Then you can automatically invalidate the cached result whenever any
+of the state variables that fed into it are changed or invalidated.</p>
+<p>I was thinking about trying to apply this paradigm to a smallish
+program this weekend, one which redraws the screen frequently.  I'd
+like it to just redraw the relevant part of the screen.  At the
+moment, I'm sending text and escape sequences to a tty, but more or
+less the same principles apply if you're updating a framebugger.</p>
+<p>The program displays a spreadsheet-like table with editable text in
+the cells.  Sometimes it updates the layout.</p>
+<p>But most keystroke events result in a single letter being added to the
+screen, overwriting a blank space, or a single letter being replaced
+with a blank space; many others result in highlighting one cell of the
+table and unhighlighting another.</p>
+<p>There are perhaps 100 characters per line and perhaps 20 lines on the
+screen, for about 2000 characters in total.  The simplest way to make
+the program work is to redraw the whole screen after every keystroke,
+which does run acceptably fast on modern hardware.  But this does
+something like 2000 times as much work as necessary: 22 Moore's Law
+years, taking us back to about 1980.  It would be nice to find an
+approach to only redraw the changed part of the screen, not even the
+entire line.</p>
+<p>Now, if you're only looking at the bytes coming out of the program,
+you can achieve this by redrawing an in-memory screen image, comparing
+it to the previous screen image, encoding the delta in bytes, and
+sending that to the tty.  But that doesn't really touch the
+orders-of-magnitude issue.</p>
+<h2>Variable per character</h2>
+<p>You could have a couple of transactional-memory variables for each
+character position on the screen, and <em>monitor</em> a function for each of
+those characters.  To update the screen, you'd see which characters
+had changed, and iterate over them sending them to the screen.  This
+has presumably order-of-magnitude overheads, but it ought to be
+scalable.</p>
+<p>What does the function for a character look like?  Something like</p>
+<pre><code>char_to_show(x, y) = (highlight if is_current(cell_obj) else normal)(char)
+where:
+    cell_obj, label_index = table_cell_covering(x, y)
+    label = label_of(cell_obj)
+    char = label[label_index] if label_index &lt; length(label) else ' '
+</code></pre>
+<p>Each of these functions could reasonably be cached, but
+<code>table_cell_covering</code> is kind of a bear, because it depends on the
+current layout, which depends ultimately on the contents of every
+cell that isn't to the right:</p>
+<pre><code>table_cell_covering(x, y) = cells[col][y], dx
+where:
+    col = find_col(x, 0)
+    dx = x - col_start(col)
+
+find_col(x, col) = col if found_col else find_col(x, col+1)
+where:
+    found_col = (col == n_cols - 1 or col_start(col+1) &gt; x)
+
+col_start(col) = 0 if col == 0 else col_start(col-1) + col_width(col-1)
+col_width(col) = col_width(col, n_rows)
+col_width(col, row) = 0 if row == 0 else max(col_width(col, row-1), w)
+where:
+    w = length(label_of(cells[col][row-1]))
+</code></pre>
+<p>Now, <code>col_start</code> can clearly be cached usefully: it has a small number
+of distinct argument values, and it depends ultimately only on the
+lengths of the labels of the columns of <code>cells</code> to the left of the
+requested position.  You could alternatively cache <code>col_width</code>.</p>
+<p>But that means that if you change the label of, say, the bottom left
+cell, the <code>col_start</code> values of every cell in the matrix needs to be
+revalidated --- just in case you changed the width of the first
+column.  Usually you won't have, but if you did, the whole screen
+might need to be updated.  You'd have to redo the <code>col_start</code>
+computation to see that it hadn't changed, and then, if you'd
+propagated an "invalidated" notification downstream to the <code>find_col</code>,
+<code>table_cell_covering</code>, and <code>char_to_show</code> computations, follow it up
+with a "revalidated" notification.</p>
+<p>But that means you're delivering thousands of "revalidated"
+notifications, which is basically what you were trying to avoid in the
+first place.</p>
+<p>How could you avoid this?</p>
+<ol>
+<li>
+<p>Eagerness: instead of merely invalidating <code>col_width(col, row)</code>
+when you change <code>cells[col][row-1]</code>, necessarily propagating the
+invalidation to <code>col_width(col)</code>, <code>col_start(col+1)</code>, and so on, you
+could simply re-evaluate <code>col_width(col, row)</code> immediately, probably
+coming up with the same value again and avoiding pushing the change
+further downstream.</p>
+</li>
+<li>
+<p>An idea that doesn't work: Deep validation checking: instead of
+propagating the invalidation flag to thousands of character positions,
+so that the operation of cache validation for <code>char_to_show(x, y)</code> is
+O(1), you could make the is-valid check on the character position dig
+into the dependencies and dependencies of dependencies of the
+character position, so that whenever you run the is-valid check on any
+of the changed character positions, it notices whether a relevant
+cached <code>col_start</code> value has changed.  This doesn't work because it
+presupposes that you're iterating over all the thousands of character
+positions in order to figure out that you need to update only one
+character position on the screen, which is what I was trying to avoid
+in the first place.</p>
+</li>
+<li>
+<p>Aggregation: Instead of making each of the 2000 or so character
+positions a tracked variable, divide the screen into about sqrt(2000)
+regions: say, half a line each, which should give you about 40
+variables.  Then your initial invalidation notification ends up
+affecting, say, half the screen, but that's only about 20 invalidation
+notifications; and then you can iterate over those 20 chunks of
+visible text and figure out that 19 of them are still up-to-date, and
+the other one has changed, and redisplay its 50 characters.  This
+means that you're doing about 100 things (including redisplaying 50
+characters) instead of 2000, but that's still a long way from 1.</p>
+</li>
+</ol>
+<h2>Side-effecting transactions: I don't think they'll work</h2>
+<p>In transactional memories used for concurrency control, your
+transaction code can choose any arbitrary variable in the STM to write
+to.  Your writes are buffered, and if your transaction successfully
+commits, they become visible to later transactions, and if there are
+currently running concurrent transactions that have read the modified
+state variables, those other transactions are aborted.</p>
+<p>By contrast, I've been proposing a purely-functional computational
+model here.  The problem is that it's fairly absurd to think of going
+through a computation like this:</p>
+<pre><code>char_to_show(x, y) = (highlight if is_current(cell_obj) else normal)(char)
+where:
+    cell_obj, label_index = table_cell_covering(x, y)
+    label = label_of(cell_obj)
+    char = label[label_index] if label_index &lt; length(label) else ' '
+
+table_cell_covering(x, y) = cells[col][y], dx
+where:
+    col = find_col(x, 0)
+    dx = x - col_start(col)
+
+find_col(x, col) = col if found_col else find_col(x, col+1)
+where:
+    found_col = (col == n_cols - 1 or col_start(col+1) &gt; x)
+</code></pre>
+<p>in order to figure out what to draw in a <em>single character position in
+a terminal</em>, even if <code>is_current</code>, <code>label_of</code>, and <code>col_start</code> are all
+fully cached.  (If you extrapolate this example to pixels, the problem
+is even worse.)</p>
+<p>Consider, by contrast, this imperative push-based code:</p>
+<pre><code>show_cell(row, col) =
+    cell = cells[col][row]
+    label = label_of(cell)
+    x = col_start[col]
+    width = col_width[col]
+    start = row * screen_width + x
+    len = length(label)
+    memcpy(&amp;screenbuf[start], charptr(label), len)
+    memset(&amp;screenbuf[start + len], ' ', width - len)
+    color = (highlight if is_current(cell) else normal)
+    memset(&amp;attrbuf[start], color, width)
+</code></pre>
+<p>This is doing about the same amount of work as the pull-based code
+above, but it's displaying the entire cell, not just a single
+character!</p>
+<p>The basic problem here is that each cell of the table only affects a
+small number of character positions on the display.  It's reminiscent
+of the problem with the functional stream-based "unfaithful Sieve of
+Eratosthenes" that Melissa O'Neill identified in her paper, <em>The
+Genuine Sieve of Eratosthenes</em>; where she says:</p>
+<pre><code>In Eratosthenes’s algorithm, we start crossing off multiples of 17
+at 289 (i.e., 17× 17) and cross off the multiples 289, 306, 323,
+. . . , 510, 527, making fifteen crossings off in total. .  . .
+
+After finding that 17 is prime, the unfaithful sieve will check
+all the numbers not divisible by 2, 3, 5, 7, 11 or 13 for
+divisibility by 17. It will perform this test on a total of
+ninety-nine numbers (19, 23, 29, 31, . . . , 523, 527).
+</code></pre>
+<p>Analogously, to figure out what to draw at the character position (60,
+4), my side-effect-free table-drawing code must ask whether column 60
+is in table column 0, then whether it's in table column 1, and so on,
+until it finds the correct column; and then it must do the same
+computation again for column 61, and column 62, and so on.  By
+contrast, the imperative algorithm can do the analogous computation
+with a simple array lookup, and then it can handle the entire string
+contents of the label with a simple <code>memcpy</code>, which processes several
+bytes per cycle.</p>
+<p>So it would be nice to make this work.  But I don't think it will,
+because of the invalidation problem inherent in imperative overwrites.</p>
+<p>STM dependency tracking works because you don't need to know what
+other variables a transaction could conceivably have read or written,
+had it found different values in the variables it did read; if need
+be, you can abort and restart the transaction with the new variable
+values, and record its new behavior.</p>
+<p>In this case, though, we're interested not only in the variables that
+the transaction <em>did</em> write to, but the variables it <em>could have</em>
+written to.  In this case, for example, we'd like to know what screen
+positions our cell could have written to if the layout had been
+different: either the cell itself was wider, overwriting positions to
+its right, or the cells to its left were narrower, so it overwrote
+positions to its left.</p>
+<p>This is an insoluble problem as long as the code running inside the
+transaction is written in a Turing-complete language.  You could maybe
+do it if it's expressed in something more restrictive and
+"declarative", but this is enough to make me give up on this line of
+inquiry.</p>
+<h2>Composing the screen image from cacheable pieces</h2>
+<p>The problem with the above approaches is that you have lots of
+branching out in the dataflow graph: ultimately, the contents of every
+cell at least potentially affects the contents of every character
+position on the screen that isn't to its left.</p>
+<p>What if we go the other way instead?  Instead of branching out, we
+branch in: many table cells get turned into cacheable chunks of
+screen, which are composed into a screen image.</p>
+<p>At first glance, this seems to be a non-solution: what do you do with
+the screen image?  It's 2000 characters.  Do you want to iterate over
+all of them?</p>
+<p>Consider how you'd implement the <code>label_of()</code> function described above
+in a language like C, without thinking about caching, in particular
+for a cell whose label is really an integer, not simply a string; or
+maybe it's in a format like "t &gt;&gt; 6", where the 6 is an integer that
+can vary over time.  You'd like to be able to cache the results.</p>
+<p>You could dynamically allocate a string buffer, serialize the number
+into it (expanding it if necessary), and return the new string,
+attempting to communicate to the caller that they were responsible for
+deallocating it when they were done with it.  (Maybe if your program
+was too efficient, you'd use reference counting.)  But that's sort of
+wasteful; in the end, the string contents are going to get copied into
+some kind of screen image or something.</p>
+<p>A disadvantage of the above method is that the cell can produce an
+arbitrarily long label, which means you need dynamic allocation, at
+least in principle.  This is sort of silly if you're generating a
+label to fill a fixed-size space on the screen.  You could use the
+interface provided by the <code>read</code> system call: when you call <code>read</code>,
+beyond telling it which file you want to read, you pass it a buffer
+pointer and a maximum length, and it writes your result into that
+buffer.  Then you could pass the render-cell functions pointers to the
+relevant parts of your screen buffer.</p>
+<p>For more flexibility, you could provide an "output" callback, which
+can be called, maybe more than once, to add characters to the label.
+This approach subsumes the previous two, since your output callback
+could simply add to a string buffer, but it could instead update a
+screen image.  For caching purposes, we can consider the image
+produced by calls to the output callback to be the "return value" of
+your cell rendering function.</p>
+<p>So suppose this is the interface we use for the things that generate
+parts of the screen contents: we pass in a "window" object to draw
+into, and we consider its dimensions part of the arguments for the
+sake of caching; it has a "subwindow" method that can be used to
+generate a smaller window to pass to subfunctions.  Then we can do
+things this way:</p>
+<pre><code>image_of_table(win) = image_of_columns(win, n_cols)
+image_of_columns(win, col) =
+    if col &gt; 0:
+        start = col_start(col)
+        image_of_columns(win.subwindow(width=start, col-1), col-1)
+        image_of_column(win.subwindow(left=start, width=col_width(col)), col-1)
+image_of_column(win, col) =
+    if win.height &gt; 0:
+        image_of_column(win.subwindow(height=win.height-1), col)
+        image_of_cell(win.subwindow(top=win.height-1), col, win.height-1)
+image_of_cell(win, col, row) =
+    color = highlight if is_current(cell) else normal
+    win.show(label_of(cells[col][row]), color)
+col_start(col) = 0 if col == 0 else col_start(col-1) + col_width(col-1)
+col_width(col) = col_width(col, n_rows)
+col_width(col, row) = 0 if row == 0 else max(col_width(col, row-1), w)
+where:
+    w = length(label_of(cells[col][row-1]))
+</code></pre>
+<p>(The imperative syntax here is fairly grating.  It would probably be
+clearer to write these as expressions of some kind.)</p>
+<p>Here, if you update the label of the upper-left-hand cell, it will
+initially invalidate <code>col_width</code> of the first column, the image of
+that cell, the image of its column, and the images of every set of
+columns; but it will not immediately invalidate the images of each
+other column, nor the other cells in the same column.  If the
+newly-recomputed <code>col_width</code> is the same, the images of the other
+cells in the column will also not need to be recomputed; and so the
+only call to <code>win.show</code> will be for that single cell.  The other cells
+and columns will be composited into the screen image in the same place
+they were before, which amounts to no change.</p>
+<p>If you update a cell further down and to the right, the block of
+columns to its left remains cacheable, as do the block of cells above
+it — again, assuming they aren't invalidated by a changed <code>col_width</code>.
+In cases like this, you can reduce the number of invalidations by
+dividing screen regions up in a binary fashion rather than linearly:</p>
+<pre><code>image_of_column(win, first_row, col) =
+    if win.height &gt; 1:
+        mid = win.height div 2
+        image_of_column(win.subwindow(height=mid), first_row, col)
+        image_of_column(win.subwindow(top=mid), first_row + mid, col)
+    elif win.height == 1:
+        image_of_cell(win, col, first_row)
+</code></pre>
+<p>(This strategy should be abstractable into higher-order functions for
+vertical and horizontal stacks.)</p>
+<p>If the implementation of <code>show</code> actually stores its arguments into
+such a screen image, the updates to the screen image can be done
+without any heap allocation.  However, if you're running a unified
+caching layer, you need to maintain the metadata that says which
+screen regions were produced by calling which functions with which
+arguments; in this case, there are about two or three such cache
+metadata nodes per cell that was displayed.  I estimate that each such
+node is around 12 words, 48 bytes on a 32-bit machine, and the number
+of cells involved might be 100 — so 4800 bytes, less than three times
+the size of the screen in question.  (And that's if you don't discard
+any of the nodes.)  I'm not sure if there's a reasonable way to manage
+that metadata without dynamic allocation.</p>
+<p>Now, suppose that our screen image isn't just a flat array of bytes
+(or two of them), but instead, a replicated object that produces a
+data stream of the updates made to it to an interested observer.  When
+a call to <code>win.show</code> is made, or if the cache copies data from one
+place in the screen image to another, the observer is informed.</p>
+<p>Such an observer is just what you need to produce a stream of updates
+to send to a terminal emulator.</p>
+<h2>Generalizing and simplifying the screen-image example</h2>
+<p>So what do we have here?  We seem to have constructed a sort of
+special-purpose cache manager for a certain kind of object,
+rectangular regions of a terminal screen.  Was this necessary?  How
+big is the benefit?  And how many special-purpose cache managers will
+we want to make over time?</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/caching.html">Caching</a> (25 notes)
+</li><li><a href="../topics/incremental-computation.html">Incremental computation</a> (24 notes)
+</li><li><a href="../topics/transactions.html">Transactions</a> (14 notes)
+</li><li><a href="../topics/window-systems.html">Window systems</a> (5 notes)
+</li></ul></div></html>

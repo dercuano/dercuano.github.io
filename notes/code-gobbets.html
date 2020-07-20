@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html><title>Composing code gobbets with implicit dependencies ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Composing code gobbets with implicit dependencies</h1><div class="metadata">Kragen Javier Sitaker, 2018-04-27 (updated 2019-05-21)
+(3 minutes)</div><p>Suppose we have this scrap of code:</p>
+<pre><code>f = buxus.open(buxus_filename)
+viewport = f.bbox()
+canvas = buxcanvas.create(viewport)
+</code></pre>
+<p>There are lots of ways to read this gobbet of code, but one of them is
+as a rule which, given values for <code>buxus</code>, <code>buxus_filename</code>, and
+<code>buxcanvas</code>, can produce values for <code>f</code>, <code>viewport</code>, and <code>canvas</code>.  Or
+possibly fail to.</p>
+<p>Or consider these two lines of code separately:</p>
+<pre><code>interval_size_log = math.log(stop) - math.log(start)
+</code></pre>
+<p>That gives us a rule to compute <code>interval_size_log</code> given values for
+<code>stop</code>, <code>start</code>, and <code>math</code>.</p>
+<pre><code>n_divisions = int(math.ceil(interval_size_log / math.log(1 + spacing)))
+</code></pre>
+<p>That gives us a rule to compute <code>n_divisions</code> given values for <code>int</code>,
+<code>math</code>, <code>interval_size_log</code>, and <code>spacing</code>.  This rule chains nicely
+with the previous one, which provides <code>interval_size_log</code>.</p>
+<p>If you were going to apply this approach in a general way to large
+programs, you’d need some way to namespace these names, of course.
+And you need some kind of subroutine call mechanism.</p>
+<p>In Python 3.3 and later, you can supply a custom mapping to <code>exec</code>
+that logs these accesses as they happen.  So you can really write
+these just as little gobbets of Python code.</p>
+<p>Here are some ideas for how such a soup of code gobbets could be
+useful:</p>
+<ul>
+<li>Conditional computation.  Given the knowledge that
+  <code>interval_size_log</code> depends on <code>stop</code>, <code>start</code>, and <code>math</code> (or, more
+  pleasantly, <code>log</code>) you can efficiently compute all the
+  <code>interval_size_log</code> values for a range of <code>stop</code> values, a range of
+  <code>start</code> values, corresponding sets of <code>stop</code> and <code>start</code> values
+  (depending, for example, on some index <code>i</code>), or independently
+  varying sets of <code>stop</code> and <code>start</code> values.</li>
+</ul>
+<p>This becomes more powerful if you add quantifiers and aggregation,
+  although it is not clear to me how this should work.</p>
+<ul>
+<li>
+<p>Incremental recomputation, although of course this requires you to
+  make your changes to variables rather than down inside of data
+  structures somewhere.</p>
+</li>
+<li>
+<p>Transactions.  You can run an arbitrary piece of code that runs in
+  an environment where the variables it reads and writes are
+  monitored, and only commit its writes if none of the variables it
+  read have been changed by a previously committed transaction.</p>
+</li>
+<li>
+<p>Inference systems.</p>
+</li>
+<li>
+<p>Hot code reloading.</p>
+</li>
+<li>
+<p>Lazy computation — although you do have to try to run each gobbet at
+  least once to see what it might produce.</p>
+</li>
+<li>
+<p>Pattern matching.  You can provide different possible ways to
+  compute the same variable, given different possible inputs.</p>
+</li>
+</ul>
+<p>For many of these applications, you could have a subroutine call
+mechanism that works by putting some parameters into a new namespace
+and then trying to pull things out of it.  For example:</p>
+<pre><code>isl = ns(start=1, stop=20).interval_size_log
+</code></pre>
+<p>Something like that might be the way to handle quantifiers and
+aggregation, too.  Instead of saying, "What if start=1?" you’re saying
+“What if start is any value in range(10)?”  But then of course if you
+are going to get a scalar value out of it at the end you need to
+specify how you are going to aggregate the pointwise values.</p>
+<p>(Related: <a href="../notes/principled-apl.html">A principled rethinking of array languages like APL</a>, <a href="../notes/relational-modeling-and-apl.html">Relational modeling and APL</a>, <a href="../notes/funbot.html">IRC bots with object-oriented equational rewrite rules</a>,
+<a href="../notes/views-and-ometa.html">OMeta contains Wadler's "Views"</a>.)</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/incremental-computation.html">Incremental computation</a> (24 notes)
+</li><li><a href="../topics/arrays.html">Arrays</a> (17 notes)
+</li><li><a href="../topics/transactions.html">Transactions</a> (14 notes)
+</li></ul></div></html>

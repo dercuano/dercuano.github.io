@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html><title>Interval filters ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Interval filters</h1><div class="metadata">Kragen Javier Sitaker, 2015-09-17
+(2 minutes)</div><p>What if we consider the particle-filtering problem from the
+perspective of interval arithmetic?  Instead of approximating a
+multidimensional prior probability distribution using an exponential
+number of particles, we could approximate it with an exponential
+number of irregular partitions of the multidimensional space, and then
+subdivide the high-probability partitions and fuse the low-probability
+ones in order to give each partition equal probability, then do a
+Bayesian update.  It seems like this could work and might be more
+broadly applicable (and rigorously justifiable) than the Monte-Carlo
+approach.</p>
+<p>Like raw particle filters, this won’t work well on high-dimensionality
+spaces, but perhaps it can, like them, be extended to work on such
+spaces.</p>
+<p>Interval arithmetic can be used to efficiently calculate that the
+posterior probability of being inside a large region of the space is
+negligible.</p>
+<p>Often, divide-and-conquer algorithms are more efficient when the
+division is by three instead of by two — dual-partition Quicksort
+being one notable example — and I suspect that might be the case here
+too.  If combined with random rather than optimal positioning of the
+partition, in particular, it would help with the case where we really
+do kind of need particles — where there is a tiny local maximum
+probability lost in a large, low-probability partition.  Eventually,
+random choice of three-way partitioning will happen to snag the tiny
+local maximum between its pincers, and have a chance to track it down
+further.</p>
+<p>You could store for each partition not only the total probability (or,
+equivalently, average probability density) of the partition, but also
+the average slope or derivative of the probability density inside of
+it.  This would dramatically reduce the error in the estimate of the
+PDF that all the intervals comprise together.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li><li><a href="../topics/ai.html">Artificial intelligence</a> (8 notes)
+</li><li><a href="../topics/probability.html">Probability</a> (5 notes)
+</li><li><a href="../topics/particle-filters.html">Particle filters</a> (2 notes)
+</li></ul></div></html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html><title>Karplus–Strong PLLs ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Karplus–Strong PLLs</h1><div class="metadata">Kragen Javier Sitaker, 2017-06-09
+(1 minute)</div><p>A PLL is great for tracking the frequency of a sine wave.  But lots of
+sounds we want to track the pitch of aren’t sine waves; they have
+substantial energy in their harmonics.  The usual chopper PLL approach
+detects phase by multiplying the input signal with a square wave, thus
+convolving its spectrum with a spectrum containing significant third
+and fifth harmonics, but no even harmonics, then low-pass filters the
+result to try to separate out the dc component.</p>
+<p>As a possible alternative for software PLLs, maybe you could try using
+the Karplus-Strong string model for your phase detection, using two
+delay lines that differ in length by one sample.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/dsp.html">Digital signal processing (DSP)</a> (60 notes)
+</li><li><a href="../topics/plls.html">Phase-locked loops</a> (3 notes)
+</li></ul></div></html>

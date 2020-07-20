@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html><title>What would a better Unix shell look like? ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>What would a better Unix shell look like?</h1><div class="metadata">Kragen Javier Sitaker, 2018-11-27
+(1 minute)</div><p>A better shell might have some or all of the following properties:</p>
+<ul>
+<li>Opens a new pty for each command and allows you to either include
+  the whole command output or a scrollable window on it in the overall
+  scroll.  Clearing the screen should, by default, fullscreen the
+  command output.</li>
+<li>Displays which commands failed and which relied on now-changed
+  inputs.  (This requires tracking the inputs of every command.)</li>
+<li>Optionally re-executes selected commands periodically</li>
+<li>Displays per-command resource usage, such as CPU time and RAM usage.
+  By default runs commands with limits to prevent horking the whole
+  machine.</li>
+<li>Provides notifications of finished, idle, and newly non-idle
+  commands in a way that doesn’t interfere with foreground tasks.
+  This requires at least some minimum UI for configuring it.</li>
+<li>Copes with voluminous command output gracefully, at least up to
+  gigabytes.  Should have options to FIFO-discard, block (like ^S),
+  and increase the scrollback-retention limit.</li>
+<li>Supports distributed operation, including running commands on remote
+  hosts, inside of Docker containers, and across multiple remote
+  hosts, as well as session recovery from network disconnection and
+  even machine restart.</li>
+<li>Options for fancifying command output; for example, hyperlinking
+  <code>ls</code> and <code>ps</code> output, or colorizing and relayouting other commands’
+  output.</li>
+<li>Programmable autocomplete, of course.</li>
+</ul><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/unix.html">Unix</a> (7 notes)
+</li></ul></div></html>

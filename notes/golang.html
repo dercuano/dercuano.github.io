@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html><title>Giving Golang a second look for writing a mailreader (in 2012) ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Giving Golang a second look for writing a mailreader (in 2012)</h1><div class="metadata">Kragen Javier Sitaker, 2012-12-17 (updated 2013-05-17)
+(2 minutes)</div><p>In 2012, starting again with golang.</p>
+<ul>
+<li>The email address parsing functionality is a little tied into the
+  email system; you apparently have to make a fake header.</li>
+<li>go doc is pretty cool, but looking at the actual library source is
+  even better in most cases.</li>
+<li>Type equivalence is by name, so even if a mail.Header <em>is</em> just a
+  map[string][]string, you still can't mutate it.  But you can
+  construct a new one.</li>
+<li>for x := range somearray makes x range over the indices of
+  somearray, not its values.  You want _, x :=.</li>
+<li>How do you find the length of an array?  Oh, Pythonwise, len(array).</li>
+<li>
+<p>Okay, so suppose I want to do the equivalent of this Python:</p>
+<pre><code>def main(outbox, inbox):
+    important_senders = recipients(outbox)
+</code></pre>
+<p>I guess I need to be able to open the outbox file and accumulate
+stuff in a map.  Hmm, isn't there a thing about named return values?
+How does that work?  Oh, (name type, name type, name type) after the
+argument list.</p>
+</li>
+<li>
+<p>How do I open a file?  os.Open.</p>
+</li>
+<li>How do I print messages to stderr and return failure from main?
+  Looks like log.Fatal does that, and even log.Printf prints to
+  stderr.  (Presumably fmt.Printf doesn't.)</li>
+<li>Now that I have the file open, how do I get messages from it?  Looks
+  like the file is already an io.Reader, so I'm good.</li>
+<li>Hmm, now it seems like I'm suffering from email parsing problems,
+  from apparently trying to parse a header starting in the middle of a
+  subject line.  I guess I need to read that message body.</li>
+<li>But hmm, io.Reader.Read(p) reads up to len(p) bytes.  How do I make
+  a slice (?) that I can pass in there?  (Looks like make([]byte, 16).)
+  Oh, there's an
+  ioutil.ReadAll?  That solves the problem.  But now I still have no
+  addresses! ...
+  Also related to problems like these: bufio.NewReader(os.Stdin) 
+  and r.ReadString("\n").</li>
+<li>Oh, hmm, this is just message parsing, not mailbox parsing.  I still
+  have to do mailbox parsing myself, and provide an io.Reader
+  interface?  Well, there's an io.LimitReader in the library.</li>
+<li>Cool, the I/O 2011 talk mentions an SDL binding for Go.</li>
+<li>Looks like the email message parsing chokes on this:<pre><code>To: Kragen Sitaker &lt;kragen&gt;
+</code></pre>
+</li>
+</ul><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/golang.html">Golang</a> (7 notes)
+</li><li><a href="../topics/email.html">Email</a> (5 notes)
+</li></ul></div></html>

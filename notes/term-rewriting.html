@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html><title>Term rewriting ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Term rewriting</h1><div class="metadata">Kragen Javier Sitaker, 2017-07-19
+(3 minutes)</div><p>Typical term-rewriting patterns are of the form</p>
+<pre><code>x(?y, z) -&gt; foo(?y, ?y)
+</code></pre>
+<p>where the “?” identifies the <code>y</code> as a variable (or, we might say, a
+metavariable).  This poses a certain amount of difficulty for
+metacircularity, such as a program to determine whether a set of
+rewrite rules is confluent (normalizing); you might want to look for
+the literal pattern <code>?y</code> or especially <code>??y</code> for any <code>?y</code> in some
+rewrite rule you are trying to manipulate.</p>
+<p>Prolog, where all this originally came from, is even trickier along
+this axis, since it spells <code>foo</code> and <code>?foo</code> as <code>foo</code> and <code>Foo</code>,
+respectively.</p>
+<p>One possible solution to this problem is to declare the metavariables
+out-of-line:</p>
+<pre><code>(rewrite (y) (x y z) (foo y y))
+</code></pre>
+<p>or</p>
+<pre><code>metavariable y;
+x(y, z) -&gt; foo(y, y)
+</code></pre>
+<hr />
+<p>Another aspect of term-rewriting languages is that they don’t
+accommodate extensible data structures very easily.  Suppose you have
+a bunch of rules of the following form:</p>
+<pre><code>?x + constant(0) -&gt; ?x
+</code></pre>
+<p>Now, you decide that constants should additionally include the line
+and column number where they were found, thus improving your debugging
+information.  This forces you to modify the above rule as follows:</p>
+<pre><code>?x + constant(0, ?_) -&gt; ?x
+</code></pre>
+<p>And you must do the same thing for all similar rules.</p>
+<p>Suppose instead that the nodes of your graph instead have arbitrary
+sets of named properties, perhaps namespaced to avoid unfortunate
+property collisions, and with the proviso that extra properties not
+mentioned never cause a match failure.  Then we can write the above
+instead as follows:</p>
+<pre><code>{addend1: ?x, addend2: {constant_value: 0}} -&gt; ?x
+</code></pre>
+<p>This version will survive such an augmentation without modification.</p>
+<hr />
+<p>This is the same data model as Binate, and suggests that you should be
+able to write such rewrite systems as Binate relations, making them
+point-free (and solving the above problem of metacircularity in a
+different way): the transitive closure of some rewrite relation,
+perhaps.  That is, the above algebraic rewrite rule would be part of a
+relation called something like <code>algebraically_simplifies_to</code>, so we
+could ask whether</p>
+<pre><code>(4 + 0) algebraically_simplifies_to 4.
+</code></pre>
+<p>or indeed what a given expression simplifies to.  The
+<code>algebraically_simplifies_to</code> arc or arcs from that expression would
+be in some sense on equal standing with the <code>addend1</code> node from it to
+4.  We can take the transitive closure of that relation and subtract a
+version of its own converse from it to exclude results that can be
+algebraically simplified further.</p>
+<p>I am not sure if this is in practice a feasible thing to do with
+Binate, or what would be needed to make it feasible, or whether it
+would be practical, but it is a very appealing simplification and
+unification!</p>
+<p>It also avoids the ugly ad-hoc extension to term-rewriting
+pattern-matching in Leler’s Bertrand (p.53 of his book)
+where <code>aNumber</code> matches any number, etc.</p>
+<p>I think one big problem here is that in Binate, equality is (I think)
+necessarily defined by identity rather than content: two point objects
+with the same <code>x</code> and <code>y</code> properties are not equal, because one of
+them might have some other property (such as <code>z</code>) which is not
+supposed to affect the behavior of queries that don’t mention that
+property.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/binate.html">Binate</a> (3 notes)
+</li><li><a href="../topics/tree-rewriting.html">Tree rewriting</a> (2 notes)
+</li></ul></div></html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html><title>Minimal imperative language ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Minimal imperative language</h1><div class="metadata">Kragen Javier Sitaker, 2018-12-10
+(7 minutes)</div><p>What’s the smallest we can make an imperative programming language to,
+for example, plot points in a framebuffer?</p>
+<p>Well, BF is one answer to that question; StoneKnifeForth is another.
+But what about a language that supports subroutines (recursive, with
+arguments, but without closures), conditionals, loops, arrays, and
+arithmetic with infix syntax?  Because I guess I’m not willing to go
+<em>that</em> minimal.</p>
+<p>A thing you have to think about is whether arrays are valid as
+arguments or not.  That makes a big difference in the flavor of the
+language.</p>
+<p>You need some way to declare arrays, but that could be static, like
+subroutines are in C.</p>
+<p>Your syntax might look like this:</p>
+<pre><code>program: _ (name '['_ int ']'_ | name '('_ (name, ','_)? ')'_ ':'_ exp)*
+exp: stmt, ';'_ | '{'_ (exp '-&gt;'_)? exp? '}'_ | stmt
+stmt: name ('=' | '&lt;-' | [-+*/%^&amp;|] '=' | '&amp;^=')_ stmt | cond
+cond: cmp '?'_ cond ':'_ cond | (cmp, '&amp;&amp;'_), '||'_
+cmp: val ('==' | '&lt;=' | '&gt;=' | '&lt;' | '&gt;' | '!=')_ val | val
+val: ((((chain, [*/%]_), [-+]_), ('&lt;&lt;' | '&gt;&gt;')_), ('&amp;' | '&amp;^')_), [|^]_
+chain: ([-+~]_ chain | atom) ('('_ (expr, ','_)? ')'_ | '['_ exp ']'_)*
+atom: '('_ exp ')'_ | name | int
+_: [ \n\t]*
+int: [0-9]+
+name: [A-Za-z_] [A-Za-z0-9_]*
+</code></pre>
+<p>In this grammar, the syntax <code>a, b</code> means <code>a (b a)*</code>; <code>,</code> binds more
+tightly than <code>|</code>, so <code>a | b, c</code> means <code>a | (b, c)</code>, and <code>a, b | c</code>
+means <code>(a, b) | c</code>.  This enables this grammar to get by without
+defining associativity much, though it does define precedence.  It
+also is free of left recursion, enabling a straightforward PEG
+implementation.</p>
+<p>Most of this is the same as C or Golang, but the <code>{ foo -&gt; bar }</code>
+construct is intended to mean <code>while (foo) { bar }</code>, and the
+distinction between <code>=</code> and <code>&lt;-</code> is that <code>=</code> declares and initializes
+a new variable, while <code>&lt;-</code> mutates an existing variable.
+(Inconsistently, <code>+=</code> and the like are not written <code>+&lt;-</code>.)  The
+intended semantics are that everything has a value, including <code>stmt</code>,
+but loops return just the zero value of their conditional upon exit,
+rather than anything useful like their last body expression or a list
+of their last body expressions (since we don’t have lists).  Sequences
+<code>a; b</code> likewise return the value of the last item in the sequence.</p>
+<p>There’s a bit of parsing confusion where a stray <code>:</code> after a function
+call could give you a potentially misleading error message.</p>
+<p>So here’s a program:</p>
+<pre><code>f[100]
+fib(): f[0] &lt;- f[1] &lt;- 1; i = 2; {i &lt; 100 -&gt; f[i] &lt;- f[i-1] + f[i-2]; i += 1}
+</code></pre>
+<p>The really lame nature of not being able to initialize data structures
+shows up strongly in this program.</p>
+<p>Here’s another.</p>
+<pre><code>minskytron(x, p, n): y = 0; {n -= 1 -&gt; x += y &gt;&gt; p; y -= x &gt;&gt; p; pset(x, y)}
+</code></pre>
+<p>Here’s a toupper function operating on ASCII codes in s.</p>
+<pre><code>s[4096]
+toupper(i, end):
+    {i &lt; end -&gt;
+        (s[i] &gt;= 97 &amp;&amp; s[i] &lt; 97 + 26) ? s[i] -= 64 : 0;
+        i += 1}
+</code></pre>
+<p>This language is somewhat similar in its capabilities to BASIC or bc,
+though it lacks strings.</p>
+<p>It is, however, considerably bulkier in the description of its syntax
+than the λ-calculus, Abadí and Cardelli’s ς-calculus, or the ur-Lisp.
+On the other hand, an implementation of an interpreter for it might be
+simpler, since you don’t need any memory management or type testing.
+(You might need subscript error handling.)</p>
+<h2>PEG syntax</h2>
+<p>(See also <a href="../notes/tagging-parser.html">Tagging parsers</a>.)</p>
+<p>It’s perhaps worthwhile dwelling a bit on the syntax of the PEG above.
+It doesn’t use negation, but I’m including negation here, since it’s
+an important tool in PEGs in general.</p>
+<pre><code>grammar: (name ':'_ alts)*
+alts: (seq | seq ','_ seq), '|'_
+seq: ('!'* (name _ | str | class | '('_ alts ')'_) [?*+]*)*
+str: "'" ('\\' char | [^\\'])* "'" _
+   | '"' ('\\' char |  [^\\"])* '"' _
+class: ('[^]' | '[]' | '[^') [^]]* ']'_
+_: [ \n\t]*
+name: [A-Za-z_] [A-Za-z0-9_]*
+</code></pre>
+<p>The definition of character classes omits the syntax of ranges, but
+that’s okay as long as we don’t care about the rightmost member of a
+range being <code>]</code>.</p>
+<p>A big problem with this syntax is that it doesn’t provide a way to tag
+parts of a production so they can be referred to elsewhere.  Following
+the proposal in <a href="../notes/tagging-parser.html">Tagging parsers</a>, let’s use the syntax <code>name {
+contents }</code> to tag the range of input matched by <code>contents</code> with tag
+<code>name</code>.  To achieve this, we could just change the definition of <code>seq</code>
+in the above as follows:</p>
+<pre><code>seq: ('!'* (name _ | str | class | '('_ alts ')'_ | name _ '{'_ alts '}'_) [?*+]*)*
+</code></pre>
+<p>Now we can take advantage of this to build an AST, refactoring the
+grammar a bit in the process:</p>
+<pre><code>grammar: _ rule {name ':'_ choice}*
+choice: choice {alt {term* | item {term*} ','_ sep {term*}}, '|'_}
+term: '!' negated {term} | modded { atom mods { [?*+]+ } } | atom
+atom: name _ | str | class | '('_ choice ')'_ | tagged
+tagged: tagged {tag {name} _ '{' _ spans {choice} '}'} _
+str: "'" str {('\\' char | [^\\'])*} "'" _
+   | '"' str {('\\' char | [^\\"])*} '"' _
+class: '[' class {'^'? ']'? [^]]*} ']'_
+_: [ \n\t]*
+name: name {[A-Za-z_] [A-Za-z0-9_]*}
+</code></pre>
+<p>Separating nonterminals from tags allows us to avoid constructing
+worthless intermediate nodes in some cases; the <code>term</code> rule can
+generate, for example, just a <code>str</code> node or just a <code>class</code> node,
+rather than a <code>term</code> containing an <code>atom</code> containing a <code>str</code>.  It also
+enables the resulting node to tag just the relevant text, omitting
+irrelevant delimiters.</p>
+<p>The idea is that each AST node has a start byte position, an end byte
+position, and a sequence of zero or more child nodes.  In token-like
+cases, the client program is probably more interested in the byte
+positions, while in other cases, it probably only cares about the
+child nodes.  So, for example, a <code>choice</code> node in the AST will have
+zero or more <code>alt</code> children, none of which children include the <code>|</code>
+separators between the alternatives.  The <code>alt</code> nodes may have a
+single <code>item</code> child and a single <code>sep</code> child, or they may have a
+sequence of the possibilities that come from <code>term</code>: <code>negated</code>,
+<code>modded</code>, <code>name</code>, <code>str</code>, <code>class</code>, <code>choice</code>, or <code>tagged</code>.</p>
+<p>The <code>modded</code> node structure is an unfortunate result of PEGs’ lack of
+left-recursion; ideally the AST for something like <code>x*+?</code> would be
+<code>optional { oneormore { zeroormore { name "x" } } }</code>, although of
+course that is a pretty stupid thing to write.  Nowever, once we’ve
+parsed the thing into a lopsided tree structure, it’s pretty easy to
+write imperative code in your language of choice to produce the
+desired structure.  See <a href="../notes/tagging-parser.html">Tagging parsers</a> for another solution to
+this problem.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/small-is-beautiful.html">Small is beautiful</a> (40 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/parsing.html">Parsing</a> (15 notes)
+</li></ul></div></html>

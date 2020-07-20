@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html><title>Flexible text query ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Flexible text query</h1><div class="metadata">Kragen Javier Sitaker, 2018-07-14
+(4 minutes)</div><p>Here’s an example of the problem I want to solve.  I have a crontab
+which records my battery capacity estimates from the OS once a minute;
+here’s a sanitized transcript:</p>
+<pre><code>$ crontab -l
+# m h  dom mon dow   command
+*   *   *   *   *   (date; date +date=\%s; cat /sys/class/power_supply/BAT0/uevent) &gt;&gt; .battery-samples
+$ tail ~/.battery-samples 
+POWER_SUPPLY_CAPACITY_LEVEL=Normal
+POWER_SUPPLY_SERIAL_NUMBER= 
+Sat Jul 14 16:40:01 -03 2018
+date=1531597201
+POWER_SUPPLY_NAME=BAT0
+POWER_SUPPLY_STATUS=Discharging
+POWER_SUPPLY_PRESENT=1
+POWER_SUPPLY_TECHNOLOGY=Li-ion
+POWER_SUPPLY_CYCLE_COUNT=0
+POWER_SUPPLY_VOLTAGE_NOW=11400000
+POWER_SUPPLY_POWER_NOW=20508000
+POWER_SUPPLY_ENERGY_FULL=45828000
+POWER_SUPPLY_ENERGY_NOW=24886000
+POWER_SUPPLY_CAPACITY=54
+POWER_SUPPLY_CAPACITY_LEVEL=Normal
+POWER_SUPPLY_SERIAL_NUMBER= 
+Sat Jul 14 16:41:01 -03 2018
+date=1531597261
+POWER_SUPPLY_NAME=BAT0
+POWER_SUPPLY_STATUS=Discharging
+POWER_SUPPLY_PRESENT=1
+POWER_SUPPLY_TECHNOLOGY=Li-ion
+POWER_SUPPLY_CYCLE_COUNT=0
+POWER_SUPPLY_VOLTAGE_NOW=11400000
+POWER_SUPPLY_POWER_NOW=20565000
+POWER_SUPPLY_ENERGY_FULL=45828000
+POWER_SUPPLY_ENERGY_NOW=25216000
+POWER_SUPPLY_CAPACITY=55
+POWER_SUPPLY_CAPACITY_LEVEL=Normal
+POWER_SUPPLY_SERIAL_NUMBER=
+</code></pre>
+<p>Now suppose I want to plot battery capacity over time.  Getting the
+capacity itself is easy enough:</p>
+<pre><code>$ grep -a _FULL= ~/.battery-samples
+...(29000 lines omitted)...
+POWER_SUPPLY_ENERGY_FULL=45828000
+POWER_SUPPLY_ENERGY_FULL=45828000
+POWER_SUPPLY_ENERGY_FULL=45828000
+$
+</code></pre>
+<p>(The <code>-a</code> is necessary because there’s a block of 541 NULs that got in
+there last Wednesday, presumably due to some kind of filesystem
+corruption on power loss.)</p>
+<p>But this only gives me the Y-coordinate.  The X-coordinate of time is
+missing.</p>
+<p>Now, I could write it this way:</p>
+<pre><code>$ perl -lne '$date = $1 if /date=(.*)/;
+             print "$date $1" if defined $date
+                             and /_FULL=(.*)/' ~/.battery-samples
+</code></pre>
+<p>And I can plot that with gnuplot, and it looks right:</p>
+<pre><code>$ perl -lne '$date = $1 if /date=(.*)/;
+             print "$date $1" if defined $date
+                             and /_FULL=(.*)/' ~/.battery-samples |
+  gnuplot -p -e "plot '-' with linespoints"
+</code></pre>
+<p>And that works.  But it’s a relatively large amount of hacking for a
+fairly simple task.  If we want to include both
+<code>POWER_SUPPLY_ENERGY_NOW</code> and <code>POWER_SUPPLY_ENERGY_FULL</code>, it’s going
+to start to be complicated.</p>
+<p>What I really want here is an interaction like:</p>
+<ol>
+<li>Show me the lines that say <code>date=</code>.</li>
+<li>Okay, now infer <code>POWER_SUPPLY_ENERGY_FULL</code> from the next line that
+   says <code>POWER_SUPPLY_ENERGY_FULL=</code></li>
+<li>Okay, now infer <code>POWER_SUPPLY_ENERGY_NOW</code> from the next line that
+   says <code>POWER_SUPPLY_ENERGY_NOW=</code>.</li>
+<li>Okay, now display just <code>date</code>, <code>POWER_SUPPLY_ENERGY_FULL</code>, and
+   <code>POWER_SUPPLY_ENERGY_NOW</code> as columns.</li>
+</ol>
+<p>At the command line, this could be something like:</p>
+<ol>
+<li><code>q2 date=</code></li>
+<li><code>q2 date= +_FULL=</code></li>
+<li><code>q2 date= +_FULL= +_NOW=</code></li>
+<li><code>q2 'date=(.*)' '+_FULL=(.*)' '+_NOW=(.*)'</code></li>
+</ol>
+<p>For logfile processing, it’s common to want to limit matches to a
+particular request ID and to exclude “noise” events based on some
+other kind of pattern.  So it’s useful to conceptualize this process
+as the repeated execution of some possibly nondeterministic program:</p>
+<ol>
+<li>First, find <code>date=</code>, and save what comes after it; discard upon
+   fail.</li>
+<li>Then, search forward for <code>_FULL=</code>, and save what comes after it,
+   discarding upon fail; then return to the position from step 1.</li>
+<li>Then, search forward for <code>_NOW=</code> and save what comes after it,
+   discarding upon fail; then return to the position from step 1.</li>
+<li>Then, display the three saved strings.</li>
+</ol>
+<p>You could imagine, for example, running one of these subordinate steps
+on the set of lines that contain “id=$1 “, where $1 is a previously
+captured id.  You don’t want to necessarily constrain the entire rest
+of the query to do that.  And you might want to be able to emit nested
+structures here, and exclude domains in a known spammer list, and
+whatnot.</p>
+<p>This is pretty similar to what I need for my mailreader qyap: I have a
+nested structure of mail message threads to extract from a possibly
+out-of-order mailbox (or more than one), and I might want to hide
+particular threads or subthreads.</p>
+<p>(I’ve done something like this previously with batchagenda.py.)</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/dsls.html">Domain-specific languages</a> (4 notes)
+</li></ul></div></html>

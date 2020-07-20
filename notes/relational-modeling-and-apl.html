@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html><title>Relational modeling and APL ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Relational modeling and APL</h1><div class="metadata">Kragen Javier Sitaker, 2019-05-20 (updated 2019-05-21)
+(5 minutes)</div>
+<p>I think there’s a kind of logic-programming or constraint-logic
+approach that preserves most of what’s good about array languages,
+while adding the kind of multidirectional inference languages like
+Prolog and especially miniKANREN have.</p>
+<p>I’ve noticed these notes are getting repetitive as I write down the
+same ideas over and over again, having forgotten them; I’ll try to
+link them here.</p>
+<p>I was thinking about <a href="http://lists.canonical.org/pipermail/kragen-tol/2007-March/000855.html">object-oriented equational rewrite rules</a> and
+<a href="../notes/funbot.html">IRC bots with object-oriented equational rewrite rules</a> today or yesterday, thinking about how it would be nice
+to define properties like “.vol = π.r²·.h; .area = 2π.r(.h + .r)” so
+that “foo.area” would do a search for formulas that could be applied,
+and use that one if it happened that “foo” has properties .h and .r.
+(I vaguely handwaved in my head that some kind of namespacing could
+alias this to “foo.cylinder::h” so it wouldn’t collide with, say,
+“foo.planck::h”.)  And it occurred to me that this is precisely the
+same thinking in <a href="../notes/principled-apl.html">A principled rethinking of array languages like APL</a> about array conformability.
+(And in <a href="../notes/views-and-ometa.html">OMeta contains Wadler's "Views"</a>, I opined that they were the same thing as
+Wadler’s Views.)</p>
+<p>A difference, though, is that in the rewrite-rule thinking, a single
+property can have multiple definitions, like methods overridden in
+different OO classes, of which normally only one is applicable, while
+in <a href="../notes/principled-apl.html">A principled rethinking of array languages like APL</a> no such merger was contemplated, except through
+explicit conditionals.</p>
+<p>In <a href="../notes/funbot.html">IRC bots with object-oriented equational rewrite rules</a> I’d suggested resolving conflicts through a specificity
+ordering, like CSS or Aardappel.  But thinking of the rewrite rule as
+a <em>deduction rule</em> suggests another alternative.  Suppose we read
+“.vol = π.r²·.h” as specifying an equation in the usual sense — a
+relationship that is known to hold in all situations where the
+variables are defined.  In that case, it defines a <em>constraint</em>, which
+means that not only can we use it to compute .vol, but we can use it
+to compute .h if we happen to know .vol and .r from someplace else.
+That means that it’s also an <em>assertion</em> — if we have a different
+computation of .vol from some other definition, the two values must
+agree, or we have discovered an inconsistency in our model!</p>
+<p>So that’s a different way of dealing with “rewrite rule”
+conflicts — crash the program if two conflicting definitions give
+different results.</p>
+<p>(And Prolog, of course, considers conflicting definitions as equally
+valid possibilities, though there is a definite order to them; the
+second is only used if we backtrack out of the first.)</p>
+<p>But we can get that without giving up the yumminess of implicit loops
+we get in <a href="../notes/principled-apl.html">A principled rethinking of array languages like APL</a> (and <a href="../notes/typed-apl.html">APL with typed indices</a> and <a href="../notes/matrix-multiply.html">Index set inference or domain inference for programming with indexed families</a>) by
+virtue of saying something like .r = [1mm 2mm 5mm 10mm], meaning that
+there are four situations of interest defined by different radii.  And
+these “different cylinders” can all “inherit” a common .h, have a .h
+that varies together with .r, or have a .h that varies independently
+of .r.  The underlying logic is conditional deduction over various
+different situations.</p>
+<p>I talked a bit about this connection in <a href="powerful-primitives.html#addtoc_12">More thoughts on powerful
+primitives</a> as well.</p>
+<p>I wrote down almost exactly these ideas two years ago in <a href="../notes/relational-modeling.html">Relational modeling</a>.</p>
+<p>By using the more powerful kind of relational programming miniKANREN
+provides, rather than the more limited kind used by Prolog, we may be
+able to solve more models.  Also, for numerical relationships like the
+ones I used as examples above, interval arithmetic or affine
+arithmetic may be very useful for two reasons — first, in order to
+make progress toward solving or proving insoluble a system that starts
+out underconstrained (consider .x = exp(.x), which has no solution, or
+.x = exp(.x)/4, which has two solutions), and second, for determining
+whether two values of a numerical quantity reached through different
+computational paths are in fact equal or not.  (Interval arithmetic
+can’t prove that the values are equal, but it can reliably tell
+whether an apparent difference is too big to be due to rounding
+error.)</p>
+<p>There’s a potential conflict here between the use of implicit patterns
+of known values to distinguish situations where a property doesn’t
+<em>exist</em>, like trying to find the radius of a cube, and where a
+property <em>isn’t known yet</em>.  I suspect that there may be different
+valid design choices one can make to resolve this conflict which lead
+to interestingly different languages that work for different purposes.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li><li><a href="../topics/arrays.html">Arrays</a> (17 notes)
+</li><li><a href="../topics/constraints.html">Constraint satisfaction</a> (9 notes)
+</li><li><a href="../topics/apl.html">APL</a> (9 notes)
+</li><li><a href="../topics/prolog.html">Prolog and logic programming</a> (8 notes)
+</li><li><a href="../topics/predicate-logic.html">Predicate logic</a> (6 notes)
+</li><li><a href="../topics/minikanren.html">miniKANREN</a> (6 notes)
+</li></ul></div></html>

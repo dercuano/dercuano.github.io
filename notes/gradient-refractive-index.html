@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html><title>3-D printing glass with continuously varying refractive indices for optics without internal surfaces ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>3-D printing glass with continuously varying refractive indices for optics without internal surfaces</h1><div class="metadata">Kragen Javier Sitaker, 2016-10-06
+(3 minutes)</div><p>For the “cloak of invisibility” using optical metamaterials, you don’t
+actually need a negative refractive index; you just need to be able to
+precisely grade the refractive index throughout space.  The approach
+they’re taking is to fabricate nanostructures made of resonant
+components, but this has high dispersion, and so the invisibility
+fades as you use multiple wavelengths.</p>
+<p>As an alternative, you could vary the mix of materials going into a
+block of glass.  More lead oxide in one part, more silicon and
+aluminum oxides in another.  But how can you achieve that?  Depositing
+glass powders and then sintering them will leave you with a part
+that’s full of voids.  Voids are potentially problematic in structural
+parts (e.g. metal mounting brackets) but totally fatal in optics.</p>
+<p>If instead of sintering the powders you fully melt them so that
+bubbles can rise, the bubbles will mix together the glass that they
+float through, and to a lesser extent the glass around it, especially
+if you put it under vacuum to degas it like in resin casting.  Also,
+if the viscosity is too low, you may get convection currents.</p>
+<p>Depositing the glass by FDM in air seems like it would hardly be any
+better.</p>
+<p>A possible alternative would be to immerse the workpiece being built
+in molten lead oxide, using either selective powder deposition or FDM
+extrusion to deposit a higher-melting glass “underwater”, thus
+avoiding bubbles; the molten lead oxide would fill any voids.  The
+lead oxide would immediately begin to “flux” or dissolve the
+higher-melting glass, so tight temporal control of the process is
+critical.  That same process of dissolution or diffusion can continue
+even below the glass transition, but more slowly, and is crucial to
+achieving a smooth gradient, but it also limits the strength of the
+gradient that can be achieved.  It may be necessary to bake the
+finished workpiece in a solid state for some period of time after
+completion.</p>
+<p>(The lowest-melting glass may not be pure lead oxide, but rather some
+mixture; ideally you’d use the lowest-melting glass for the immersion
+medium.  Above the glass you could use a soft vacuum)</p>
+<p>Speaking of gradients, one way to reduce the variability in such a
+process would be to maintain a vertical temperature gradient in the
+workpiece being built layer by layer, such that only the surface is
+above the point of lead oxide, while the layers below are below the
+glass transition temperature.  This won’t prevent diffusion, just slow
+it down, but it will stop slumping.</p>
+<p>Optical systems built in this way, using gradients rather than
+surfaces, can entirely avoid the problems of stray light from unwanted
+reflections from the surfaces of lenses, although total internal
+reflection is still possible, as in a graded-index optical fiber.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/materials.html">Materials</a> (112 notes)
+</li><li><a href="../topics/digital-fabrication.html">Digital fabrication</a> (42 notes)
+</li><li><a href="../topics/optics.html">Optics</a> (34 notes)
+</li><li><a href="../topics/3d-printing.html">3-D printing</a> (23 notes)
+</li><li><a href="../topics/gradients.html">Gradients</a> (8 notes)
+</li><li><a href="../topics/glass.html">Glass</a> (2 notes)
+</li></ul></div></html>

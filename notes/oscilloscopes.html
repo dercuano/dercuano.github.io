@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html><title>Argentine oscilloscope pricing 2016 ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Argentine oscilloscope pricing 2016</h1><div class="metadata">Kragen Javier Sitaker, 2016-08-16
+(4 minutes)</div><p><a href="http://articulo.mercadolibre.com.ar/MLA-602979566-protec-osciloscopio-20-mhz-modelo-p-3502-c-_JM">http://articulo.mercadolibre.com.ar/MLA-602979566-protec-osciloscopio-20-mhz-modelo-p-3502-c-_JM</a>
+is a more or less typical cheap used analog oscilloscope: the 20MHz
+Protek P-3502C.  The price is AR$3500 = US$232.</p>
+<p><a href="http://www.tek.com/oscilloscope/tbs1000b-digital-storage-oscilloscope">http://www.tek.com/oscilloscope/tbs1000b-digital-storage-oscilloscope</a>
+Tektronix’s cheapest current scope is this TBS1000B line; the
+lowest-end scope in the line is the TBS1032B, with 500Msps and 30MHz
+analog bandwidth, for US$450, with a recording length of 2500 points.</p>
+<p><a href="http://articulo.mercadolibre.com.ar/MLA-620039875-osciloscopio-hantek-6022-be-20-mhz-_JM">http://articulo.mercadolibre.com.ar/MLA-620039875-osciloscopio-hantek-6022-be-20-mhz-_JM</a>
+is a typical USB oscilloscope: the Hantek HT6022BE20MHz: 20MHz,
+AR$5000 (=US$331), 1MΩ 25pF input impedance, 48Msps, 8-bit resolution,
+20mV to 5V gain range.</p>
+<p><a href="https://www.seeedstudio.com/item_detail.html?p_id=736">https://www.seeedstudio.com/item_detail.html?p_id=736</a> is the Seeed
+Studio DSO Quad 4-channel Digital Storage Oscilloscope, which costs
+US$169.  It claims 72 Msps but doesn’t make any claims about analog
+input bandwidth on its two analog input channels.  IIRC Seeed is an
+open-hardware shop; they do publish <a href="http://www.seeedstudio.com/wiki/images/1/10/DSO_Quad_V2.7_schematic.pdf">DSO Quad schematics</a> and the
+<a href="http://www.seeedstudio.com/wiki/DSO_Quad">Wiki lists user apps</a> and it seems like they’re using an
+AD9288BSTZ-40 for their ADC.</p>
+<p>It seems like you ought to be able to meet or exceed the capabilities
+of the Hantek unit for a much lower price, especially using recycled
+chips.  I mean basically this is two high-speed ADCs (or one with a
+demultiplexed input) hooked up to a USB interface in a metal box,
+right?</p>
+<p>Three candidate ADCs are the US$3.69 <a href="https://www.digikey.com/product-detail/en/texas-instruments/ADS830E-2K5/ADS830ETR-ND/272012">TI ADS830E/2K5</a>, the US$4.50
+<a href="https://www.digikey.com/product-detail/en/maxim-integrated/MAX19505ETM-T/MAX19505ETM-TTR-ND/2044960">Maxim MAX19505ETM+T</a>, and the US$3.28 <a href="https://www.digikey.com/product-detail/en/analog-devices-inc/AD9283BRSZ-50/AD9283BRSZ-50-ND/621671">Analog Devices AD9283BRSZ-50</a>,
+which last is available in quantity 1 from Digi-Key at US$6.01.</p>
+<p>The AD9283 family is 90mW, has 475 MHz analog bandwidth, a 46.5 SNR, a
+1V p-p analog input range, and runs off 3 volts.  “Low-cost digital
+oscilloscopes” are explicitly called out as a use for the thing in its
+datasheet; <a href="http://matthewlai.ca/blog/?p=441">Matthew Lai designed such a scope</a> based on a slightly
+higher-speed member of the family.  It claims ENOB of 7.5 bits at 27
+MHz input, which is better than the Hantek unit.</p>
+<p>Its input capacitance is only 2 pF.  It says its input resistance is
+only 7 to 13 kΩ, which seem to be pullup and pulldown resistors to the
+power rails.  So you probably need some kind of preamp, like maybe an
+opamp or something, to get high input impedance.</p>
+<p>Lai’s design uses an FPGA to buffer the digitized signal.  The
+Seeedstudio design uses both an FPGA and also an ARM Cortex
+microcontroller.</p>
+<p>Lai’s design's analog front end was as follows:</p>
+<blockquote>
+<p>Input goes into a 1MΩ metal film resistor in parallel with 20pF
+ceramic cap (not sure about this). Buffered by a Texas Instruments
+OPA656 wideband op amp with JFET input (very high impedance, which
+we need, because the probe has high input impedance. Downside?
+bloody expensive).</p>
+</blockquote>
+<p>There are a variety of OPA656 parts; <a href="https://www.digikey.com/product-detail/en/texas-instruments/OPA656U/OPA656U-ND/431969">Digi-Key has the OPA656U</a> at
+US$10.69, but I think he may have used a slightly more expensive one,
+but maybe the price has come down since 2010.  The OPA656 family seems
+like it might be somewhat overkill for this, with a 230MHz bandwidth
+and gain-bandwidth product, 70 mA output current (!!), and 65dB
+open-loop voltage gain.</p>
+<p>Lai’s total BOM cost is US$107.58; a quarter of this is these op-amps,
+and another quarter is the THS7002 preamp.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/electronics.html">Electronics</a> (138 notes)
+</li><li><a href="../topics/pricing.html">Pricing</a> (89 notes)
+</li><li><a href="../topics/oscilloscopes.html">Oscilloscopes</a> (12 notes)
+</li></ul></div></html>

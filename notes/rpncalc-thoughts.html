@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html><title>Reflections on rebraining calculators with this RPN calculator code I just wrote ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Reflections on rebraining calculators with this RPN calculator code I just wrote</h1><div class="metadata">Kragen Javier Sitaker, 2017-04-11
+(4 minutes)</div><p>Over the last three nights I’ve written a substantial part of an RPN
+calculator in C in order to rebrain a four-function pocket calculator
+with a somewhat more reasonable calculating facility.  Last night I
+spent about 1½ hours on it; the night before, about an hour; the night
+before that, about 3½ hours; for a total of six hours.</p>
+<h2>Performance and battery life projections</h2>
+<p>The basic user-level functionality mostly works on Linux with a sort
+of testing stub implementation of keyboard and screen, although there
+are a couple of egregious bugs.  So it should be adequate for
+estimating performance.</p>
+<p>Using it more or less continuously for 90 seconds, on Linux, compiled
+with optimization, executed 340,838 amd64 instructions.  Just starting
+and stopping it executed 162,347 instructions, for a difference of
+178,491, or almost 2000 instructions per second.  Running it with four
+numeric-entry keystrokes executed 169,718 instructions, or 7371
+instructions beyond setup and teardown, about 1800 instructions per
+keystroke; adding 3 + 4 (four keystrokes) took 168,824 instructions,
+or 6477 instructions beyond setup and teardown, about 1600
+instructions per keystroke.  If we round this to 2000 amd64
+instructions per keystroke or per second, which will probably be more
+like 4000 AVR instructions, and if the AVR uses 8 nJ per instruction,
+this is about 32 μJ per keystroke (or per second).</p>
+<p>My intent here is to replace the calculator’s existing chip with an
+AVR or something similar, without replacing its keyboard, LCD, and
+maybe even battery.</p>
+<p>Some sample batteries:</p>
+<ul>
+<li>the 300 mAh 1.2 V NiCd AA cell that powers my garden light: 1.3 kJ
+  or 11000 hours</li>
+<li>a CR2032 lithium coin cell: 240mAh at nominally 3 V but down to 2 V;
+  supposedly 192 mWh/g and 3.0 g, so 576 mWh or 691 J or 6000 hours.
+  <a href="http://data.energizer.com/pdfs/cr2032.pdf">The datasheet</a> makes it look like it’s reasonable to suck up to
+  about 10 or 20 mA out of the battery from time to time without
+  unduly hurting its capacity.</li>
+<li>a regular non-alkaline 1.5 V AA cell: the Energizer E91 datasheet
+  says that it’s 3000 mAh down to 0.8 V if discharged at 25 mA.  If it
+  were 1.5 V until the end, that would be 16 kilojoules, which is
+  unreasonably high since it would actually be higher energy density
+  than the lithium cell; we can probably estimate half that or 8 kJ or
+  69000 hours.</li>
+</ul>
+<p>I conclude that the AVR’s active power draw will not consume a
+significant amount of battery unless the code gets a lot less
+efficient or I program it to do much more complicated things.</p>
+<p>However, the AVR can run at 20 MIPS, which requires over 100
+milliwatts; at this speed, it could drain some of the batteries
+mentioned above in an hour or two.</p>
+<h2>Possible features</h2>
+<p>So far all I’ve done is a basic four-function calculator, in part
+because the keyboard on the thing I want to rebrain is not very large.
+But it already offers these features above and beyond a standard
+four-function calculator:</p>
+<ul>
+<li>Deep expression nesting;</li>
+<li>Visual feedback on pending values (by displaying the whole stack, or
+  as much of it as will fit);</li>
+<li>RPN syntax;</li>
+<li>Character-by-character number error correction.</li>
+</ul>
+<p>It should be feasible to also include features like:</p>
+<ul>
+<li>Stored programs, including iterative ones;</li>
+<li>Named variables;</li>
+<li>Measurement units (i.e. dimensional analysis);</li>
+<li>Undo;</li>
+<li>Persistence;</li>
+<li>Vector values with broadcasting.</li>
+</ul><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/electronics.html">Electronics</a> (138 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/energy.html">Energy</a> (63 notes)
+</li><li><a href="../topics/stacks.html">Stacks</a> (21 notes)
+</li><li><a href="../topics/latency.html">Latency</a> (19 notes)
+</li><li><a href="../topics/ubicomp.html">Ubicomp</a> (12 notes)
+</li><li><a href="../topics/calculators.html">Calculators</a> (11 notes)
+</li></ul></div></html>

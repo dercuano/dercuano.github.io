@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html><title>Rarely are function-local variables in Forth justified ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Rarely are function-local variables in Forth justified</h1><div class="metadata">Kragen Javier Sitaker, 2018-04-27
+(10 minutes)</div><p>This was a big epiphany for me in Forth: you usually shouldn’t use
+function-local variables.  Instead, use “global” variables.  This is
+true to some extent in PostScript, too, though less strongly.</p>
+<blockquote>
+<p>First, a disclaimer: don’t take what I say about Forth too
+seriously, because I’ve never written a significant program in
+Forth, only exercises like a self-compiling compiler.  I’ve never
+done anything more than a few hundred lines of code in PostScript,
+either.</p>
+</blockquote>
+<p>Traditional Forth lacks function-local variables. Function-local
+variables are crucial to Smalltalk, Lisp, and Algol-family programming
+for three reasons: lexical locality, recursion, and closures. Forth
+solves these in different ways, so <strong>it’s okay to use
+non-function-local variables instead</strong>, and this has a benefit for
+factorability of the code.  I would say “it’s okay to use global
+variables instead”, but one of the reasons it’s okay is that they
+aren’t really global in Forth.</p>
+<h2>Lexical locality</h2>
+<p>In Algol-family languages like Pascal or C, if a variable isn’t local
+to a function, it’s global to the entire program, which means it be
+modified by any code at all, including not only other files in your
+project, but even library modules you don’t have the source code to.</p>
+<p>By contrast, in Forth, a variable’s scope extends only from the point
+of its declaration over the code that lexically follows it, up to the
+point where you switch to a different wordlist (or, in traditional
+Forths, vocabulary) or define another variable with the same name.
+This is not as small a scope as a C or Pascal function, but it’s a
+much smaller scope than a C or Pascal program, so the variable name
+collision problem is manageable.</p>
+<p>The point about another variable with the same name bears repeating:
+if you declare another variable with the same name in Forth, the old
+declaration stops being visible, and each part of the code uses the
+version of the variable that was visible when it was being compiled.</p>
+<p>Languages like Python or Common Lisp are somewhere in between: a
+global variable (defined with <code>defparameter</code> or <code>defvar</code> in CL) is not
+global to the entire program, but just a single module.  This reduces
+the seriousness of the problem.</p>
+<p>PostScript, with its odd hybrid of Forth and Lisp semantics, is closer
+to the Algol family in this sense — its symbols (“name objects”) are
+not module-scoped like Common Lisp symbols, nor are their scopes
+lexical as in Forth.  You can dynamically add and remove dictionaries
+from the dictionary stack, but this is clumsy (it must be done in
+every function) and error-prone.</p>
+<h2>Recursion</h2>
+<p>In languages like Pascal or C, any function is potentially recursive,
+which means that if its local variables are not stored in
+stack-allocated memory, they could get overwritten by recursive calls.
+Moreover, local variables are the only language-native mechanism
+provided for stack-allocation of memory; without them, simple things
+like recursive-descent parsers become major feats of software
+engineering.</p>
+<p>In languages like Smalltalk and Python, the problem is even worse,
+because nearly any infix operator in your method could result in a
+recursive call chain that includes the same method.  So even methods
+that are not intended by their authors to be recursive are likely to
+need to be re-entrant.  (The gradual introduction of pervasive
+multithreading in the modern C ecosystem has had a similar effect.)</p>
+<p>Also, Smalltalk, Lisp, Python, and functional languages like ML
+strongly encourage you to use recursively-defined data types.</p>
+<p>The net effect of all of this is that, in these environments,
+function-local variables are vastly preferable to statically allocated
+variables.</p>
+<p>By contrast, in Forth, recursion is very much the exception;
+recursively-defined data types are unusual, and functions can only
+call functions that are defined textually earlier in the program,
+except using <code>RECURSE</code>, <code>DEFER</code>red words, or similar mechanisms, which
+are unlikely to pop up without the author noticing them.  And, if you
+want to save and restore the value of a variable for a recursive or
+potentially recursive call, you can do so fairly easily using the
+operand stack; <code>A @ B @ RECURSE B ! A !</code> saves the values of <code>A</code> and
+<code>B</code> during a recursive self-call, doing explicitly what Perl 4 or a
+dynamically-scoped Lisp would save local variables implicitly.</p>
+<p>In PostScript, again, the situation is intermediate; recursive
+function calls are just as easy as in Lisp, and it’s easy to define
+recursive data structures, although at least the native list-like data
+structure is an array, not a linked list.  But PostScript shares with
+Forth relative ease at explicit saving and restoring variables on the
+operand stack.  PostScript also doesn’t have the tricky ad-hoc
+polymorphism that can give rise to unexpected recursion in Smalltalk
+and Python; it does use first-class function values pretty often, but
+rarely in ways that lead to unexpected recursion.</p>
+<p>So function-local variables are not necessary to permit recursion in
+stack languages, and recursion is typically less of a danger.</p>
+<p>(It’s worth pointing out that function-local variables are not
+sufficient to make recursion safe.  Recursive code can easily get
+stack overflows or suffer re-entrancy bugs related to nonlocal data
+structures, and so is prohibited in things like MISRA C.)</p>
+<h2>Closures</h2>
+<p>Pascal has very limited closures, which are also present in GNU C,
+although little-used.  In vanilla C, the only way to get the
+equivalent of a closure — for example, for <code>qsort</code> — is to store the
+data it needs in statically allocated variables, which breaks
+re-entrancy and thus causes multithreading problems.  (glibc provides
+a <code>qsort_r</code> function that takes a userdata parameter to solve this
+problem.)</p>
+<p>Languages like (modern) Smalltalk, Python, Common Lisp, Scheme, Ruby,
+and JavaScript have closures and use them extensively.  So
+function-local variables become a crucial mechanism for encapsulating
+state in objects of indefinite extent.</p>
+<p>In the Forths that have added local variables, local variables do not
+provide closures; neither does PostScript support closures with local
+variables, since PostScript’s dictionary stack amounts to purely
+dynamic scoping, like Lisps before Scheme.  Forth, instead, provides
+closures with the <code>CREATE DOES&gt;</code> mechanism, which is explicit rather
+than implicit about what state is being stored.  I don’t know what the
+PostScript equivalent would be, although I bet you could hack
+something together with runtime code generation.</p>
+<p>So function-local variables do not provide closures to augment the
+expressive power of PostScript or Forth, the way they do in many
+modern programming languages.</p>
+<h2>It’s okay to use non-function-local variables in PostScript and especially Forth</h2>
+<p>In summary, function-local variables in Forth aren’t needed for
+lexical locality, recursion, or closures, and when they’re available,
+they also don’t provide closures.  And function-local variables in
+PostScript aren’t needed for recursion, and they don’t provide
+closures.  So the advantages that make them a no-brainer in other
+families of languages are weaker or absent.  What about the
+disadvantages?</p>
+<p>Function-local variables are more costly in Forth or, especially,
+PostScript, than in other languages.  Consider this particularly
+egregious case of stack abuse in PostScript (from
+<a href="http://canonical.org/~kragen/sw/laserboot/cut-7/heckballs.ps">Heckballs</a>):</p>
+<pre><code>% Calculate distance from x1 y1 to x2 y2
+/dist { 3 2 roll sub  3 1 roll sub  dup mul exch  dup mul add  sqrt } bdef
+</code></pre>
+<p>Probably a better way to write this is as follows:</p>
+<pre><code>/dist { 4 dict begin  /y2 exch def  /x2 exch def  /y1 exch def  /x1 exch def
+        x1 x2 sub dup mul  y1 y2 sub dup mul  add sqrt  end } def
+</code></pre>
+<p>There are two interesting things to note here:</p>
+<ol>
+<li>The new definition is almost twice as long, 32 rather than 19
+   tokens, and includes a new error-prone <code>end</code> at the end.  Also, it
+   isn’t clear that it’s more readable, as the parameters are
+   necessarily listed in reverse order.</li>
+<li>The new definition isn’t as safe to use with <code>bind def</code>, because
+   that introduces the danger that the variables <code>x1</code> and so on might
+   accidentally be bound to some definition in the enclosing
+   environment, rather than being local variables as intended.  (As it
+   happens, in this case there are no such variables, and <code>bind def</code>
+   would have worked fine.)</li>
+</ol>
+<p>Suppose that instead we use non-function-local variables:</p>
+<pre><code>/dist { /y2 exch def  /x2 exch def  /y1 exch def  /x1 exch def
+        x1 x2 sub dup mul  y1 y2 sub dup mul  add sqrt  } def
+</code></pre>
+<p>The size penalty is somewhat less, although we run an even worse
+variable-collision risk, since this will clobber any values of x1, y1,
+x2, and y2 that any other function is using at the time — a problem
+much less likely in Forth.</p>
+<p>We could conceivably refactor this into smaller pieces:</p>
+<pre><code>/is-p1 { /y1 exch def  /x1 exch def } bdef
+/is-p2 { /y2 exch def  /x2 exch def } bdef
+/dx { x1 x2 sub } def  /dy { y1 y2 sub } def  /sq { dup mul } bdef
+/dist { is-p2 is-p1  dx sq  dy sq  add sqrt } bdef
+</code></pre>
+<p>In PostScript, you can still do this with function-local variables:</p>
+<pre><code>/is-p1 { /y1 exch def  /x1 exch def } bdef
+/is-p2 { /y2 exch def  /x2 exch def } bdef
+/dx { x1 x2 sub } def  /dy { y1 y2 sub } def  /sq { dup mul } bdef
+/dist { 4 dict begin  is-p2 is-p1  dx sq  dy sq  add sqrt  end } bdef
+</code></pre>
+<p>You can’t do that in Forth, any more than you can in C, which makes
+using function-local variables in Forth very costly to both the
+flexibility and the predictability of your code.  To my mind,
+predictability is key to its readability.</p>
+<p>So using function-local variables, although it’s a viable strategy in
+PostScript, isn’t nearly the slam-dunk obvious win that it would be in
+more conventional languages.  In Forth, often, it’s actively
+counterproductive.</p>
+<script src="http://canonical.org/~kragen/sw/netbook-misc-devel/addtoc.js">
+</script>
+
+<p><link rel="stylesheet" href="http://canonical.org/~kragen/style.css" /></p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/forth.html">Forth</a> (19 notes)
+</li><li><a href="../topics/smalltalk.html">Smalltalk</a> (12 notes)
+</li><li>The PostScript programming language</li></ul></div></html>

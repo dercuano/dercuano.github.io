@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html><title>Generic programming with proofs, specification, refinement, and specialization ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Generic programming with proofs, specification, refinement, and specialization</h1><div class="metadata">Kragen Javier Sitaker, 2017-05-10
+(6 minutes)</div>
+<p>Here’s a specification for sorting:</p>
+<pre><code>A. sorted(x) is some permutation p of x such that ∀i∈[0, #p-1): ¬ pᵢ &gt; pᵢ₊₁.
+</code></pre>
+<p>Given a way of enumerating the permutations of a finite sequence and
+some relation <code>&gt;</code>, this specification A is executable: you can
+enumerate all the permutations of x, and if you find one that
+satisfies <code>∀i∈[0, #p-1): ¬ pᵢ &gt; pᵢ₊₁</code>, you return it.</p>
+<p>You can consider this algorithm, or an implementation of it for a
+given machine, a refinement of specification A, specialized for a
+given permutation-enumeration algorithm, data type, and ordering
+relation.  You can write a proof that this plan correctly implements
+specification A, which is to say, it’s a refinement of it.  It isn’t a
+very efficient plan, since it takes superexponential time in the worst
+case; you can also write a proof of that.</p>
+<p>There isn’t a clean separation between programs, algorithms, plans,
+and specifications; you can continue refining and specializing that
+specification toward something executable on a particular machine.
+Let’s call the brute-force sorting algorithm that you would thus
+derive specification B.</p>
+<p>(Some specifications may be uncomputable; for example, if you specify
+that a program should be fun to use, or compute Chaitin’s number omega
+for a flavor of Turing machine, you will not be able to execute those
+specifications, even inefficiently.  Even if the specification says to
+find a real number for which some potentially computable property
+holds, that may be uncomputable if the number itself is uncomputable.
+But if the specification says to find a computable real number for
+which the property holds, if one exists, then you can satisfy that
+specification by enumerating all possible programs.  Henceforth I will
+disregard such uncomputable specifications in this essay.)</p>
+<p>Given the premise that your relation <code>&gt;</code> (or rather its negation
+<code>≤</code>) is at least a weak partial order, you can write a proof that such
+a sorted permutation exists.  Also, you can write a proof that the
+original specification implies that <code>¬∃i: p₀ &gt; pᵢ</code>, and that all the
+subsequences of <code>p</code> are sorted versions of themselves, including in
+particular <code>p[1:]</code>, if it exists.</p>
+<p>Given these (plus a couple more things), you can also write a proof
+that the following specification is equivalent to, and thus a
+refinement of, specification A:</p>
+<pre><code>C. sorted(x) is some permutation p of x such that ¬∃i: p₀ &gt; pᵢ
+   and, if x is nonempty, p[1:] = sorted(p[1:]).
+</code></pre>
+<p>With a naïve backtracking search, this leads fairly quickly to
+selection sort, given a proof of the usual linear-time minimum-finding
+algorithm; this is already a much more efficient sort.  And you can
+write a proof of that.  Let’s call this algorithm specification D.</p>
+<p>(I’ve been writing <code>sorted(x)</code> as if it were a function, but of course
+it is a relation; it is a bit of an abuse of notation to say that
+<code>p[1:] = sorted(p[1:])</code>.)</p>
+<p>There are several characteristics of what we are doing here:</p>
+<ol>
+<li>
+<p>Specifications are written in a form that is entirely independent
+   of the other relations and data they are defined in terms of.
+   Specification A does not say that <code>&gt;</code> is a weak partial order, or
+   that <code>x</code> is a finite sequence, or what algorithm to use to
+   enumerate permutations.  Instead, somewhere else, we write a proof
+   that, IF <code>&gt;</code> is a weak partial order, THEN specification A
+   describes a nonempty set of permutations, and also specification B
+   is equivalent to specification A.</p>
+</li>
+<li>
+<p>Some specifications are refinements of others, in the
+   sense that they logically imply the specifications they are
+   refinements of.  Some of these refinement relations are only valid
+   given certain premises, which amount to specializations of a
+   specification.  Some of these refinements are derived
+   automatically; others are written by hand and then proved to be
+   refinements.</p>
+</li>
+<li>
+<p>Some specifications are sufficiently specific that we can prove
+   efficiency properties about them, such as specifications B and D;
+   others are not, such as specifications A and C.</p>
+</li>
+</ol>
+<p>We can take as an analogy the process a SQL database uses to evaluate
+queries.  First we write a specification in SQL of the query we want
+to run; then the database derives a plan that it proves is a
+refinement of our query — in this case, the plan will produce a
+specific sequence of tuples that is one of the sequences of tuples
+that would be a correct response to our query.  We can understand much
+of compilation in this fashion, as well.</p>
+<p>Moreover, we can do generic programming in this way.</p>
+<p>What I’m describing here is very different from the usual programming
+process.  Normally, we write a given subroutine only once, and we mix
+premises about what kind of data it’s operating on and which other
+operations it’s invoking in with the code.  The compiler might derive
+a refinement of it for a given machine, but we don’t derive them
+ourselves, and the compiler doesn’t provide us with a proof that the
+machine code is a sound refinement of our source code, nor does it
+prove efficiency properties of the machine code.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/failure-free.html">Failure-free computing</a> (10 notes)
+</li><li><a href="../topics/formal-methods.html">Formal methods</a> (7 notes)
+</li><li><a href="../topics/types.html">Types</a> (5 notes)
+</li></ul></div></html>

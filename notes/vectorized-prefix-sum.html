@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html><title>Vectorized prefix sum ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Vectorized prefix sum</h1><div class="metadata">Kragen Javier Sitaker, 2017-07-19
+(5 minutes)</div><p>You can apply the parallel prefix sum algorithm in a serial,
+vectorized way using a logarithmic number of Numpy’s vector
+operations.  The parallel prefix sum algorithm puts the vector
+elements into the leaves of a complete N-ary tree (here I use N=2) and
+propagates partial prefix sums first up and then back down this tree.</p>
+<p>Here you have the sum of 16 numbers in four elementwise-parallel
+operations using strided arrays:</p>
+<pre><code>&gt;&gt;&gt; import numpy
+&gt;&gt;&gt; x = numpy.array([1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8])
+&gt;&gt;&gt; a = x[::2] + x[1::2]
+&gt;&gt;&gt; a
+array([ 3,  7, 11, 15,  3,  7, 11, 15])
+&gt;&gt;&gt; b = a[::2] + a[1::2]
+&gt;&gt;&gt; b
+array([10, 26, 10, 26])
+&gt;&gt;&gt; c = b[::2] + b[1::2]
+&gt;&gt;&gt; c
+array([36, 36])
+&gt;&gt;&gt; d = c[::2] + c[1::2]
+&gt;&gt;&gt; d
+array([72])
+</code></pre>
+<p>You can then use reverse the ordering to propagate the prefix sum back
+down to the leaves.  The 72 in <code>d</code> is of course the prefix sum at the
+end of the right half of the tree, and <code>c</code> already contains the prefix
+sum of the left half of the tree.  For reasons that will become
+somewhat less obscure below, we can transpose and ravel to
+perfect-shuffle them into the right order:</p>
+<pre><code>&gt;&gt;&gt; cp = numpy.array((c[::2] + numpy.concatenate(([0], d))[:-1], d)).T.ravel()
+&gt;&gt;&gt; cp
+array([36, 72])
+</code></pre>
+<p>The corresponding full prefix sums at the points represented by <code>b</code>
+are half elements of this <code>cp</code> and the other half composed from the
+even-indexed elements of <code>b</code> added to the previous element, or 0 if
+none.</p>
+<pre><code>&gt;&gt;&gt; bp = numpy.array((b[::2] + numpy.concatenate(([0], cp))[:-1], cp)).T.ravel()
+&gt;&gt;&gt; bp
+array([10, 36, 46, 72])
+</code></pre>
+<p>Then we can do the same trick to get an expanded version of <code>a</code>:</p>
+<pre><code>&gt;&gt;&gt; ap = numpy.array((a[::2] + numpy.concatenate(([0], bp))[:-1], bp)).T.ravel()
+&gt;&gt;&gt; ap
+array([ 3, 10, 21, 36, 39, 46, 57, 72])
+</code></pre>
+<p>And similarly to get the whole prefix sum:</p>
+<pre><code>&gt;&gt;&gt; xp = numpy.array((x[::2] + numpy.concatenate(([0], ap))[:-1], ap)).T.ravel()
+&gt;&gt;&gt; xp
+array([ 1,  3,  6, 10, 15, 21, 28, 36, 37, 39, 42, 46, 51, 57, 64, 72])
+</code></pre>
+<p>A thing to note about this expression is that it has only two O(N)
+operations in it: the prepending of the 0 and the addition.  The
+stride-indexing, transposition, and raveling operators are all
+constant-time.</p>
+<p>In a sense, this is not very interesting, because numpy already has a
+prefix-sum operator:</p>
+<pre><code>&gt;&gt;&gt; numpy.cumsum(x)
+array([ 1,  3,  6, 10, 15, 21, 28, 36, 37, 39, 42, 46, 51, 57, 64, 72])
+</code></pre>
+<p>But the above transformation can be generalized to any monoid, not
+just integer addition, and in particular to function composition,
+which means it can in theory be used to generate the sequence produced
+by any definite loop that can be expressed with these operations.
+It’s a little bit tricky in that the monoid elements are functions
+representing the action of an iteration of the loop and their
+composition takes the place of addition in the above calculations.  If
+you’re going to represent them with numpy array elements, they need to
+be in some sense constant-space, and you may need many arrays.</p>
+<p>As a useless and less trivial but still comprehensible example,
+consider the action taken by a loop decoding a digit string in some
+base b:</p>
+<pre><code>result = 0
+for i in range(k):
+    result = b * result + digits[i]
+</code></pre>
+<p>The action taken by any n iterations of the loop is to multiply the
+previous result by bⁿ and add some number m to it.  To compose two
+such actions, (n₀, m₀) followed by (n₁, m₁), we compute (n₀ + n₁, m₀ ·
+bⁿ1 + m₁); processing a number m merely produces (1, m).  So we need
+one array (at each level) for n and one for m.  Moving up the tree:</p>
+<pre><code>&gt;&gt;&gt; na = numpy.ones(len(x))
+&gt;&gt;&gt; ma = x
+&gt;&gt;&gt; nb = na[::2] + na[1::2]
+&gt;&gt;&gt; nb
+array([ 2.,  2.,  2.,  2.,  2.,  2.,  2.,  2.])
+&gt;&gt;&gt; mb = ma[::2] * 10**na[1::2] + ma[1::2]
+&gt;&gt;&gt; mb
+array([ 12.,  34.,  56.,  78.,  12.,  34.,  56.,  78.])
+&gt;&gt;&gt; nc = nb[::2] + nb[1::2]
+&gt;&gt;&gt; mc = mb[::2] * 10**nb[1::2] + mb[1::2]
+&gt;&gt;&gt; nc, mc
+(array([ 4.,  4.,  4.,  4.]), array([ 1234.,  5678.,  1234.,  5678.]))
+&gt;&gt;&gt; nd = nc[::2] + nc[1::2]
+&gt;&gt;&gt; md = mc[::2] * 10**nc[1::2] + mc[1::2]
+&gt;&gt;&gt; nd, md
+(array([ 8.,  8.]), array([ 12345678.,  12345678.]))
+&gt;&gt;&gt; ne = nd[::2] + nd[1::2]
+&gt;&gt;&gt; me = md[::2] * 10**nd[1::2] + md[1::2]
+&gt;&gt;&gt; me
+array([  1.23456781e+15])
+</code></pre>
+<p>If we move back down the tree, we get all the intermediate results.
+This is somewhat tricky, though conceptually straightforward, and is
+left as an exercise to the reader, or to me at a later date maybe.</p>
+<p>Note that everything in the above has used only the monoid operation
+and the identity element 0.  But we don’t actually need the 0; the
+algorithm is still applicable to semigroups lacking an identity
+element.  A practical example of this is finding the minimum or
+maximum of the elements seen so far.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/prefix-sums.html">Prefix sums</a> (18 notes)
+</li><li><a href="../topics/simd.html">SIMD instructions</a> (10 notes)
+</li><li><a href="../topics/parallelism.html">Parallelism</a> (8 notes)
+</li><li><a href="../topics/numpy.html">Numpy</a> (6 notes)
+</li></ul></div></html>

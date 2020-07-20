@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html><title>APL with typed indices ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>APL with typed indices</h1><div class="metadata">Kragen Javier Sitaker, 2013-05-17
+(11 minutes)</div><p>Parallel arrays are bad because array indices are untyped, and
+sometimes because of storage management and locality of reference.
+But what if each array had its own <code>⎕IO</code> (APL's name for <code>OPTION
+BASE</code>)?  This could put each type of object ID into its own namespace,
+so that you'd get an index error if you tried to index an array with
+the wrong kind of object ID.  It's like how in a spreadsheet, maybe
+rows 1-40 are the employees, and rows 101-120 are the products, and so
+if you have an index between 101 and 120, you know it identifies a
+product and not an employee.  (Too bad that in an actual spreadsheet
+the column names will be the same in both cases.)</p>
+<p>You could actually index arrays using an (object type,
+zero-based-index) pair rather than combining the two into a single
+number.  This would give you many of the same type-safety and
+index-safety benefits of structs, aka records, without sacrificing the
+dubious benefits of aggregate operations.  (And if you can verify all
+the type stuff at compile time, you could drop them at runtime!)</p>
+<p>Element-by-element scalar functions should only work on arrays
+representing, in some sense, attributes of the same object.
+Operations like "grade up" and "compress" would create new index
+namespaces.</p>
+<p>"Interesting" functions from APL (not element-by-element) include
+monadic <code>⍴⍳,⌹⌽⊖⍋⍒⍉</code>, dyadic <code>∈⍴↑↓⊥⊤,\/⍳⌹⌽⊖⍉</code> and indexing [], plus the
+operators (scan, reduce, and inner and outer product).</p>
+<p>The details I've been able to work out follow.</p>
+<p>Since much of this is sort of about types, I'm going to write types in
+a Haskelly way: <code>a-&gt;b</code> means that something (a vector) takes as an
+argument (index) things of type <code>a</code>, and returns (has as elements)
+things of type <code>b</code>; and <code>X: T</code> is an expression which has the value of
+<code>X</code>, but asserts that that value is of type <code>T</code>.</p>
+<h2>Multidimensional arrays</h2>
+<p>I'm going to try to work out the cases of zero and one dimensions
+first, before attempting to handle multiple dimensions.  An
+N-dimensional array for N&gt;0 can be considered as either a homogeneous
+1-dimensional array of N-1-dimensional arrays, an array indexed by
+N-tuples, or an N-1-dimensional array of 1-dimensional arrays; both of
+the first two interpretations are common in APL.  Changing the nature
+of indexing is likely to interact with them in unpredictable ways.</p>
+<h2>Indexing <code>[]</code></h2>
+<p>Indexing <code>A[B]</code> (also <code>.</code> or simple juxtaposition in K, or <code>A@B</code> for
+another variant) should produce a value with the shape of B by
+indexing the elements of A.  That is, </p>
+<pre><code>((A: c-&gt;d)[B: e-&gt;c]): e-&gt;d
+</code></pre>
+<p>It's like function composition.  So the elements of B need to be valid
+indices for A.</p>
+<h2>Compress <code>/</code></h2>
+<p>Dyadic <code>A/B</code>, "compress", gives you one element of output for every
+nonzero element in A.  Its two arguments must have the same set of
+indices, and the left one must be boolean.  If you compress two
+vectors <code>B</code> and <code>C</code> with the same vector <code>A</code>, the resulting vectors
+need to be conformable, so you can write <code>(A/B) + (A/C)</code>, for example.</p>
+<p>In q/k/kdb+, I think this is written <code>B[where A]</code>, helpfully
+decomposing the operation into two steps, the first of which is
+constructing a vector of the positions where <code>A</code> is nonzero.  I think
+this is the right way to analyze this operation, because it constructs
+a <em>new index namespace</em>: </p>
+<pre><code>(where (A: b-&gt;c)): d-&gt;b
+</code></pre>
+<p>(This is a rather remarkable type, creating a new type out of whole
+cloth!)</p>
+<p>Indeed, this is such a common operation in APL that the Dyalog APL
+tutorial gives the APL spelling of it, <code>(V∈D)/⍳⍴V</code>, as their first
+example of an idiomatic APL expression.</p>
+<p>It's probably more accurate to write <code>(where (A: b-&gt;bool)): d-&gt;b</code>,
+since the</p>
+<h2>Expand <code>\</code></h2>
+<p>I haven't written enough APL to know what the dyadic expand function
+is good for.  In a sense, it's the inverse of the compress function,
+but the compress function is lossy — it leaves out chunks of its right
+input, which the expand function will fill with zeroes.  It's
+guaranteed that <code>A/A\B</code> is the same as <code>B</code>, but not <code>A\A/B</code>.</p>
+<p>It seems rather difficult to type-check in a sane fashion: <code>A</code> needs
+to have exactly as many <code>1</code>s set as there are valid indices in <code>B</code>.</p>
+<p>Dyalog APL's expand function extends this to the case where <code>A</code> may
+contain things beyond just booleans, interpreting them as a repeat
+count (or, if negative, a zero count).</p>
+<p>The Dyalog APL tutorial gives the following common uses of expand:</p>
+<ul>
+<li>to add blank or zero rows in between the rows of a matrix (for
+  example, to separate text output into paragraphs);</li>
+<li>to repeat a scalar some number of times.</li>
+</ul>
+<p>It also gives as an exercise the problem of replacing a given letter
+globally with spaces: <code>'a' Whiten 'Panama is a canal between Atlantic
+and Pacific'</code> should return 
+<code>'P n m  is   c n l between  tl ntic  nd P cific'</code>.  The solution, 
+I suppose, is the <code>A\A/B</code> above, where <code>A</code> is just <code>~Letter = Phrase</code>.</p>
+<p><a href="http://aplwiki.com/AplIn20Minutes">http://aplwiki.com/AplIn20Minutes</a> may have some information.</p>
+<h2>Grade-up and grade-down <code>⍋⍒</code></h2>
+<p>These are used for sorting.  <code>⍋X</code> (<code>&gt;X</code> in K) is a vector such that
+<code>X[⍋X]</code> is sorted ascending; <code>⍒X</code> does the reverse.  This is more
+useful than simply giving you the sorted results because, if you have
+another vector <code>Y</code> that can be indexed with the same indices as <code>X</code>,
+you can sort the elements of <code>Y</code> according to <code>X</code> with <code>Y[⍋X]</code>.</p>
+<p>It does not generally make sense to index <code>X[⍋X]</code> with indices that
+are valid for <code>X</code>, with the exception of things that are sort of
+coincidental; for example, 1 is probably a valid index for both of
+them.  But it doesn't make sense to say, for example, <code>(X &gt; 3)/X[⍋X]</code>;
+that's almost certainly a bug.</p>
+<p>So grade-up and grade-down, like compress, creates a new index namespace: </p>
+<pre><code>(⍋(X: a-&gt;b)): d-&gt;a
+(⍒(X: a-&gt;b)): d-&gt;a
+</code></pre>
+<p>This is maybe the point at which array indices might begin to have an
+advantage as object IDs over raw memory addresses: once you can start
+taking advantage of the sequence of the array indices.</p>
+<h2>Reversal and rotation, monadic and dyadic <code>⌽⊖</code></h2>
+<p><code>⌽X</code> is just <code>X</code> with the indices of its last axis in reverse order;
+<code>⊖X</code> is the equivalent for the first axis.  Analogously, rotation
+<code>3⌽X</code> rotates <code>X</code> three items to the right, which can be achieved by
+reversing <code>X</code>, reversing its first three items, and then reversing the
+remaining items.  On the face of it, it seems that these should also
+create a new index namespace; it doesn't make sense to write <code>(X &gt;
+3)/⌽X</code>.</p>
+<p>However, I think this is not actually true.  The valid <em>range</em> of
+values is the same.  <code>1⌽X</code> gives you the <code>X</code> property of the
+(cyclically) following object in <code>X</code>'s index sequence; this is a
+useful kind of thing to be able to do!</p>
+<pre><code>⌽(X: a-&gt;b): a-&gt;b
+⊖(X: a-&gt;b): a-&gt;b
+(N: int)⌽(X: a-&gt;b): a-&gt;b
+(N: int)⊖(X: a-&gt;b): a-&gt;b
+</code></pre>
+<h2>Shape and index generation: monadic <code>⍴</code> and monadic <code>⍳</code></h2>
+<p><code>⍳</code>, aka "iota" or "index generator" (in K, <code>!</code> or <code>til</code>) counts from
+1 (0 in K) to a given number; but its primary use is to generate the
+valid indices of a vector given its size.  The size of a vector is
+generated with <code>⍴</code>, the "shape" operator (in K, <code>count</code>), so <code>⍳⍴V</code>
+gives you the indices of <code>V</code>.</p>
+<p>This use of <code>⍳</code> is so important that Dyalog APL's <code>⍳</code> applied to a
+vector generates a sequence of multidimensional indices, such that
+<code>V[⍳V]</code> is equivalent to V for any shape of V (which is impossible in
+traditional APL), and the "index origin" variable <code>⎕IO</code>, equivalent to
+BASIC's <code>OPTION BASE</code> can affect <code>⍳</code>'s operation.</p>
+<p>Although this form of <code>⍳</code> takes only one argument, it's
+straightforward to use it to generate values starting from any
+starting point, increasing by every step: <code>start + step * (⍳N)-1</code>,
+although of course the <code>-1</code> is a result of the default <code>⎕IO</code> being 1
+rather than 0.</p>
+<p>It seems to me that it's probably worthwhile to preserve the invariant
+that <code>⍳⍴V</code> produces the indices of a vector <code>V</code>.  If this is to work
+with <code>⍴V</code> producing a scalar or 1-vector in this case, which seems
+desirable to avoid complication for multidimensional cases, then it
+needs to be possible to extract both the length and the object type
+from that scalar; that is, <code>employees[301]</code> needs to be a single
+scalar object from which you can extract <code>employees</code> and 301.  If we
+represent <code>employees</code> as <code>employees[0]</code>, then it's sufficient to
+provide a function for extracting either of the two; ordinary
+subtraction suffices to produce the other, and ordinary addition is
+sufficient to recombine the two.</p>
+<p>So ⍴ produces a single-element vector:</p>
+<pre><code>⍴(X: a-&gt;b): {0}-&gt;a
+⍳(X: a): int-&gt;a
+</code></pre>
+<h2>element-of <code>∈</code> and index-of, dyadic <code>⍳</code></h2>
+<p><code>A∈B</code> produces a boolean array of the shape of <code>A</code> indicating whether
+each item of <code>A</code> occurs in the vector <code>B</code>; that is,</p>
+<pre><code>((A: c-&gt;d) ∈ (B: e-&gt;d)): c-&gt;bool
+</code></pre>
+<p>The index type of <code>B</code> disappears entirely, because we don't care
+<em>where</em> the elements of <code>A</code> occurred in <code>B</code>; we're just using it as a
+set.  If we wanted their positions, we'd use the dyadic <code>⍳</code> function:</p>
+<pre><code>((A: c-&gt;d) ⍳ (B: e-&gt;d)): c-&gt;e
+</code></pre>
+<p>This is a little bit tricky, because for the elements of <code>A</code> that
+didn't occur at all in <code>B</code>, this function produces <code>1+⍴B</code> (or <code>⍴B</code> in
+the <code>⎕IO=0</code> case), which is not a valid index into <code>B</code>.  You could say
+it's not a member of <code>B</code>'s index type <code>e</code> at all.</p>
+<p>In K, the dyadic <code>⍳</code> function is written <code>B?A</code> instead.</p>
+<h2>The things I haven't figured out how to handle yet</h2>
+<p>How do you get literal vectors in your program to have a reasonable
+type?</p>
+<p>What about take, drop, and catenate?  Some uses of take and drop can
+be reasonably handled by rotation, but others can't.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/arrays.html">Arrays</a> (17 notes)
+</li><li><a href="../topics/apl.html">APL</a> (9 notes)
+</li><li><a href="../topics/types.html">Types</a> (5 notes)
+</li><li>The K programming language</li></ul></div></html>

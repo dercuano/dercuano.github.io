@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html><title>Some notes on morphology, including improvements on Urbach and Wilkinson’s erosion/dilation algorithm ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Some notes on morphology, including improvements on Urbach and Wilkinson’s erosion/dilation algorithm</h1><div class="metadata">Kragen Javier Sitaker, 2019-01-04 (updated 2019-11-12)
+(26 minutes)</div><p>I was thinking about how to implement the grayscale morphological
+“erosion” and “dilation” operations efficiently with a large irregular
+structuring element, and I think I’ve found some interesting algorithms;
+they may be novel.</p>
+<p>In the contex of sampled grayscale images, erosion I ⊖ k maps each
+pixel in the image I to the minimum of some neighborhood k around that
+pixel, the neighborhood being the “structuring element”, which I will
+call a “kernel” for brevity.  (Dilation ⊕ is a similar operation with
+some differences that I won’t mention.)</p>
+<h2>The naïve approach</h2>
+<p>The naïve approach to computing this gets slower with large kernels.
+Consider computing, in one dimension, a kernel that consists of the
+hotspot pixel and <em>n</em>-1 pixels to the right:</p>
+<pre><code>for (int x = 0; x &lt; w; x++) {
+    out[x] = in[x];
+    for (int i = 1; i &lt; n; i++) out[x] = min(in[(x+i) % w], out[x]);
+)
+</code></pre>
+<p>This takes time per pixel proportional to <em>n</em>.</p>
+<h2>Sliding-window minimum in linear time</h2>
+<p>In one dimension, there’s a <a href="https://www.nayuki.io/page/sliding-window-minimum-maximum-algorithm">well-known linear-time algorithm</a> for this
+“sliding-window minimum” or
+“sliding range minimum query” problem, using a deque d containing a
+nondecreasing subsequence of the window such that the leftmost element
+in the deque is always the minimum of the window.  Incrementing the
+left edge of the window may leave the deque unchanged, or it may
+involve dropping the oldest value, if that value falls out of the
+window; then the next value must be the minimum of the remaining
+pixels in the window.  Achieving this merely requires that, when we
+increment the right edge of the window, we remove any elements in the
+deque that are larger than the new pixel, and then append that new
+pixel.  This results in the pixels in the deque being in nondecreasing
+order, which means that any possible larger pixels will be in a block
+at the end of the deque, so we can remove them by popping from its
+end.</p>
+<p>This sounds trickier than it is.  In pseudocode:</p>
+<pre><code>d = deque()
+for x in range(len(inpix)):
+    while d and inpix[d[-1]] &gt; inpix[x]:
+        d.pop()
+    d.append(x)
+    if x - d[0] == n:
+        d.popleft()
+    yield inpix[d[0]]
+</code></pre>
+<p>Each pixel is pushed onto the deque exactly once and removed from it
+exactly once, at either the left or right, and each pixel comparison
+either results in pushing a pixel or popping one, so there can’t be
+more than two comparisons per pixel overall.  So the algorithm is
+linear-time despite its nested-loop appearance.</p>
+<p>This depends on the assumption that the deque operations are
+constant-time operations, which is easy to guarantee even in the worst
+case if we have a bound on the deque size, which we do; it can’t be
+larger than <em>n</em>.  So we can render this into C with variable-length
+arrays as follows (see
+<a href="http://canonical.org/~kragen/sw/dev3/erosion1d.c">http://canonical.org/~kragen/sw/dev3/erosion1d.c</a>):</p>
+<pre><code>unsigned d[n], di = 0, dj = 0;
+for (int x = 0; x &lt; w; x++) {
+  while (di != dj &amp;&amp; in[d[(dj-1) % n]] &gt; in[x]) dj--;
+  d[dj++ % n] = x;
+  if (x - d[di % n] == n) di++;
+  out[x] = in[d[di % n]];
+}
+</code></pre>
+<p>Despite the divisions in the inner loop, for one-byte pixels, this
+takes 45–65 nanoseconds per pixel on my laptop with window widths
+ranging from 1 to 10000, although it <em>is</em> a bit quicker with one-pixel
+windows.  (You could probably run it a lot faster without the
+divisions.)</p>
+<p>This algorithm clearly has worse constant factors than the naïve
+algorithm, so the naïve algorithm is probably faster for sufficiently
+small kernels, but I haven’t optimized and measured to see exactly how
+big the kernel needs to be for this algorithm to be faster.  I’m
+pretty sure the naïve algorithm is going to be faster for 3-pixel-wide
+kernels.</p>
+<p>I think this algorithm may be <a href="http://richardhartersworld.com/cri/2001/slidingmin.html">due to Richard Harter in 2001</a>, who
+called it “the ascending minima algorithm”, but I’m not sure.</p>
+<blockquote>
+<p>As an interesting side note, a slight variation of this algorithm
+computes the convex hull of a series of points in 2-D in linear
+time.  It consists of a basic pass which computes the upper convex
+hull, which is applied a second time under a suitable transformation
+to compute the lower convex hull, which together (perhaps with
+vertical lines to join them) form the overall convex hull.  Each
+pass iterates over the points in increasing order of X coordinate,
+just as the sliding-window algorithm does; the upper convex hull is
+accumulated on a stack (rather than a deque) and points are popped
+off the stack if, considering the new point being added, they would
+make the hull non-convex, rather than if they are greater than the
+new point being added.  This maintains the invariant that the
+sequence is convex upwards, rather than that it is nondecreasing.
+This is important for efficiently finding affine-arithmetic
+approximations of empirical data, as explored in <a href="../notes/affine-database.html">An affine-arithmetic database index for rapid historical securities formula queries</a>.</p>
+</blockquote>
+<p>There’s a completely different algorithm with similar linear
+performance published by van Herk in 1992 in a paper entitled, “A fast
+algorithm for local minimum and maximum filters on rectangular and
+octagonal kernels” and concurrently by Gil and Werman.  It divides the
+array into <em>N</em>-sample blocks and computes prefix-sum minima within each
+block going both left “h” and right “g”.  Any <em>N</em>-sample window will
+include some number <em>x</em> ∈ (0, <em>N</em>] of samples in its leftmost block and
+some number <em>N</em> - <em>x</em> ∈ [0, <em>N</em>) of samples in the block to the right; the
+minimum of the <em>x</em> samples in the left block can be found in the “h” array
+for that block, and the minimum of the <em>N</em> - <em>x</em> samples in the right block
+can be found in the “g” array for that block.  The minimum of these
+two numbers is the minimum over the whole block.</p>
+<h2>Separable kernels</h2>
+<p>As with box-filter convolution and Gaussian convolution, we can
+decompose erosions with certain two-dimensional kernels into
+compositions of two erosions with one-dimensional kernels, one in X
+and one in Y, thanks to a sort of distributive law (sometimes called
+“the chain rule”):</p>
+<pre><code>(I ⊖ k₁) ⊖ k₂ = I ⊖ (k₁ ⊕ k₂)
+</code></pre>
+<p>This is great, because it means we can erode an image with a paraxial
+rectangle of any size and shape in 90–130 nanoseconds per pixel,
+because it takes six pixel-minimum operations per pixel.  (This is faster than
+just generalizing the van Herk–Gil–Werman algorithm to rectangles, which takes
+15 pixel-minimum operations per pixel.)
+Great, right?  But it’s a paraxial rectangle.  One could wish for
+something more.  For example, many real-world images have features
+that are rotationally invariant, so a circle or annulus or something
+might be a more interesting kernel.</p>
+<p>The distributive law says that eroding with two kernels is the same as
+eroding with the dilation of the kernels, which in
+this context is just their Minkowski sum.  For example, dilating a
+kernel with a kernel that is a line in whatever orientation, that sort
+of pulls it apart in the direction of the line, filling in the gap by
+adding two straight facets in between, facets of the orientation and
+length of the line.  So eroding an already-eroded image with such a
+kernel is the same as expanding its erosion kernel in that way.</p>
+<p>So if you erode with two kernels that are lines, you get the erosion
+of a parallelogram, or in the degenerate case, a longer line.  But so
+far we’ve only covered how to erode efficiently with horizontal and
+vertical lines.</p>
+<p>How about diagonal lines?  The one-dimensional sliding-window minimum
+algorithm is just as happy to run along a diagonal of the image pixels
+as along a row or column.  If your kernel is literally just a diagonal
+line of pixels like [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4)], then you
+might get some checkerboarding artifacts in the resulting image, but
+if you’re also using a horizontal or vertical kernel, those should go
+away.</p>
+<p>This carries over to skewed-line kernels like [(-4, -2), (-2, -1), (0,
+0), (2, 1), (4, 2)] or [(0, 0), (1, 3), (2, 6)].  These have big gaps
+in them, so they would be shitty kernels by themselves, but used to
+dilate a kernel that fills those gaps on its own, they can give you
+not only excellent approximations of circles but also lines and
+arbitrarily-oriented capsules.</p>
+<p>It turns out this approach to approximating circular kernels was
+published by Adams in 1993 in the paper, “Radial decomposition of
+discs and spheres”, except for the bit about skewed-line kernels with
+gaps in them.</p>
+<h2>Bresenham lines</h2>
+<p>I was also thinking that you could get a good approximation of a line
+kernel by running the one-dimensional algorithm along gap-free
+rasterized diagonal lines — essentially running it in the X or Y
+direction, but occasionally “jumping the groove” to an adjacent
+raster; this will give you a slightly different kernel at each pixel,
+but probably the errors are insignificant for most applications.  But
+now I think that there is no real advantage to that approach over the
+precise approach described earlier.</p>
+<p>It turns out that Soille, Breen, and Jones published essentially this
+algorithm in 1996 in their paper, “Recursive implementation of
+erosions and dilations along discrete lines at arbitrary angles”, but
+using the van Herk/Gil–Werman one-dimensional sliding-window minimum
+algorithm.  They note this approximation drawback:</p>
+<blockquote>
+<p>…it is important to note that the shape of the SE [kernel] may vary
+slightly from one pixel to another.  Indeed, except for horizontal,
+vertical, and diagonal directions, a discrete line in the square
+grid contains 4- as well as 8-connected pixels.  Hence, when the SE
+of length <em>k</em> moves along such a discrete line, its shape varies
+accordingly to its position along the line.  In practice, this is
+not a major drawback provided that the angle specified is actually
+defined in the neighborhood corresponding to the extent of the SE.</p>
+</blockquote>
+<p>Then they go on to define a “translation-invariant implementation”
+that avoids this non-major drawback, which has a great deal in common
+with what I’ve described above but may not be exactly the same; I’m
+not sure yet.  It does seem to work better for their
+radial-decomposition purpose.</p>
+<p>Also they point out a use of this algorithm to detect linear features
+by combining linear openings at different angles by max, rather than
+by composing linear erosions and dilations to get a round kernel.</p>
+<h2>Gapped one-dimensional kernels to accelerate the naïve algorithm</h2>
+<p>One way to get an erosion with a 9-pixel-wide kernel is to erode with
+a 3-pixel-wide kernel four times.  But a better way — aside from the
+deque algorithm described previously — is to erode first with the
+kernel [-1, 0, 1] and then the kernel [-3, 0, 3]; and, to get only a
+7-pixel kernel, you could erode with [-1, 0, 1] and then [-2, 0, 2].
+If you want a 27-pixel-wide kernel, you can do [-1, 0, 1] ∘ [-3, 0, 3]
+∘ [-9, 0, 9], and by reducing the width of this last kernel, you can
+get any number less than 27, too.  (Though, see below (‡) for why
+using kernels with two pixels is better than using kernels with
+three.)</p>
+<p>This points out a log-linear-time algorithm to erode with large
+kernels (linear in the image, logarithmic in the kernel) in a single
+dimension, which, unlike the deque algorithm, is easy to parallelize
+and incrementalize.  For example, this algorithm can be
+straightforwardly applied to several scan lines in parallel using
+vector instructions, while the deque algorithm can’t.  (<a href="https://www.nvidia.com/content/GTC/posters/14_Domanski_Parallel_vanHerk.pdf">The
+van Herk/Gil–Werman algorithm can, though.</a>)</p>
+<p>(And of course it applies to sliding-window-minimum-type problems in
+non-image-processing contexts, as well.)</p>
+<p>This implementation of the algorithm takes 16 nanoseconds per byte to
+compute a 50-byte erosion on a 10-million-byte input without paying
+proper attention to the boundary conditions:</p>
+<pre><code>static inline char cmin(char a, char b) { return (a &lt; b) ? a : b; }
+int x;
+for (x = 0; x &lt; w- 3; x++) out[x] = cmin(in[x],  cmin( in[x+1],  in[x+ 2]));
+for (x = 0; x &lt; w- 9; x++) out[x] = cmin(out[x], cmin(out[x+3], out[x+ 6]));
+for (x = 0; x &lt; w-27; x++) out[x] = cmin(out[x], cmin(out[x+9], out[x+18]));
+for (x = 0; x &lt; w-50; x++) out[x] = cmin(out[x], out[x+23]);
+</code></pre>
+<p>This is about four times as fast as my implementation of the deque
+algorithm above, although probably that’s just because of the three
+divisions in its inner loop.</p>
+<p>But you can pipeline this algorithm into requiring only a single pass
+over the input:</p>
+<pre><code>for (x = 0; x &lt; w-50; x++) {
+  out[x+23+18+6] = cmin(in[x+23+18+6], cmin(in[x+23+18+6+1], in[x+23+18+6+2]));
+  out[x+23+18] = cmin(out[x+23+18], cmin(out[x+23+18+3], out[x+23+18+6]));
+  out[x+23] = cmin(out[x+23], cmin(out[x+23+9], out[x+23+18]));
+  out[x] = cmin(out[x], out[x+23]);
+}
+</code></pre>
+<p>For some reason, this version runs at the same speed as the many-pass
+version, even over the same 10-million-byte input.</p>
+<h2>Union kernels</h2>
+<p>This can be generalized!  And, not surprisingly, someone already has.</p>
+<p>I ⊖ (k₁ ∪ k₂), the erosion by a union, is the same as (I ⊖ k₁) ∧ (I ⊖
+k₂), where ∧ is the pixelwise minimum operation.  Urbach and Wilkinson
+published an algorithm in 2008 (doi 10.1.1.442.4549) that decomposes an arbitrary kernel
+(“flat”, they say, meaning that — as in all of my discussion
+above — the kernel contains only full and empty pixels, no shades of
+gray) into scan lines (“chords”).</p>
+<p>Urbach and Wilkinson use the fact that the erosion by a kernel
+consisting of N consecutive 1s on a single scan line, composed with
+erosion by a kernel consisting of two 1s on a single scan line at
+(possibly non-consecutive) positions 0 and M (the kernel [0, M] in the
+notation I used above), computes the erosion by a kernel of N+M
+consecutive 1s.  This is a special case of the distributive law
+mentioned earlier, that (A ⊖ B) ⊖ C = A ⊖ (B ⊕ C) — the N+M
+consecutive 1s are the dilation of the N consecutive 1s and the two 1s
+at positions 0 and M.  So Urbach and Wilkinson use this to compute the
+erosions of the image by “chord” kernels of lengths 1, 2, 4, 8, 16, …
+with one comparison operation per pixel per binary chord length.
+Given these, they can compute the erosion of the image by any
+arbitrary chord length by taking one of those images and eroding it by
+another two-separated-pixel kernel in, again, one comparison operation
+per pixel; for example, to get erosion by an 11-pixel chord, you erode
+the 8-pixel-chord-eroded image with the kernel 1 0 0 0 0 1, that is,
+with pixels in positions 0 and 5.</p>
+<p>A union of such chord kernels can thus compute the erosion by an
+arbitrary flat kernel with two comparison operations per pixel per
+chord of the kernel, once results for enough chord kernels of powers
+of 2 have been computed.</p>
+<p>This algorithm is claimed to be considerably
+faster than the others I mentioned above, and now that I understand it,
+I believe it.</p>
+<p>However, I think we can do better.  You can see this as a special case
+of (A ⊖ B) ⊖ C = A ⊖ (B ⊕ C), but you can also see it as a special
+case of I ⊖ (k₁ ∪ k₂) = (I ⊖ k₁) ∧ (I ⊖ k₂), where (except in the last
+step, where different scan lines are brought together) the two kernels
+are always the same kernel with different pixel shifts.  (We can
+probably assume that the pixel shifts are free until the kernel gets
+large compared to the image size.)  So the generalized problem is to
+minimize the cost of a DAG where the nodes are of the form (I₀ shifted
+(<em>x</em>₀, <em>y</em>₀)) <em>op</em> (I₁ shifted (<em>x</em>₁, <em>y</em>₁)), where <em>op</em> is either ∨
+or ∧, to build up the kernel we want, starting with only the identity
+kernel, then taking unions and intersections of (shifted) existing
+kernels.</p>
+<p>In some cases it is clear that there are better alternative
+strategies; for example, with a vertically symmetric kernel like a
+circle, you can compute each chord length once instead of twice, and
+if there are <em>N</em> adjacent scan lines with the same chord, you can use
+⌈lg <em>N</em>⌉ comparisons to compute that block rather than <em>N</em>-1.  Urbach
+and Wilkinson’s paper also gives an H-shaped example kernel of 49×49
+pixels, consisting of three overlapping 1×49 pixel lines (one
+horizontal and two vertical), which also clearly has a much simpler
+decomposition: a 49-pixel vertical line, unioned with itself shifted
+48 pixels to the right, and a horizontal line of between 47 and 49
+pixels.  This H could be decomposed into horizontal chords of 2, 4, 8,
+16, 32, and 47 pixels, vertical chords of 2, 4, 8, 16, 32, and 49
+pixels, and two more (shifted) pixelwise minimum operations to combine
+the three; this requires 14 pixelwise minimum operations rather than
+the 54 they implicitly report in their paper.</p>
+<p>I <em>think</em> it is the case that I ⊖ (k₁ ∩ k₂) = (I ⊖ k₁) ∨ (I ⊖ k₂),
+thus allowing us to intersect erosion kernels as well as take their
+union — but I’m not sure right now, because that would seem to suggest
+that if you intersect the identity kernel with a shifted version of
+itself, you get a well-defined dilation rather than an ill-defined
+erosion with an empty set; I’m not sure this doesn’t suggest that
+sometimes you’ll get a dilation or a combination of dilation and
+erosion in less pathological cases.</p>
+<p>If we exclude intersections and have only unions, then there is a
+computable algorithm for finding the optimum DAG: exhaustive search of
+all the possible ways to compute all kernels that could fit into our
+desired kernel somewhere.  I think we can use A* search to get a
+better, perhaps even computationally tractable, strategy for finding
+the optimum DAG.  Failing that, a heuristic optimization algorithm
+that starts with the feasible Urbach–Wilkinson strategy and attempts
+to improve it is a reasonable approach.</p>
+<p>Many of these search algorithms could probably be sped up with a
+precomputed database of all the possible DAG nodes accessible in, say,
+four or five pixelwise minimum operations, if limited to some sort of
+reasonable shift radius.</p>
+<p>My suggestion (‡) in an earlier section that making a pipeline out of
+erosion operations would be most efficient when each kernel in the
+pipeline had three pixels active was ill-founded; in fact the optimum
+is two, because you find the minimum of two pixels in one operation,
+not two.</p>
+<h2>Urbach–Wilkinson with an ascending minima stack</h2>
+<p>The Urbach–Wilkinson algorithm computes one eroded image for each
+distinct horizontal chord length in time logarithmic in the maximum
+chord length and linear in the number of chord lengths, then combines
+these horizontally-eroded images with vertical and horizontal offsets
+to get the final result.  Above I point out that there are sometimes
+more efficient ways to combine the horizontally-eroded images that
+require less than the one operation per chord Urbach–Wilkinson give.
+Also, though, we can compute those horizontally-eroded images in a
+more efficient manner than Urbach and Wilkinson’s algorithm when we
+have a small number of chord lengths — by using the ascending-minima
+algorithm.</p>
+<p>As an extreme case, consider using Urbach–Wilkinson to erode by a
+paraxial square 65×65 kernel.  Each final image pixel is the minimum
+of 65 vertically-adjacent pixels in a single intermediate image that
+is eroded by a 65-pixel horizontal-line kernel; to compute this
+intermediate image, the UW algorithm first computes the erosions by
+horizontal-line kernels of 2, 4, 8, 16, 32, and 64 pixels, requiring 6
+min operations per pixel.  A seventh min operation per pixel gives the
+65-pixel erosion we needed.  (This doesn’t require nearly as much
+memory traffic as you might think, because you can pipeline it just as
+you can some of the algorithms discussed earlier, or as in <a href="../notes/dsp-pipeline.html">Evaluating DSP operations in minimal buffer space by pipelining</a>.)</p>
+<p>By contrast, the ascending-minima algorithm does 2 pixel-min
+operations per pixel, plus some pointer comparisons, to achieve this
+or any other single-window-width sliding-window erosion.</p>
+<p>You might think that the ascending-minima algorithm would require a
+separate deque for multiple window widths.  But consider what happens
+if we implement the deque as a stack of all nondecreasing pixels on
+the line, with a “bottom pointer” that we sometimes increment and
+never decrement.  When we push a new pixel onto the stack, we need to
+check to see if the bottom pointer must be incremented because its
+pixel has aged out; when we pop pixels from the stack in order to push
+a smaller pixel, we need to ensure that the bottom pointer points to
+the newly pushed pixel or something to its left.</p>
+<p>But the actual contents of the stack do not depend on the bottom
+pointer, and the bottom pointer is the only thing that depends on the
+window width.  So many bottom pointers can share the same pixel stack.
+And so adding more bottom pointers doesn’t add more pixel comparisons;
+those remain at 2 per pixel, regardless of the number of chord lengths
+demanded.  The extra bottom pointers do, however, add more index
+comparisons, which are about 2 per chord length per pixel.</p>
+<p>Conceivably in practice the extra log-N factor is too small to matter.</p>
+<p>Of course this whole technique to get an arbitrary number of sliding
+windows out of a single ascending-minima stack is applicable to other
+applications of sliding-window RMQ, not just image erosion.</p>
+<blockquote>
+<p>You could try to make a sort of “spaghetti stack” out of this
+approach by making a note under each pixel of the pixel index at which
+it gets popped off the stack and of the index of the pixel under it on
+the stack, but in this simple form, this modification doesn’t buy you
+anything useful — computing a sliding-window RMQ is already as fast as
+it’s going to get, and it doesn’t make it fast to compute a
+random-access RMQ, because the “stack” isn’t random-access — you have
+to chase the pointers up it, and you can’t traverse it downwards at
+all except by linearly searching all the pixels.  If you additionally
+note the replacement of each pixel (if any) when you pop it, a sort of
+next-child pointer, it becomes possible to traverse the tree downwards
+in a useful way, but you still have no guarantee of the kind of
+balance or random access among children that would make this
+efficient — if the pixels happen to be in descending order, the root
+will have them all as its children.</p>
+<p>You could maybe do some kind of skip-list or tree-balancing thing,
+but this avenue of investigation seems progressively less appealing.</p>
+</blockquote>
+<h2>Linear convolution</h2>
+<p>You can use the Urbach–Wilkinson decomposition into “chords” to
+accelerate the usual kind of convolution, too, the kind where you take
+a weighted sum of the selected neighborhood pixels instead of their
+maximum or minimum.  See <a href="../notes/convolution-bokeh.html">Real-time bokeh algorithms, and other convolution tricks</a> for details.  (It
+also includes some tricks for decomposing angled lines that can be
+used for the morphological operations discussed in this note.)</p>
+<h2>Range minimum query</h2>
+<p>All of the algorithms mentioned here work by comparing intact pixels
+(as opposed to, say, computing histograms of pixel values; there are
+somewhat efficient algorithms for general rank-order filtering, which
+is a generalization of erosion, dilation, and median-filtering, that
+work that way — see <a href="../notes/median-filtering.html">Median filtering</a>).  This means that we can
+augment the pixel values being considered with extra metadata.  For
+example, we could compute the luminance of each pixel and use that for
+the comparisons, but drag the original pixel data along with the
+luminance so that the color follows as it should.  Or we could tag the
+original pixel coordinates onto the end of the pixel data, thus
+solving the range-minimum-query problem generalized to arbitrary
+window shapes — when we find the minimum pixel within the erosion
+window by these algorithms, it comes with its original coordinates.</p>
+<p>See further applications in <a href="../notes/interval-trees-over-sequences.html">Query evaluation with interval-annotated trees over sequences</a>.</p>
+<p>The Urbach–Wilkinson algorithm constructs an index data structure of
+size O(<em>N</em> lg <em>N</em>) which answers range minimum queries in constant
+time.  There is a known RMQ algorithm based on Cartesian trees that
+also answers range minimum queries in constant time, but using an
+index data structure of size only O(<em>N</em>).  I don’t understand it well
+enough yet to compare the two algorithms.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/prefix-sums.html">Prefix sums</a> (18 notes)
+</li><li><a href="../topics/rmq.html">The range minimum query problem</a> (5 notes)
+</li><li><a href="../topics/morphology.html">Morphology</a> (5 notes)
+</li></ul></div></html>

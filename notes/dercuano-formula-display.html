@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html><title>Dercuano formula display ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Dercuano formula display</h1><div class="metadata">Kragen Javier Sitaker, 2019-04-30
+(5 minutes)</div><p>Dercuano contains a bunch of text, which can be more readable and
+comprehensible and navigable if properly formatted (see
+<a href="../notes/dercuano-stylesheet-notes.html">Dercuano stylesheet notes</a>), but a lot of that text also contains
+mathematical formulae, things like ½LI² or k (2 cos θ₀ cos² ω - cos θ₀
+- 2 sin θ₀ sin ω cos ω) or log cos x ≈ -x²/2 - x⁴/12 - x⁶/45 -
+17x⁸/2520 - ... when x² &lt; π²/4.  One problem is that Unicode’s ability
+to represent mathematical formulae is pretty limited; you can do xⁱ
+but not vice versa, you can’t do simultaneous subscripts and
+superscripts (for things like ∫), and any kind of two-dimensional
+layout is pretty limited.  Another problem is that the spacing and
+fonts are all wrong; that last formula, for example, should look more
+like</p>
+<p><center>
+<table cellspacing=0 cellpadding=0 style="text-align: center">
+<tr><td valign=middle rowspan=2 style="padding-right: 3px">log cos <em>x</em> ≈ –</td>
+<td style="border-bottom: 1px solid black"><em>x</em><sup style="font-size: .66em">2</sup></td>
+<td valign=middle rowspan=2> – </td>
+<td style="border-bottom: 1px solid black"><em>x</em><sup style="font-size: .66em">4</sup></td>
+<td valign=middle rowspan=2>…</td>
+</tr>
+<tr><td>2</td><td>12</td></tr></table>
+</center></p>
+<p>only with better fonts and no misalignment between the minus signs and
+fraction bars.  (That’ll depend on your fonts.)</p>
+<p>The standard approach to solving this problem on the web is MathJax,
+which scans your HTML after page load for T<sub>E</sub>X formulas
+tagged with \(\) and renders them into nice readable formulas.  I
+downloaded a copy, and it doesn’t look like it sends the formulas to a
+server for rendering (the way Wikipedia’s alternative does) but it’s
+33MB.  And it looks like a big chunk of that 33MB is necessary to use
+MathJax in the usual way.</p>
+<p>MathJax can generate SVG and HTML with CSS, though, so maybe I could
+somehow get it to compile my formulas to HTML or SVG at build time.
+Although, to bring up problems reminiscent of those in <a href="../notes/dercuano-drawings.html">Dercuano drawings</a>, here's the bletcherous markup it spat out for
+<code>$\sim\bigoplus_{i=0}^7b_{n,i}$</code>, generating screen output which looks
+absolutely gorgeous:</p>
+<pre><code>&lt;span class="math" id="MathJax-Span-9" role="math" style="width:
+6.018em; display: inline-block;"&gt;&lt;span style="display:
+inline-block; position: relative; width: 4.959em; height: 0px;
+font-size: 121%;"&gt;&lt;span style="position: absolute; clip:
+rect(1.17em, 1004.96em, 2.78em, -1000em); top: -2.302em; left:
+0em;"&gt;&lt;span class="mrow" id="MathJax-Span-10"&gt;&lt;span class="mo"
+id="MathJax-Span-11" style="font-family:
+MathJax_Main;"&gt;∼&lt;/span&gt;&lt;span class="munderover"
+id="MathJax-Span-12" style="padding-left: 0.278em;"&gt;&lt;span
+style="display: inline-block; position: relative; width: 2.334em;
+height: 0px;"&gt;&lt;span style="position: absolute; clip: rect(3.087em,
+1001.05em, 4.441em, -1000em); top: -4.014em; left: 0em;"&gt;&lt;span
+class="mo" id="MathJax-Span-13" style="font-family: MathJax_Size1;
+vertical-align: 0em;"&gt;⨁&lt;/span&gt;&lt;span style="display: inline-block;
+width: 0px; height: 4.014em;"&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="position:
+absolute; clip: rect(3.359em, 1000.43em, 4.207em, -1000em); top:
+-4.491em; left: 1.111em;"&gt;&lt;span class="mn" id="MathJax-Span-14"
+style="font-size: 70.7%; font-family: MathJax_Main;"&gt;7&lt;/span&gt;&lt;span
+style="display: inline-block; width: 0px; height:
+4.014em;"&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="position: absolute; clip:
+rect(3.366em, 1001.22em, 4.207em, -1000em); top: -3.729em; left:
+1.111em;"&gt;&lt;span class="texatom" id="MathJax-Span-15"&gt;&lt;span
+class="mrow" id="MathJax-Span-16"&gt;&lt;span class="mi"
+id="MathJax-Span-17" style="font-size: 70.7%; font-family:
+MathJax_Math; font-style: italic;"&gt;i&lt;/span&gt;&lt;span class="mo"
+id="MathJax-Span-18" style="font-size: 70.7%; font-family:
+MathJax_Main;"&gt;=&lt;/span&gt;&lt;span class="mn" id="MathJax-Span-19"
+style="font-size: 70.7%; font-family:
+MathJax_Main;"&gt;0&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="display:
+inline-block; width: 0px; height:
+4.014em;"&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="msubsup"
+id="MathJax-Span-20" style="padding-left: 0.167em;"&gt;&lt;span
+style="display: inline-block; position: relative; width: 1.369em;
+height: 0px;"&gt;&lt;span style="position: absolute; clip: rect(3.143em,
+1000.42em, 4.202em, -1000em); top: -4.014em; left: 0em;"&gt;&lt;span
+class="mi" id="MathJax-Span-21" style="font-family: MathJax_Math;
+font-style: italic;"&gt;b&lt;/span&gt;&lt;span style="display: inline-block;
+width: 0px; height: 4.014em;"&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="position:
+absolute; top: -3.864em; left: 0.429em;"&gt;&lt;span class="texatom"
+id="MathJax-Span-22"&gt;&lt;span class="mrow" id="MathJax-Span-23"&gt;&lt;span
+class="mi" id="MathJax-Span-24" style="font-size: 70.7%;
+font-family: MathJax_Math; font-style: italic;"&gt;n&lt;/span&gt;&lt;span
+class="mo" id="MathJax-Span-25" style="font-size: 70.7%;
+font-family: MathJax_Main;"&gt;,&lt;/span&gt;&lt;span class="mi"
+id="MathJax-Span-26" style="font-size: 70.7%; font-family:
+MathJax_Math; font-style: italic;"&gt;i&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span
+style="display: inline-block; width: 0px; height:
+4.014em;"&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="display:
+inline-block; width: 0px; height:
+2.302em;"&gt;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style="display: inline-block;
+overflow: hidden; vertical-align: -0.436em; border-left: 0px
+solid; width: 0px; height: 1.662em;"&gt;&lt;/span&gt;&lt;/span&gt;
+</code></pre>
+<p>That gzips to 643 bytes.  Without using the MathJax fonts or
+<code>position:</code>, you might try doing something like</p>
+<table cellspacing=0 cellpadding=0><tr><td rowspan=2 style="font-size:
+2em">~⊕</td><td style="font-size: .71em">7</td><td
+style="padding-left: 3px" rowspan=2><i>b<sub>n,i</sub></i></td
+></tr><tr><td style="font-size: .71em"><i>i</i>=0</td></tr></table>
+
+<p>Markdown won’t let me treat a <code>&lt;table&gt;</code> as an inline element, but CSS
+will, and the idea would be to hack the math stuff in further down the
+processing chain anyway.  The source code to that looks like this,
+reformatted:</p>
+<pre><code>&lt;table cellspacing=0 cellpadding=0&gt;
+    &lt;tr&gt;&lt;td rowspan=2 style="font-size: 2em"&gt;~⊕&lt;/td&gt;
+        &lt;td style="font-size: .71em"&gt;7&lt;/td&gt;
+        &lt;td style="padding-left: 3px" rowspan=2&gt;&lt;i&gt;b&lt;sub&gt;n,i&lt;/sub&gt;&lt;/i&gt;&lt;/td&gt;
+    &lt;/tr&gt;&lt;tr&gt;
+        &lt;td style="font-size: .71em"&gt;&lt;i&gt;i&lt;/i&gt;=0&lt;/td&gt;
+    &lt;/tr&gt;
+&lt;/table&gt;
+</code></pre>
+<p>It's 253 bytes, gzipping to 180 bytes — more than the 50 bytes of the
+original formula, but not the 3 kilobytes gzipping to 643 bytes (not
+counting the fonts!) generated by MathJax.</p>
+<p>So one alternative, which also might be reasonably okay for some
+things, is to hack together some kind of thing to spit out some HTML.
+It won’t look as good as MathJax or real T<sub>E</sub>X, but it’s
+potentially a lot more capable than raw Unicode, and it should be able
+to express most of what I want to express.</p>
+<p>Certainly when I’m <em>editing</em> formulas I want to see them with MathJax,
+though.  And if someone is online and willing to take advantage of
+MathJax, they should be able to.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/dercuano.html">Dercuano</a> (16 notes)
+</li><li><a href="../topics/html.html">HTML</a> (6 notes)
+</li><li><a href="../topics/css.html">CSS</a> (3 notes)
+</li><li><a href="../topics/mathjax.html">MathJax</a> (2 notes)
+</li></ul></div></html>

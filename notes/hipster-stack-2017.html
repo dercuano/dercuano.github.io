@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html><title>Hipster stack 2017 ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Hipster stack 2017</h1><div class="metadata">Kragen Javier Sitaker, 2017-04-28 (updated 2017-05-04)
+(26 minutes)</div><p>What’s the hipster stack in 2017?  Or, maybe, what’s the most
+powerful, highest-leverage software tool stack available?  Here are my
+notes on trying to learn it.</p>
+<h2>Overview of the current hipster trends</h2>
+<p>I’m not totally sure, but I’m thinking that it’s probably something
+like React (with JSX) for the frontend (with maybe Less or something
+for the CSS), Node for the server (with nginx in front of it), and
+SQLite for the database, though there seems to be a lot of
+fragmentation here, with lots of people using MariaDB, Redis, MongoDB,
+or whatever the hell.  For administering the server, we use Docker
+(probably on Ubuntu) and Puppet and Kubernetes, and for an editor, we
+use Atom.  When we’re not using Docker, we virtualize our testing
+environment with Vagrant in VirtualBox.  And we chat about it all on
+Slack.</p>
+<h3>StackOverflow trends</h3>
+<p><a href="http://stackoverflow.com/tags?tab=popular">http://stackoverflow.com/tags?tab=popular</a> has JS as the top language
+tag (followed by Java, C#, and PHP); Android as the top platform tag
+(followed by iOS); MySQL as the top database tag (followed by SQL and
+sql-server); etc.  I did a SQL query to see what the current ones were
+at
+<a href="https://data.stackexchange.com/stackoverflow/query/664354/most-popular-stackoverflow-tags-in-2017">https://data.stackexchange.com/stackoverflow/query/664354/most-popular-stackoverflow-tags-in-2017</a>
+and got JS (followed by Java, Python, and PHP); Android (followed by
+iOS); jQuery as the top JS framework (followed by Angular, twice, and
+then React); MySQL as the top database (followed by SQL and
+sql-server); Excel as the most popular IDE (followed by XCode, Visual
+Studio, Android Studio, Matlab, and Eclipse); the top UI toolkit is
+HTML (followed by jQuery, CSS, Angular, and finally WPF at #60 and Qt
+at #96); etc.  Firebase, Typescript, Pandas, Swift, AWS, Azure,
+Android Studio, and Spark also seem to be hot compared to previously.
+<a href="https://data.stackexchange.com/serverfault/query/664369/most-popular-serverfault-tags-in-2017">https://data.stackexchange.com/serverfault/query/664369/most-popular-serverfault-tags-in-2017</a>
+is the same query on ServerFault, from which we learn that nginx and
+AWS are hot.</p>
+<p>The relatively most fashionable things this year are centos7, docker,
+apache-2.4, azure, windows-server-2012-r2, linux-networking,
+amazon-web-services, php-fpm, and reverse-proxy, each of which had
+more than twice the proportion of all stackoverflow tags this year as
+over the life of stackoverflow.  However, nginx is far more popular
+than Apache now!  And AWS is still more popular than Azure, and Ubuntu
+still more popular than CentOS.</p>
+<h3>Hacker News trends</h3>
+<p>The fashionable things on Hacker News seem to be, at the moment:</p>
+<ul>
+<li>Machine learning: 2 items on front page, 1 item in 30 newest, 2
+  comments in 30 newest</li>
+<li>Linux: 4 comments in 30 newest</li>
+<li>Computer vision: 1 item on front page, 2 comments in 30 newest</li>
+<li>Rust: 1 item on front page, 2 comments in 30 newest</li>
+<li>Python 3: 1 item on front page, 1 comment in 30 newest</li>
+<li>C++: 1 item on front page, 1 comment in 30 newest</li>
+<li>React: 2 items in 30 newest</li>
+<li>C: 2 comments in 30 newest</li>
+<li>Docker and similar containers: 1 item on front page</li>
+<li>Kubernetes: 1 item on front page</li>
+<li>Redis: 1 item on front page</li>
+<li>TypeScript: 1 item on front page</li>
+<li>Dataflow programming (Fathom, in this case): 1 item on front page</li>
+<li>Rails: 1 item in 30 newest</li>
+<li>Golang: 1 comment in 30 newest</li>
+</ul>
+<p>I mean that’s super crude.  Note how different it is from the
+StackOverflow list!</p>
+<h3>Github trends</h3>
+<p>GitHub has <a href="https://github.com/showcases/programming-languages">a list of language implementations developed there</a>.
+Swift has 38k stars and 5k forks; Golang has 27k stars and 3k forks;
+Rust has 21k stars and 4k forks; TypeScript has 21k stars and 3k
+forks; CoffeeScript still has 13k stars and 1k forks; Ruby has 12k
+stars and 3k forks; and PHP has 11k stars and 3k forks.  Of course,
+this excludes languages whose implementation isn’t GitHub-hosted and
+those with many implementations, like C++.</p>
+<p>Similarly, they have <a href="https://github.com/showcases/nosql-databases">a list of NoSQL databases hosted there</a>,
+leading with Redis, RethinkDB, and MongoDB.  Redis is actually more
+than twice as popular as Mongo.  RethinkDB is probably dead.  Their
+<a href="https://github.com/trending?since=monthly">list of trending repositories this year</a> includes Mastodon, which
+is built on Rails, Docker, Vagrant, Nginx, Redis, Postgres, and Node;
+a guide to learning bash; an IDE for React, React itself, react-bits
+(tips), and react-sketchapp; a repo of minimal examples of algorithms
+in Python; TensorFlow, a TensorFlow-based NN library, and Caffe; a
+medium.com clone built on React, Angular, Node, and Django (?); a
+Sendgrid clone built on Rails, MySQL, RabbitMQ (!), and Node called
+Postman; Vue.js; Atlassian’s LocalStack, an AWS clone; a list of hot Mac
+apps (headed by Atom), and at #1, a “roadmap”.</p>
+<h3>The Roadmap</h3>
+<p><a href="https://github.com/kamranahmedse/developer-roadmap">The roadmap</a> recommends learning, for a frontend developer, HTML,
+CSS, JS, ES6, npm scripts, Gulp for running tasks, Yarn, npm,
+TypeScript, some JS test framework (Jest or Mocha), webpack,
+Bootstrap, Sass, and some JS framework (Angular, React (in which case
+either Flux or Redux), or Vue.js); or, for a backend developer, one of
+Python, PHP, Node, Ruby, C#, Java, or Golang.  For Python, they
+recommend pip, unittest, Django, and aiohttp (which is apparently an
+async/await thing built on Python 3’s new (2013) asyncio library); for
+Node, they recommend npm, Yarn, Express, and Mocha.  For going deeper
+on the backend, they recommend nginx, RESTful APIs, reading about MVC,
+authentication with OAuth 2.0 and JWT (JSON Web Token),
+“SOLID/YAGNI/KISS etc.”  (i.e. learning how to program), regexps,
+security, and Docker; deeper still, they recommend memcached and Redis
+for caching, Postgres, MariaDB, and MySQL as relational databases, and
+Redis and MongoDB as nonrelational databases.  To “up your game
+further”, they suggest search engines (ideally ElasticSearch), GoF
+design patterns, architectural patterns, “give DDD a shot”, and “learn
+different testing techniques”.</p>
+<p>There’s an entirely separate roadmap for devops, recommending either
+Linux or Unix, AWS, automation (either CloudFormation, Puppet,
+Ansible, or Terraform), CI/CD (Jenkins, Travis, or TeamCity),
+monitoring and alerting (Nagios, PagerDuty, or AppDynamics), Docker
+(or maybe rkt), Apache and nginx, cluster managers (Kubernetes,
+Mesosphere, Mesos, Docker Swarm, or Nomad), loving the terminal,
+vim/nano, bash scripts, compiling apps from source, and a tree of
+commands:</p>
+<p>text: awk sed grep sort uniq cat cut echo fmt tr nl egrep fgrep wc<br />
+ps: ps top htop atop<br />
+perf: nmon iostat sar vmstat<br />
+net: nmap tcpdump ping traceroute airmon airodump</p>
+<p>Then there’s a set of other things you should know: the OSI model
+(oddly subtitled TCP/IP/UDP), knowledge about different filesystems,
+setting up a reverse proxy, setting up a caching server, setting up a
+load balancer (HAProxy or nginx), setting up a firewall, TLS,
+STARTTLS, SSL, HTTPS, SSH, SCP, SFTP, and “postmortem analysis when
+something bad happens”.</p>
+<p>It seems like most people are using Macs on the desktop and Linux on
+the server.</p>
+<h3>Proggit</h3>
+<p>On Proggit, the <a href="https://www.reddit.com/r/programming/top/">top few items</a> are mostly the same as on HN (last
+night), but not quite the same.  Trendy topics include computer
+vision, machine learning, D, security (which is everywhere even though
+I haven’t mentioned it previously), Docker and containerization,
+Clojure, Postman (the Sendgrid clone I mentioned above), a .NET thing
+called “Entity Framework”, NixOS, Git, XAML, Heroku, AWS, Vue.js, vim,
+TLS, Python, Racket, AI, interviewing, Unicode, Spotify, Postgres,
+Rails, and OpenGL GLSL.</p>
+<h2>Leverage</h2>
+<p>The things that are fashionable are not necessarily the things that
+provide the most leverage.  SQLite is a <em>lot</em> faster than MySQL, not
+to mention a lot easier to install and administer, for what it does.
+Java and Rust are a lot lower leverage for most things than Python or,
+often, PHP.</p>
+<h2>Slightly more in-depth overview of the top hipster technologies</h2>
+<p>Here’s my subjective perception of the top 32 hipster technologies for
+2017, some of which are actually old.  Here’s a paragraph about where
+each one seems to be in 2017:</p>
+<ol>
+<li>JS</li>
+<li>CSS</li>
+<li>nginx</li>
+<li>Firebase</li>
+<li>Angular</li>
+<li>Slack</li>
+<li>Reactive and dataflow programming</li>
+<li>Node.js</li>
+<li>Mobile-friendly web design</li>
+<li>Python</li>
+<li>Less</li>
+<li>MySQL and MariaDB</li>
+<li>Neural networks and other machine learning</li>
+<li>Android</li>
+<li>TensorFlow</li>
+<li>Golang</li>
+<li>Docker</li>
+<li>Linux (Ubuntu and systemd)</li>
+<li>Mocha (the testing framework)</li>
+<li>Bootstrap</li>
+<li>TLS/SSL</li>
+<li>AWS</li>
+<li>RabbitMQ and ZeroMQ</li>
+<li>TypeScript</li>
+<li>Redis</li>
+<li>Atom</li>
+<li>Swift</li>
+<li>JSON</li>
+<li>SQLite</li>
+<li>Chef</li>
+<li>Rust</li>
+<li>React</li>
+</ol>
+<p>As a bonus, I’m adding:</p>
+<ol>
+<li>Jenkins</li>
+</ol>
+<p>JavaScript is by far the dominant programming language, with
+performance close to that of C, but garbage collection and a flexible
+object model like Python or Smalltalk.  A lot of server-side
+development is still being done in C++ (which still runs faster) or
+Golang, or still being done in Python (which is still more flexible
+and easier to read), but the gap seems to be closing rapidly, as more
+and more is done in Node.js.  In web browsers, JS is still the only
+real runtime option, although WebAssembly is working to open the
+browser to a wider range of languages, and TypeScript is gaining
+popularity as a statically typed and therefore more maintainable
+version of JS.  ECMAScript 6 is now broadly implemented, and its
+features seem like they close most of the usability gap that used to
+exist between JS and more ergonomic languages like Python.</p>
+<p>CSS has accidentally become Turing-complete recently and may become
+sentient soon.  Most people use preprocessors like Sass (or Less).
+There are <a href="http://2017.cssdevconf.com/">conferences devoted entirely to CSS</a>.  But there still
+isn’t a browser that supports both hyphenation and widow-and-orphan
+control for printing.  Not satisfied with the original CSS box model
+and its variants, they have now stuffed three entirely separate layout
+models into CSS: standard, flexbox, and <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Grid_Layout">grid</a>.  CSS transforms
+allow pretty trippy (GPU-accelerated!)  effects now.  Also apparently
+CSS animation is a thing now.</p>
+<p>Nginx is event-based, shuffling any kind of multiprocess management
+off to some backend process, communicating either via FastCGI (or
+SCGI, or uWSGI for Python) or via HTTP (acting as a reverse proxy).
+This supports WebSockets a lot better than Apache’s preforking MPM
+can, and it’s the sensible way to structure things if you’re using
+microservices.  It’s also a lot simpler to configure than Apache.  A
+minimal install is about 350k.  In addition to HTTP (and SPDY and
+HTTP/2), it speaks IMAP, SMTP, and POP3.  Hot topics seem to be load
+balancing, microservices, HTTP/2, and security.</p>
+<p>Google Firebase is billed as a “real-time database”, but it’s really a
+web API.  It seems to be something like Meteor or KnowNow, but done
+right.  It replicates (JSON) data on all devices, supporting offline
+operation, and sends asynchronous update notifications whenever it
+changes.  It even supports iOS.</p>
+<p>Google Angular is a client-side in-browser JS app framework, like
+jQuery, Backbone, Knockout, Ember, Sencha, and other such forgotten
+relics.  It uses npm to install, Node to run a development server, and
+preferably Microsoft TypeScript for your code.  It has two-way data
+binding for doing easy CRUD database screens and, more generally,
+declarative update propagation with an extensible HTML template
+language.  It’s an alternative to React, and Angular is slightly more
+popular, with 48k question on SO, compared to React’s 40k; <a href="https://medium.com/javascript-scene/angular-2-vs-react-the-ultimate-dance-off-60e7dfbc379c">people
+like React better</a>, but <a href="https://www.quora.com/Is-React-killing-Angular?share=1">apparently React is gaining ground</a>.</p>
+<p>Slack is a centralized SaaS alternative to IRC.  (Free clones include
+Mattermost and Rocket.chat.)  It takes seven seconds to switch
+channels in current Firefox on a modern four-core 1.6GHz machine that
+isn’t trying to swap.  The chat lines are editable, replyable, and
+written in a pidgin plaintext markup language derived from Markdown.
+It provides link previews for some links.</p>
+<p>Both React and Angular are manifestations of reactive programming, and
+many forms of dataflow programming are also being bruited about.
+Angular is built on a more basic reactive framework called Rx.js.
+Spark is a popular dataflow programming system for big data.  Dataflow
+has its roots in a forgotten language from the 1970s called Lucid,
+whose open-source implementation plucid is on GitHub.</p>
+<p>The main stream of MySQL development is now MariaDB, and despite the
+continuing fallout from the Oracle acquisition, MySQL is still
+dramatically more popular than SQLite and PostgreSQL (the two main
+alternatives) combined.  <a href="http://thebuild.com/presentations/uber-perconalive-2017.pdf">Uber switched from Postgres to MySQL
+recently</a> and <a href="https://data.stackexchange.com/stackoverflow/query/664354/most-popular-stackoverflow-tags-in-2017">the MySQL tag on StackOverflow has 25000 questions
+so far in 2017</a> compared to 12000 for Microsoft SQL Server, 7000
+for Firebase, 5000 for Postgres, and almost 2900 for SQLite.</p>
+<h2>Node vs. LinuxMint</h2>
+<p>I installed a current Linux Mint (version “Sarah”) on this laptop last
+year.  Apparently, though, the current version of Node is 7.9.0 and
+the current LTS version is 6.10.2, but Linux Mint ships with Node
+4.2.6!  That version difference makes it sound enormously old, but
+actually <a href="https://github.com/nodejs/node/blob/master/doc/changelogs/CHANGELOG_V4.md#4.2.6">it came out 2016-01-21.</a> As the changelog says, “Node.js
+v4 is covered by the Node.js Long Term Support Plan and will be
+supported actively until April 2017 and maintained until April 2018.”</p>
+<h2>Node and SQLite3</h2>
+<p>Nevertheless, I was able to <code>npm install sqlite3</code>.</p>
+<p><a href="https://github.com/mapbox/node-sqlite3/wiki/API">https://github.com/mapbox/node-sqlite3/wiki/API</a> is the documentation
+for what seems to be the most popular SQLite binding for Node.  It’s
+super easy to use although it seems to handle errors by killing the
+Node CLI process sometimes:</p>
+<pre><code>(new (require('sqlite3').Database)('test.db'))
+     .run("create table x (y varchar)")
+     .run("insert into x (y) values ('qqq')")
+     .each("select * from x", (err, row) =&gt; console.log([err, row]))
+Database { open: false, filename: 'test.db', mode: 65542 }
+&gt; events.js:141
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: SQLITE_ERROR: table x already exists
+    at Error (native)
+$
+</code></pre>
+<p>If you give it an error callback, that doesn’t happen:</p>
+<pre><code>&gt; tdb.run("create table x (y varchar)", err =&gt; console.log(err))
+Database { open: true, filename: 'test.db', mode: 65542 }
+&gt; { [Error: SQLITE_ERROR: table x already exists] errno: 1, code: 'SQLITE_ERROR' }
+</code></pre>
+<p>The <code>select</code> does work:</p>
+<pre><code>&gt; new sqlite3.Database('test.db').each("select * from x", (err, row) =&gt; console.log([err, row]))
+Database { open: false, filename: 'test.db', mode: 65542 }
+&gt; [ null, { y: 'qqq' } ]
+</code></pre>
+<p>So all the deliciousness of SQLite is easily available from Node,
+albeit without the modern promise interface.</p>
+<h2>npm</h2>
+<p>For some reason <code>npm</code> started breaking on me when I was trying to
+<code>install mocha</code> inside the <code>sqlite3</code> directory; I consulted the debug
+log and the offending line was this one, in filter-invalid-actions.js:</p>
+<pre><code>if (pkg.isInLink || pkg.parent.target || pkg.parent.isLink) {
+</code></pre>
+<p>I changed it to this:</p>
+<pre><code>if (pkg.isInLink || pkg.parent &amp;&amp; (pkg.parent.target || pkg.parent.isLink)) {
+</code></pre>
+<p>But that didn't really help.  What helped was not being inside the
+<code>sqlite3</code> directory.  But then <code>npm test</code> still didn’t work, because
+it was looking for a directory <code>test</code> under <code>sqlite3</code> that doesn’t
+exist.</p>
+<p>npm is <a href="http://stackoverflow.com/questions/38718690/huge-number-of-files-generated-for-every-angular-project">notorious for installing tens of thousands of files</a> in
+projects that use it, such as Angular.</p>
+<h2>ES6</h2>
+<p>Firefox and Chrome both support a lot of ES6 features, as of course
+does Node, and you can compile to older JS versions if you want to
+support old, unpatched iPhones or whatever (although none of the
+compilers-to-JS have ES6 support as comprehensive as Firefox or
+Chrome).  And ES6 fixes most of the problems that used to make JS a
+pain in the ass, making it (probably?) actually a better language than
+Python instead of a worse one.</p>
+<p>I’m not totally sure it is going to be better, because some of the
+changes might result in previously invalid code that was actually a
+mistake now getting DWIMmed in some unexpected way.  But I am
+optimistic.</p>
+<p>There’s <a href="http://kangax.github.io/compat-table/es6/">a compatibility table</a> that shows which features work
+where.</p>
+<p>I’m going to list the features that seem most interesting to me, which
+unfortunately are mostly not very flashy:</p>
+<h3><code>let</code></h3>
+<p>Everywhere you could use <code>var</code> you can now use <code>let</code> or <code>const</code> to get
+a block-scoped variable, avoiding in some cases the need for IIFEs.</p>
+<pre><code>&gt; function mr(n) { let rv=[]; for (let i = 0; i &lt; n; i++) { let j=i; rv.push(function() { return j; }); } return rv; }
+undefined
+&gt; mr(5)
+[ [Function], [Function], [Function], [Function], [Function] ]
+&gt; mr(5)[2]()
+2
+</code></pre>
+<p>(Node’s REPL kind of sucks for multiline statements because of the way
+its history works, in exactly the same way that Python’s does, but in
+JS you actually can get away with glomming everything onto one line.)</p>
+<p>This contrasts with the traditional behavior:</p>
+<pre><code>&gt; function mr(n) { let rv=[]; for (var i = 0; i &lt; n; i++) { let j=i; rv.push(function() { return i; }); } return rv; }
+undefined
+&gt; mr(5)[3]()
+5
+</code></pre>
+<p>However, this also works, and I have no idea how:</p>
+<pre><code>&gt; function mr(n) { let rv=[]; for (let i = 0; i &lt; n; i++) { let j=i; rv.push(function() { return i; }); } return rv; }
+undefined
+&gt; mr(5)[2]()
+2
+</code></pre>
+<h3>for...of loops, generators, and the iteration protocol</h3>
+<p>This is a big improvement for what I think are the most common kinds
+of loops:</p>
+<pre><code>&gt; for (let x of [42, 33, 5353]) console.log(x)
+42
+33
+5353
+undefined
+</code></pre>
+<p>That is, it does what you probably thought <code>for x in</code> would do when
+you first learned JS.  But wait!  There’s more!  You can use it on
+arbitrary things that implement the iteration protocol, including
+Python-style generator functions:</p>
+<pre><code>&gt; function* things() { yield 42; yield 33; yield 5353; }
+undefined
+&gt; for (let x of things()) console.log(x)
+42
+33
+5353
+undefined
+&gt; t = things()
+{}
+&gt; t.next()
+{ value: 42, done: false }
+&gt; t.next()
+{ value: 33, done: false }
+&gt; t.next()
+{ value: 5353, done: false }
+&gt; t.next()
+{ value: undefined, done: true }
+</code></pre>
+<p>The extra <code>*</code> disambiguates syntactically.</p>
+<p>It’s possible to write your own objects that implement this same
+iterable protocol, but it’s kind of a pain in the ass:</p>
+<pre><code>&gt; cd = { [Symbol.iterator]: function() { return { n: 5, next: function() { if (this.n) return {value: this.n--}; else return {done: true}; } } } };
+{}
+&gt; for (let x of cd) console.log(x)
+5
+4
+3
+2
+1
+undefined
+</code></pre>
+<p>In the terminology of MDN and I guess ECMA-262, <code>cd</code> above is an
+“iterable”, and the generator returned from <code>things</code> is evidently an
+“iterator.”  Unlike in Python, iterators are not required to be
+iterables, but apparently <code>for...of</code> handles that case okay.  But it
+does not work to pass the iterator derived from <code>cd</code> to <code>for...of</code>:</p>
+<pre><code>&gt; for (let x of cd[Symbol.iterator]()) console.log(x)
+TypeError: cd[Symbol.iterator] is not a function
+    at repl:1:56
+    at REPLServer.defaultEval (repl.js:252:27)
+    at bound (domain.js:287:14)
+    at REPLServer.runBound [as eval] (domain.js:300:12)
+    at REPLServer.&lt;anonymous&gt; (repl.js:417:12)
+    at emitOne (events.js:82:20)
+    at REPLServer.emit (events.js:169:7)
+    at REPLServer.Interface._onLine (readline.js:210:10)
+    at REPLServer.Interface._line (readline.js:549:8)
+    at REPLServer.Interface._ttyWrite (readline.js:826:14)
+&gt; ci = cd[Symbol.iterator]
+[Function]
+&gt; for (let x of ci) console.log(x)
+TypeError: undefined is not a function
+    at repl:1:37
+    at REPLServer.defaultEval (repl.js:252:27)
+    at bound (domain.js:287:14)
+    at REPLServer.runBound [as eval] (domain.js:300:12)
+    at REPLServer.&lt;anonymous&gt; (repl.js:417:12)
+    at emitOne (events.js:82:20)
+    at REPLServer.emit (events.js:169:7)
+    at REPLServer.Interface._onLine (readline.js:210:10)
+    at REPLServer.Interface._line (readline.js:549:8)
+    at REPLServer.Interface._ttyWrite (readline.js:826:14)
+</code></pre>
+<p>Also those error messages are super confusing, which I guess is one
+way JS has always been worse than Python.</p>
+<p>Unfortunately there doesn’t seem to be a library comparable to Python
+itertools in the standard, but the things you would expect to be able
+to do do work:</p>
+<pre><code>&gt; function* ifilter(predicate, items) { for (let item of items) if (predicate(item)) yield item; }
+undefined
+&gt; function* irange(end) { let n = 0; while (n&lt;end) yield n++; }
+undefined
+&gt; ifilter(function(x) { let q = Math.sqrt(x); return q === Math.floor(q); }, irange(10))
+{}
+&gt; Array.from(ifilter(function(x) { let q = Math.sqrt(x); return q === Math.floor(q); }, irange(10)))
+[ 0, 1, 4, 9 ]
+</code></pre>
+<p>I’m not sure how to deal with the weird iterator/iterable protocol
+nonconformance thing for algorithms like merge, though.  MDN says it
+should not be so.</p>
+<h3>λ syntax: “arrow functions” <code>(a, b) =&gt; a + b</code></h3>
+<p>JS’s traditional lambda-expression syntax that I’ve been using above
+has always been terribly unwieldy, and it also has always had a
+binding problem with <code>this</code>.  So they adopted a shorter syntax and
+made it lexically bind <code>this</code>.  Using the <code>irange</code> generator above,
+here’s a more efficient way to lazily generate a stream of squares:</p>
+<pre><code>&gt; function* imap(f, xs) { for (let x of xs) yield(f(x)) }
+undefined
+&gt; Array.from(imap(x =&gt; x*x, irange(10)))
+[ 0, 1, 4, 9, 16, 25, 36, 49, 64, 81 ]
+</code></pre>
+<p>This <code>x =&gt; x*x</code> compares favorably to Smalltalk's <code>[:x | x * x ]</code>,
+although it’s the best case; in cases where you need other numbers of
+arguments, you need parens (e.g. <code>() =&gt; x*x</code> or <code>(x, y) =&gt; x*y</code>), and
+in cases where you have multiple statements, you need curly braces and
+likely a <code>return</code> statement; so, for example, it doesn’t buy you that
+much here:</p>
+<pre><code>&gt; Array.from(ifilter(x =&gt; { let q = Math.sqrt(x); return q === Math.floor(q) }, irange(10)))
+[ 0, 1, 4, 9 ]
+</code></pre>
+<p>Firefox, CoffeeScript, and some versions of Traceur and BabelJS had
+implemented array comprehensions, which would have been a better
+alternative for many cases, but since they didn’t get in (they were
+removed in ES6 draft 27 in August 2014), higher-order methods and the
+arrow syntax are as good as it gets.  Here’s what it array
+comprehensions look like in Firefox:</p>
+<pre><code>» [for (x of [3, 4, 11, 22]) if (x % 2 === 0) x*x]
+← Array [ 16, 484 ]
+</code></pre>
+<p>This is considerably better than Python’s inside-out syntax.</p>
+<h3><code>...</code>: spread and rest</h3>
+<p>This isn’t supported in Node 4.2.6, unfortunately.  Neither is
+destructuring assignment.</p>
+<p>Object constructor shorthand is in there, so you can say <code>return
+{x,y}</code> and you can say <code>let x = { y() { return 43; } };</code>.</p>
+<h3>Performance</h3>
+<p>Node is a lot faster than Python at raw computation.  Here’s a very
+simple test that gives the crudest outlines of the degree of
+improvement; in it, Node is about half as fast as C, but three times
+as fast as PyPy and 20 times as fast as CPython or Jython.</p>
+<p>We can define the standard naïve Fibonacci benchmark in ES6 as
+follows:</p>
+<pre><code>&gt; fib = n =&gt; n &lt; 2 ? 1 : fib(n-1) + fib(n-2)
+</code></pre>
+<p>This takes time proportional to its return value.</p>
+<pre><code>user@debian ~ $ time node -e 'fib = n =&gt; n &lt; 2 ? 1 : fib(n-1) + fib(n-2); console.log(fib(3))'
+3
+
+real    0m0.161s
+user    0m0.132s
+sys 0m0.024s
+user@debian ~ $ time node -e 'fib = n =&gt; n &lt; 2 ? 1 : fib(n-1) + fib(n-2); console.log(fib(42))'
+433494437
+
+real    0m11.056s
+user    0m11.028s
+sys 0m0.020s
+</code></pre>
+<p>That’s crudely about 40 million units per second, according to (/
+433494437 (- 11.056 .161)).  Doing the same test in CPython would be
+annoyingly slow, but here’s a similar one:</p>
+<pre><code>user@debian ~ $ time python -c 'fib = lambda n: 1 if n &lt; 2 else fib(n-1) + fib(n-2); print fib(3)'
+3
+
+real    0m0.046s
+user    0m0.024s
+sys 0m0.020s
+
+user@debian ~ $ time python -c 'fib = lambda n: 1 if n &lt; 2 else fib(n-1) + fib(n-2); print fib(35)'
+14930352
+
+real    0m8.338s
+user    0m8.328s
+sys 0m0.004s
+</code></pre>
+<p>(/ 14930352 (- 8.338 .046)) gives us about 1.8 million units per
+second, about 20 times slower.</p>
+<p>Jython is in the same speed class, perhaps slightly faster:</p>
+<pre><code>user@debian ~ $ time jython -c 'fib = lambda n: 1 if n &lt; 2 else fib(n-1) + fib(n-2); print fib(35)'
+"my" variable $jythonHome masks earlier declaration in same scope at /usr/bin/jython line 15.
+14930352
+
+real    0m10.383s
+user    0m15.208s
+sys 0m0.896s
+user@debian ~ $ time jython -c 'fib = lambda n: 1 if n &lt; 2 else fib(n-1) + fib(n-2); print fib(3)'
+"my" variable $jythonHome masks earlier declaration in same scope at /usr/bin/jython line 15.
+3
+
+real    0m3.768s
+user    0m7.776s
+sys 0m0.360s
+</code></pre>
+<p>PyPy is better, only about three times as slow as Node:</p>
+<pre><code>user@debian ~ $ time pypy -c 'fib = lambda n: 1 if n &lt; 2 else fib(n-1) + fib(n-2); print fib(3)'
+3
+
+real    0m0.066s
+user    0m0.056s
+sys 0m0.008s
+user@debian ~ $ time pypy -c 'fib = lambda n: 1 if n &lt; 2 else fib(n-1) + fib(n-2); print fib(42)'
+433494437
+
+real    0m29.576s
+user    0m29.532s
+sys 0m0.040s
+</code></pre>
+<p>As a sort of gold performance standard for this machine, here’s a C
+implementation of the same dumb algorithm, which, compiled with <code>gcc
+-O</code>, is more than twice as fast as Node:</p>
+<pre><code>user@debian ~/dev3 $ cat fib.c
+fib(n) { return n &lt; 2 ? 1 : fib(n-1) + fib(n-2); }
+main(int c, char **v) { printf("%d\n", fib(atoi(v[1]))); }
+user@debian ~/dev3 $ time ./fib 35
+14930352
+
+real    0m0.186s
+user    0m0.180s
+sys 0m0.004s
+user@debian ~/dev3 $ time ./fib 42
+433494437
+
+real    0m5.073s
+user    0m5.064s
+sys 0m0.000s
+</code></pre>
+<p>So this is a lot of extra leverage.  If you write an algorithm in a
+straightforward way in Node, you can expect it to run about as fast as
+if you write it in a vectorized way using Numpy, or twenty times as
+fast as if you write it in a straightforward way in CPython.</p>
+<h2>Nginx</h2>
+<p>Nginx (2600 SO questions in 2017) is now almost as popular as Apache
+(4400 questions in 2017), but while Apache’s share of questions is
+unchanged, Nginx’s share of questions in 2017 is double its overall
+share of questions, indicating that its usage is trending sharply
+upward.</p>
+<h2>Slack</h2>
+<p>Aside from how to <em>use</em> Slack effectively for chatting, there’s the
+question of how to build things on it.</p>
+<p>IndieWebCamp has written <a href="https://indieweb.org/link-preview">a bit about how their link preview or
+“unfurling” works</a>, and <a href="https://medium.com/slack-developer-blog/everything-you-ever-wanted-to-know-about-unfurling-but-were-afraid-to-ask-or-how-to-make-your-e64b4bb9254">Slack themselves have explained in
+detail</a>.  Basically they use OpenGraph, which <a href="https://indieweb.org/OGP">IndieWebCamp have
+also documented</a>.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/history.html">History</a> (71 notes)
+</li><li><a href="../topics/protocols.html">Protocols</a> (21 notes)
+</li><li><a href="../topics/js.html">JS</a> (12 notes)
+</li><li>Fashion</li></ul></div></html>

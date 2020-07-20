@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html><title>Laser cut next step ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Laser cut next step</h1><div class="metadata">Kragen Javier Sitaker, 2018-04-27 (updated 2018-04-30)
+(7 minutes)</div><p>I find myself in need of objects that can be easily laser-cut.  The
+deskbox for the office is an example, but there are others: chairs,
+storage boxes, etc.</p>
+<p>I’ve been sitting on this issue for more than a month since I moved.
+In a way, over a year, kind of due to lack of money.  But now I have
+money, and I need to make my things manageable.  And I need to return
+to the learning cycle.</p>
+<p>So far most of the pieces I’ve cut have been 0.01 m², with the
+exception of that one that was about 0.1 m² and didn’t turn out that
+well.  The deskbox is about 1 m²; the bedbox is about 10 m².  So I
+should make some smaller things first.</p>
+<h2>Draining rack</h2>
+<p>At the 0.02 m² level, I could benefit immediately from a draining rack
+for cutlery, maybe with a 100 mm x 200 mm bottom and 150 mm walls, and
+bottom hole diameter of no more than 8 mm so the steak-knife tips
+can’t poke through very far.  Also, for cleanability, it would be nice
+for the bottom to be as thin as possible and have relatively round
+holes, and it would be nice for the joints to have some kind of inside
+radius or at least be relatively rounded for the same reason, and to
+be connected in ways that don’t leave cracks for mold to grow in.</p>
+<p>This couldn’t be made of MDF; acrylic and HIPS are options.  (Max58
+has clear, black, and white acrylic in 2.4, 3, 4, 5, and 8 mm, and
+HIPS in 1 mm.)  Both acrylic and HIPS can be solvent-welded with
+acetone or MEK (and maybe ethyl acetate, I’d have to try it) but
+resist alcohol.  Heat welding and caulking with silicone are plausible
+alternatives.</p>
+<p><a href="http://nerfhaven.com/forums/topic/18527-intro-to-solvent-welding-plastic/">There is a good introduction to solvent welding on the NerfHaven
+forum</a>.  It has a short list of acetone-resistant plastics: Delrin,
+UHMWPE, nylon, Teflon.  Nylon and Teflon resist every solvent on the
+list, and I suppose epoxy would too.  Paint thinner may be my best bet
+in Argentina.</p>
+<p>The bottom holes can be relatively infrequent; they don’t have to fill
+most of the bottom.  The bottom will bow downward with the weight of
+the cutlery, so I need a bottom hole in the middle, at least.</p>
+<p><a href="https://www.makeitfrom.com/material-properties/High-Impact-Polystyrene-HIPS">HIPS supposedly has 40% elongation at break</a>, so I should be able
+to curve it into really ridiculously curvy shapes, to the point of
+origami.  (The ratio of its 32 MPa UTS to its 1.9 GPa tensile modulus,
+however, suggests more like 1.7% elongation.)  Maybe actually the best
+approach would be to cut some darts into the edge of a single piece
+and then weld them shut to make a curvy shape.</p>
+<p><a href="https://www.makeitfrom.com/material-properties/Polymethylmethacrylate-PMMA-Acrylic">PMMA, by contrast, only has 4% elongation at break</a>, which beats
+the hell out of MDF but isn’t very much.  And I’m more sanguine about
+its food safety.  So the 2.4 mm PMMA could presumably be compressed 4%
+on its inner face and stretched 4% on its outer face at 1.2 mm, giving
+a curve radius of 1.2 mm/4% = 30 mm.  This rather implausible result
+suggests that I should be able to bend it into 600mℓ bottles.  I think
+they would be fairly prone to exploding, but maybe they could work.</p>
+<p><a href="https://articulo.mercadolibre.com.ar/MLA-607459053-pet-cristal-03-x-1-metro-x-2-metros-planchas-y-laminas-_JM">PET panes of 0.3mm are available from Maderera Gascón at a lower
+price than acrylic.</a> These are AR$115 for 1×2 m.</p>
+<p>The whole cutlery drainer would be (+ (* 2 200 150) (* 2 100 150) (*
+200 100)) = 110000 mm² or 0.11 m².  If I make it as a box from
+separate pieces, the biggest separate pieces are the 200×150 sides,
+which are 0.03 m², which is the right order of magnitude for this
+project.</p>
+<p>The simplest possibly usable design would be a box with some hooks on
+the side, with a few tabs to keep the pieces aligned while I glue
+them: (+ (* 2 2 (+ 200 150 100 150)) (* 2 (+ 200 100))) = 3000 mm of
+box edges to cut, plus the tabs, the hooks, and the drainage hole.
+Maybe 2 minutes of cutting.</p>
+<p>Or maybe two 100mm-radius approximate semicircles (.0314 m² each) plus
+a 100mm×314mm rectangle (also 0.0314 m²) to bend into a semicircle,
+with a drainage hole in the middle, a couple of tabs to hold it
+together for gluing, and a couple of hooks on the side.  That’s (+ (*
+2 (+ 100 314 200 314))) = 1856 mm of edges to cut, plus the drainage
+hole and the hooks.</p>
+<p>Or maybe both.  Or more possibilities.  If I use 3mm acrylic, it
+should be dimensionally compatible with MDF Heckballs, but awesomely
+transparent and stuff.  If the acrylic sheet is 600×400 (.24 m²) I
+have room for about 8 pieces of this size, so basically both cutlery
+drainers and not much else.</p>
+<p>A 600×400 mm sheet of acrylic might cost AR$300 or AR$400.  If cutting
+still costs AR$0.40 per second and cutting is 24 mm per second plus
+60 ms per vertex, we have only about 90 seconds of cutting for the
+semicircle thing and another 200 seconds of cutting for the box (99%
+edge, 1% vertex), totalling like 300 seconds and AR$120.  This
+suggests that the quality of the product could be improved
+dramatically at minimal extra cost; doubling the cut time by using
+100× as many vertices would be a minimal problem, for example, and
+there’s plenty of time to engrave surfaces and scallop edges and
+stuff.</p>
+<h2>Bowls</h2>
+<p>While I’m at it maybe I should make some bowls or something.  PMMA is
+about 1.2 g/cc, so 8mm PMMA should weigh almost 1g/cm².  So an 0.03 m²
+bowl (crudely: 0.01 m² of base, plus four sides of 0.005 m²
+each — 100 mm × 100 mm × 50 mm) would be 300 g.</p>
+<h2>Other stuff</h2>
+<p>I’ve moved again!  Now I have no housewares.</p>
+<p>I need fans, and I have motors and power supplies.  A pinwheel-like
+structure should be easy to cut out of thin HIPS; also I should be
+able to assemble something out of sheets of acrylic or even MDF.</p>
+<p>I now need an entire draining <em>rack</em>.</p>
+<p>I’d like to make some IQLights.  These can be laser-cut out of HIPS as
+well, I think.</p>
+<p>I’d like a dehydrator, an apparatus that runs heated air through a
+serpentine airflow with food or other things on shelves.  I’d like a
+dehydrator for food, a dehydrator for garbage (so the garbage doesn’t
+become food), and a dehydrator for laundry, although that may be
+aiming a bit high.</p>
+<p>I need chairs.  A relatively small amount of PMMA should suffice to
+make a sittable chair, but it will be somewhat fragile, and
+potentially cut you if it breaks.</p>
+<p>Sheets of PMMA should work adequately as cutting boards.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/materials.html">Materials</a> (112 notes)
+</li><li><a href="../topics/digital-fabrication.html">Digital fabrication</a> (42 notes)
+</li><li><a href="../topics/sheet-cutting.html">Sheet cutting</a> (10 notes)
+</li><li><a href="../topics/laser-cutters.html">Laser cutters</a> (10 notes)
+</li></ul></div></html>

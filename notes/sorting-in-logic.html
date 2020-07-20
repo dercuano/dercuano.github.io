@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html><title>Sorting in logic ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Sorting in logic</h1><div class="metadata">Kragen Javier Sitaker, 2019-12-28
+(2 minutes)</div><p>I was thinking about Prolog as I lay in bed last night, and I came up
+with this:</p>
+<pre><code>%% Sorting a sequence of numbers: a constructive definition.
+
+%% Choosing an element from a nonempty sequence:
+choose([X|Xs], X, Xs).
+choose([X|Xs], Y, [X|Ys]) :- choose(Xs, Y, Ys).
+
+%% Permutations of sequences.
+perm([], []).
+perm([X|Xs], [A|As]) :- choose([X|Xs], A, B), perm(B, As).
+
+%% Ordering of sequences.
+ordered([]).
+ordered([_]).
+ordered([X, Y | Xs]) :- X =&lt; Y, ordered([Y | Xs]).
+
+%% Sorting.
+sorted(Xs, Sorted) :- perm(Xs, Sorted), ordered(Sorted).
+</code></pre>
+<p>This can, in fact, be used in an ordinary Prolog system to sort a
+sequence of numbers:</p>
+<pre><code>?- sorted([5, 1, 3, 7, 8, 9, 2, 6, 4], X).
+X = [1, 2, 3, 4, 5, 6, 7, 8, 9] ;
+false.
+</code></pre>
+<p>However, Prolog's standard evaluation order makes this a ridiculously
+inefficient way to sort, taking a factorial number of steps.</p>
+<p>What would you do if you wanted to evaluate this definition
+efficiently?  <code>perm/2</code> with its first argument instantiated generates
+its permutations left to right, and <code>ordered/1</code> inspects permutations
+left to right; it is clear that no sequence of the form <code>[2, 1 | As]</code>
+can ever pass <code>ordered/1</code>, so there is no need for <code>perm/2</code> to recurse
+to generate alternatives for <code>As</code> in that case.  Suppose you could
+propagate that nogood set from one branch of the program to the other;
+would that give you an O(N²) sorting algorithm?</p>
+<p>I don't think so, because in the example above, there is only one
+correct initial sequence of 2 items, and 35 other pairs of 2 items
+that must be tried and rejected --- but rejecting them involves trying
+everything that can follow them.  I'm not totally sure.</p>
+<p>This is a reasonably efficient insertion sort with Prolog's usual
+semantics, but I think it's still O(N³):</p>
+<pre><code>isort([], []).
+isort([X | Xs], Ys) :- isort(Xs, Sx), choose(Ys, X, Sx), ordered(Ys).
+</code></pre>
+<p>This is vaguely related to <a href="../notes/generic-programming.html">Generic programming with proofs, specification, refinement, and specialization</a>.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/sorting.html">Sorting</a> (8 notes)
+</li><li><a href="../topics/prolog.html">Prolog and logic programming</a> (8 notes)
+</li></ul></div></html>

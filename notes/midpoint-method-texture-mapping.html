@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html><title>Midpoint method texture mapping ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Midpoint method texture mapping</h1><div class="metadata">Kragen Javier Sitaker, 2019-06-01
+(3 minutes)</div><p>I was thinking about <a href="https://zzz.dog/">Zdog</a> and my <a href="http://canonical.org/~kragen/sw/81hacks/topopt-ar">similar
+<code>&lt;canvas&gt;</code> hack</a>
+the other day for <a href="../notes/dercuano-drawings.html">Dercuano drawings</a>, and today watching Κορη play a
+slightly-3D game, it occurred to me that a little bit of
+texture-mapping would go a long way to help the illusion of depth.</p>
+<p>But both my hack and Zdog are based on, basically, spheres.  How do
+you texture-map a sphere?  The mapping from screen space to texture
+uv-coordinates has a couple of singularities (where the line of sight
+is tangent to the sphere) and so can’t be reasonably approximated with
+a polynomial; Babbage’s Method of Finite Differences is out of the
+question.</p>
+<p>Consider the plane that includes the viewpoint and a scan line on the
+screen.  The intersection, if it exists, between a sphere and this
+plane is a circle; along that circle we will find the points on the
+sphere that are visible in that scan line.  If we consider only
+orthographic projection for a moment, we can use the standard midpoint
+algorithm for rasterizing circles to find the coordinates of the
+points in this circle.  We may be able to use texel-sized steps if the
+sphere is close enough.</p>
+<p>If we’re using a solid texture, that’s all we need — we apply the
+texture function (suitably strength-reduced) to the coordinates and
+get the colors to paint, but if we’re using a flat texture, we may
+need to map from 3-D space to the texture’s uv-space.  Ideally we can
+use a polynomial fit (again, strength-reduced) to map into that space.</p>
+<p>Adding perspective back in is a matter of stretching the middle of the
+scanned texture pixels while compressing the ends, some all the way to
+zero.  We should be able to do this with a simple polynomial
+approximation, probably cubic, of the transformation from the
+orthographic view to the perspective view.</p>
+<p>Actually, though, can’t we do this all the way through?  The
+transformation from screen pixel space to texel space has two
+singularities in it, but the inverse transformation, from texel space
+to screen pixel space, is singularity-free and actually relatively
+calm.  Perhaps we can just walk along the texels on the appropriate
+path along the sphere’s texture map, with a stride size small enough
+to transform at least two texels to every screen pixel, transforming
+each one to screen space and painting it into a screen buffer.  A
+strength-reduced cubic spline should be perfectly adequate.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/circle-midpoint-algorithm.html">Circle midpoint algorithm</a> (2 notes)
+</li></ul></div></html>

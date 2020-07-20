@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html><title>Fast mathematical optimization with affine arithmetic ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Fast mathematical optimization with affine arithmetic</h1><div class="metadata">Kragen Javier Sitaker, 2019-09-15
+(5 minutes)</div>
+<p>Suppose that, like most days, we’re trying to find a local minimum of
+a univariate function <em>f</em>(<em>x</em>) we can automatically differentiate with
+a continuous derivative.  By using affine arithmetic, we should be
+able to get both quadratic convergence to the minimum, under
+Newton–Raphson-like conditions, and a guarantee of global optimality.</p>
+<h2>Newtonish–Raphsonish root finding with affine arithmetic</h2>
+<p>Suppose that the derivative is continuous (though not necessarily
+Lipschitz) and our automatic differentiation procedure supports
+reduced affine arithmetic, so that we can evaluate the function’s
+derivative <em>f'</em>(<em>x</em>) at “points” that are really affine forms
+describing some interval [<em>x</em>₀, <em>x</em>₁], such as an interval with a zero
+in it, and get back an affine form that gives a linear approximation
+<em>k</em> + <em>a</em>₀<em>x</em> and a fairly tight worst-case error <em>a</em>₁ from that
+approximation <em>x</em> ∈ [<em>x</em>₀, <em>x</em>₁] ⇒ ∃<em>ε</em> ∈ [-1, 1]: <em>f'</em>(<em>x</em>) = <em>k</em> +
+<em>a</em>₀<em>x</em> + <em>a</em>₁<em>ε</em>.  (Affine arithmetic is discussed at some length in
+<a href="../notes/affine-database.html">An affine-arithmetic database index for rapid historical securities formula queries</a> and <a href="../notes/affine-arithmetic-optimization.html">Affine arithmetic optimization</a>.)</p>
+<p>This allows us to bound the zero of the derivative, and thus the
+critical point of <em>f</em>(<em>x</em>), to a generally much smaller interval: <em>x</em>
+must be between -(<em>k</em> - <em>a</em>₁)/<em>a</em>₀ and -(<em>k</em> + <em>a</em>₁)/<em>a</em>₀.  In fact,
+<em>every</em> zero of the derivative within the original interval is
+guaranteed to be within that new interval, so in cases where the new
+interval is larger or fails to be sufficiently smaller than the
+original, we must be prepared instead to subdivide the interval and
+recurse on each subinterval.</p>
+<h3>Rate of convergence and global optimality</h3>
+<p>I was thinking about trying to do a rigorous proof here but instead
+I’m just going to handwave because it’s almost 4 AM.  Generally the
+(vertical) error bounds affine arithmetic gives you are proportional
+to the second derivative of the function you’re calculating (which is
+itself a derivative in the above), unrelated to its first derivative,
+and inversely proportional to the square of the interval width.  This
+is pretty much the same situation as Newton–Raphson iteration or the
+method of secants, so you should expect it to converge quadratically
+under the same conditions that they do.</p>
+<p>If you can figure out how to make an initial interval that is big
+enough to contain all the local optima, then this approach is
+guaranteed to find all the local optima and in fact all the critical
+points; you can use branch-and-bound to avoid recursing too deeply in
+areas where the local optima are not as good as the worst case in
+other areas where you are also searching, so even functions with a
+large number of critical points may be tractable.</p>
+<h2>Indirect multidimensional optimization, and root-finding in general</h2>
+<p>This can, of course, be used to find zeroes of functions that aren’t
+derivatives of anything of special interest, and I think that’s where
+I got the idea — from people using this approach for raytracing of
+implicit surfaces, specifically Gamito and Maddock’s paper from 2004
+or 2005, “Ray Casting Implicit Fractal Surfaces with Reduced Affine
+Arithmetic”, §4.3, p. 6, fig. 2.  But it seems like an approach that could be
+extremely fruitful for mathematical optimization.  In <a href="../notes/adaptive-hill-climbing.html">Robust local search in vector spaces using adaptive step sizes, and thoughts on extending quasi-Newton methods</a> I suggested cutting a multidimensional
+function along a gradient line to get a one-dimensional function
+that’s easier to optimize, an approach I haven’t tried yet, but it
+seems like this approach would work for it.</p>
+<h2>Direct multidimensional optimization</h2>
+<p>Alternatively, it might be feasible to use this approach more directly
+for multidimensional optimization.  There’s a paper out a few years
+back about a correct algorithm using interval arithmetic for
+multidimensional optimization, using a branch-and-bound approach, but
+as I understand it, it has the problem that it is very slow on
+high-dimensional spaces.  Suppose you look for a zero of some gradient
+<em>g⃗</em> as Σ<em>ᵢgᵢ</em>² or Σ<em>ᵢ</em>|<em>gᵢ</em>| using a variant of the method above,
+using reduced affine arithmetic to compute bounds on this (squared)
+gradient magnitude or other gradient norm over some multidimensional
+box; I think this should take time merely proportional to the
+dimensionality.</p>
+<p>The magnitudes of the coefficients in the resulting affine form should
+tell you how sensitive the gradient is to your location within the box
+along each dimension; to some extent you can trade off shrinking the
+box along one dimension against shrinking it along another dimension,
+but it’s hard to know which dimension is optimal to shrink most in.</p>
+<p>Maybe if we automatically differentiate our reduced-affine-arithmetic
+program, we can get the gradient of the error bars on the (original
+function’s) gradient norm, with respect to the bounds of the box we’re
+evaluating the gradient over.  This would tell us which dimensions of
+the box are most important to shrink in order to reduce the
+uncertainty in the gradient.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/optimization.html">Mathematical optimization</a> (29 notes)
+</li><li><a href="../topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li><li><a href="../topics/newton-raphson.html">Newton–Raphson iteration (“Newton’s method”)</a> (6 notes)
+</li><li><a href="../topics/automatic-differentiation.html">Automatic differentiation</a> (6 notes)
+</li><li><a href="../topics/gradient-descent.html">Gradient descent</a> (3 notes)
+</li></ul></div></html>

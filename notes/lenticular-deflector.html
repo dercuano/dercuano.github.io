@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html><title>Lenticular deflector ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Lenticular deflector</h1><div class="metadata">Kragen Javier Sitaker, 2019-09-08 (updated 2019-09-09)
+(9 minutes)</div><p>I think I might have a solution to the problem of deflecting
+macroscopic light beams through large angles under electronic control
+at submicrosecond time scales, using a
+plano-convex lens and a plano-concave lens, which translate relative
+to each other — or, rather, an array of each, like the surface of a
+lenticular 3-D image.  Then you can get large light deflections out of
+submicron movements.</p>
+<h2>The problem of electronically rapidly deflecting light</h2>
+<p>One of the problems I’ve frequently confronted — in, for example, <a href="../notes/bokeh-pointcasting.html">Bokeh pointcasting</a>, <a href="../notes/photodiode-camera.html">Photodiode camera</a>, and <a href="../notes/ccd-oscilloscope.html">CCD oscilloscope</a> — is how to rapidly change the direction of light
+beams, such as laser beams, under the control of some kind of control
+system, such as an electronic circuit.  This is a standard problem, and Michelson
+and Morley’s 19th-century solution to it — a prismatic mirror spinning
+on an air bearing — led to new measurements of the speed of light and
+is used today in, among other things, supermarket scanners and laser
+printers.  (I think it also led to the modern dentist’s drill.).
+However, the spinning mirror has a lot of momentum, so while the
+movement is very predictable, it is not very controllable.</p>
+<p>Modern laser light shows confront this problem with “laser galvos”,
+descendants of the old instrument for measuring small currents — a
+galvanometer connected to a mirror rather than a needle.  These are
+used in pairs, one for X deflection and one for Y deflection.  Galvos
+for laser shows are rated in “kpps”, thousands of points per second,
+and a few tens of kpps is typical.</p>
+<p>Contrast this with the electron gun in a CRT.  High-end mass-market
+CRT computer monitors in the early 2000s supported 1200 scan lines at
+a 72 Hz refresh rate, meaning that even with magnetic deflection, they
+could scan the electron beam across the screen in a sawtooth-wave
+pattern at 86 kHz.  Analog oscilloscopes, using electrostatic
+deflection, routinely managed 20 MHz vertical deflections with 3 dB
+attenuation; high-end ones could reach 100 MHz.  To look at it a
+certain way, that’s 200 000 kpps.</p>
+<p>The limitation on galvos is that mirrors have mass, which makes it
+harder to move them.  If you try to make them smaller so that they
+have less mass, you suffer from divergence problems, where focusing
+the laser beam onto a smaller mirror narrows the beam waist and
+induces beam spreading through diffraction.</p>
+<p>This is a serious problem: light can change direction in femtoseconds,
+and it’s easy to switch electricity in nanoseconds, but changing the
+direction of light with electricity takes microseconds.  Isn’t there
+any way to get that number down to hundreds of nanoseconds or better,
+without suffering milliradians of divergence?</p>
+<p>Well, there are lots of things that might work, like Kerr cells and
+dynamic LCD holography and ultrasonic gratings and whatnot, but I
+think I’ve found a good one.</p>
+<h2>Neutral meniscus lenses</h2>
+<pre><code> _
+)_)
+</code></pre>
+<p>A meniscus lens is concave on one side and convex on the other; it can
+be designed concave, convex, or neutral, so that collimated on-axis
+light entering the convex side comes out still collimated on the
+concave side.  The exiting light is brighter and does not cover all of
+the lens; this effect gets stronger as the lens gets thicker, reaching
+a singularity when the lens thickness is the focal length of the
+convex side and, in the geometric-optics approximation, the light
+would come out in an infinitely thin pencil.</p>
+<h2>The sliced neutral meniscus lens</h2>
+<p>Take a neutral meniscus lens that is thick enough to be sliced along a
+flat plane parallel to its curved surfaces without interrupting either
+surface, and slice it in this way, dividing it into a plano-convex
+lens and a plano-concave lens.  Separate the two halves by just enough
+air or oil to equal the delay of the glass removed.  Aside from the
+stray light reflections at the new surfaces, this compound lens still
+behaves precisely as before, leaving collimated light collimated, but
+making it brighter.</p>
+<pre><code>      __
+----/|| /
+   | |||----
+---|-|||----
+   | |||----
+----\||_\
+</code></pre>
+<p>However, if we slide the two halves relative to each other, retaining
+flat-surface parallelism and distance, the collimated light exiting
+will change direction.  If we slide the plano-concave half up, for
+example, the light passing through the center of the plano-convex
+lens, previously not deflected at all, now finds itself exiting just
+below the center of the plano-concave half, and so is refracted
+slightly down.  The light a little above it enters the plano-convex
+lens and is refracted down, but exits through the center of the
+plano-concave lens, continuing its trajectory parallel to the other
+beam.</p>
+<p>The beam remaining collimated depends on the deflection being linear
+with off-axis distance, and this linearity is not perfect.  I think
+it’s pretty good over ±30°, though, especially if the lens system is
+thick enough.</p>
+<h2>Microlens arrays</h2>
+<p>Consider the case where instead of one lens we have many, like two
+layers of that lenticular plastic covering that covers those 3-D
+parallax Jesus cards, except that the lenslets on one of them are
+concave:</p>
+<pre><code>       __
+----/|| /
+   | |||----
+---|-|||----
+   | |||----
+----\|| \
+----/|| /
+   | |||----
+---|-|||----
+   | |||----
+----\|| \
+----/|| /
+   | |||----
+---|-|||----
+   | |||----
+----\||_\
+</code></pre>
+<p>This exhibits the same direction-changing behavior over the same angle
+with the same displacement as the single lens, but can handle a great
+deal more light.</p>
+<p>You could fabricate this with little hexagonal lenslets in two
+dimensions, so that you can slide the two sheets relative to each
+other in two dimensions and deflect light on two axes, or you could
+fabricate it as two prismatic solids with complicated profiles
+amounting to many concatenated “cylindrical” lenses, like the typical
+3-D lenticular parallax Jesus cards, and get only one dimension of
+displacement.</p>
+<h2>How fast can you move a thing?  Tens of microseconds if it’s 100 mm</h2>
+<p><a href="https://www.nde-ed.org/EducationResources/HighSchool/Sound/speedinmaterials.htm">The speed of sound in glass is commonly about 4500 m/s</a>
+though <a href="https://www.engineeringtoolbox.com/sound-speed-solids-d_713.html">it varies from 4000–6000 m/s for different glasses</a>.
+Suppose you have a 100-mm-wide
+sheet of these lens things and you give it a shove on one edge,
+parallel to its surface, say with a piezoelectric actuator.  That
+shove produces a sound wave that bounces back and forth through the
+glass about ten times before the whole thing has settled, in about
+220 μs, using the above estimate of its speed of sound.</p>
+<p>This sounds dismayingly slow, but I don’t think the picture is that
+bleak.  It’s true that you have <em>latency</em> in the tens of microseconds,
+but it’s very consistent, predictable latency.  You can inverse-filter
+for the phase delay.  XXX what about variation across the sheet while
+it’s strained?  Just turn the laser off except at key moments?</p>
+<p>You might also be able to improve the situation with some acoustic
+impedance matching: some kind of matched resistance on the other side
+of the glass sheet that absorbs the shock and keeps it from bouncing
+back.  That doesn’t save you the initial 22-μs latency, but it means
+you don’t have to contend with reflection.</p>
+<p>This doesn’t depend on the thickness of the sheet, as long as it’s
+stiff enough not to buckle.</p>
+<h2>How small can you make the lenslets?</h2>
+<p>If you make the lenslets smaller than the wavelength of the light in
+question, they won’t work at all.  I think the variation in phase
+delay needs to be about half a wavelength from the center of the
+lenslet to its edge.  That makes me think you should be able to make
+them on the order of 100 μm wide for visible light, even for fairly
+shallow curvatures.</p>
+<p>That means that the relative movements between the lenslet sheets to
+get light deflections can be on the order of 1 μm.</p>
+<h2>Uncertainty</h2>
+<p>Is it possible to deal with the acoustic delay somehow?</p>
+<p>Will the light coming out of each lenslet have a different phase delay
+from the light coming out of the other lenslets?  Does this mean that
+each individual beamlet will diffract on its own, giving a uselessly
+large divergence?</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/physics.html">Physics</a> (119 notes)
+</li><li><a href="../topics/mechanical.html">Mechanical things</a> (45 notes)
+</li><li><a href="../topics/optics.html">Optics</a> (34 notes)
+</li><li><a href="../topics/light-deflection.html">Light deflection</a> (2 notes)
+</li></ul></div></html>

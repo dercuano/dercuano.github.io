@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html><title>Digital noise generators ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Digital noise generators</h1><div class="metadata">Kragen Javier Sitaker, 2018-10-28
+(2 minutes)</div><p>The traditional approach to generating noise with a digital circuit is
+to use a maximal-length LFSR, which has the great advantage of using
+only a single bit operation per generated bit, although XOR is perhaps
+a somewhat more complicated bit operation than NAND or abjunction.</p>
+<p>A crucial feature of the LFSR is that its state transitions are
+reversible; they do not lose information.  Consequently its cycles
+form a partition of the state space; every state is the successor of
+some state, by a counting argument.  In maximal-length LFSRs, there
+are two cycles: one of period 1, containing just the zero state, and
+one containing all the other states.</p>
+<p>When thinking about generating digital noise on CPUs, it is
+interesting to think about other available reversible operations.  For
+example:</p>
+<ul>
+<li>Rotating left or right by a constant number of bits.</li>
+<li>Adding or XORing a constant.</li>
+<li>Multiplying by an odd number.<ul>
+<li>As a special case, 2’s-complement negation.</li>
+</ul>
+</li>
+<li>Permuting the bits or bytes of the state vector with a constant
+  permutation.</li>
+<li>XORing any part of the state vector with the state vector, as long
+  as no bits XOR with themselves, which is irreversible.</li>
+<li>Multiplying by a constant m modulo some other relatively prime
+  constant n, iff the current state is less than n.</li>
+<li>Running an arbitrary substitution on the bit vector via a constant
+  lookup table.</li>
+</ul>
+<p>These are, as it turns out, the usual building blocks of symmetric
+cryptosystems and hash functions.</p>
+<p>What if we investigate the periods and spectra of the functions
+comprised of different sequences of these operations?  Perhaps we
+could find something that was fast to execute on a CPU, but also
+provided long-period white noise.</p>
+<p>Such techniques are also useful for hashing to, for example, generate
+Perlin noise.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/instruction-sets.html">Instruction sets</a> (40 notes)
+</li><li><a href="../topics/noise.html">Noise</a> (2 notes)
+</li></ul></div></html>

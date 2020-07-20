@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html><title>Dercuano backlinks ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Dercuano backlinks</h1><div class="metadata">Kragen Javier Sitaker, 2019-05-22
+(7 minutes)</div><p>I want to add backlinks to Dercuano articles.</p>
+<h2>Backlinks</h2>
+<p>Backlinks are the Wiki feature which shows you all the pages that link
+to a page; they make links in some sense bidirectional, and they
+allowed us to categorize pages on Wiki years before Wikipedia — you
+would just create a page called CategoryWhatever and then link to it
+from whatever pages you thought should belong to it, and look at its
+backlinks page.</p>
+<p>I think having backlinks will improve Dercuano’s navigability
+dramatically.</p>
+<h2>Desired implementation in Dercuano</h2>
+<p>In Dercuano I’d like to display the backlinks on the same page as the
+rest of the article, maybe at the end, and ideally with a bit of
+context.  This is especially helpful when I have a later note that
+essentially obsoletes an earlier one.</p>
+<h2>Implementation techniques</h2>
+<p>Dercuano goes to some amount of trouble to avoid rerendering notes
+unnecessarily, because rerendering all the notes takes 28 seconds on
+my laptop, while just regenerating the categories and the index page
+takes only 6.3 seconds.  A more detailed timing breakdown (as of
+dercuano-20190522):</p>
+<pre><code>|                                        |   sec |
+| rerendering all the notes              |    28 |
+| just regenerating categories and index |   6.3 |
+| instantiating Bundle and all Notes     |   0.5 |
+| reading `triples`                      | 0.065 |
+| bundle.generate_index()                |   2.0 |
+| bundle.generate_categories()           |   2.9 |
+</code></pre>
+<p>Actually about a quarter of this time to generate categories and
+indices is finding note titles, and another 10% is finding the notes
+in a category; most of the rest is generating HTML, though some of it
+is querying the unnecessarily inefficient triple store, which is also
+a factor in the note titles being slow.  But 77% of the execution time
+is rendering notes, which is mostly a matter of running Markdown,
+though it actually spends about 25% of its time finding the notes in a
+category too.</p>
+<p>So Dercuano is a lot more usable when it doesn’t rerender notes when
+it doesn’t have to, although it produces incorrect results when it
+fails to rerender notes whose titles and categories have changed.  The
+trouble is, the point at which we learn about the backlinks is when we
+render the bodies of the notes.  (At present, repl() on line 469
+inside <code>replace_links</code> is getting called 3095 times, some of which it
+finds a backlink.)</p>
+<p>One of the things I’d like to do is do the actual rendering in
+subprocesses, so that I can run four or so of them; ideally, this
+should speed up the 22 seconds of rendering to 5.5 seconds, although
+lazy memoization may result in some duplication of work between the
+subprocesses.</p>
+<p>Without caching, the minimal-work way of handling the
+unknown-backlinks problem would be to do it in two phases: one phase
+where we render all the bodies, and a second phase where we render all
+the backlinks.  However, this adds complication if we want to farm the
+rendering out to subprocesses, since they would then need to deliver
+both the backlinks and the bodies back to the main process, probably
+via the firesystem.</p>
+<p>A different approach would be to store the relevant backlinks in the
+filesystem somehow, in the output directory probably, and rerender the
+page when its backlinks change.  Most of the time, they wouldn’t
+change even when some other note that links to it changes, but when
+they do, this could require you to render the same note twice in the
+same run.  In particular this results in rendering nearly all the
+notes twice when starting from a missing output directory, since at
+first each note is rendered with no backlinks, and then later it will
+be rendered with backlinks.</p>
+<p>…this suggests I should optimize the triple store a bit and profile my
+execution times again.  So I did.  Upon adding code to index the
+triple store on startup, the Bundle instantiation time ballooned from
+0.50 s to 0.55 s; upon using it, the build-from-scratch time went down
+from 28 s to 18 s, and the just-rebuild-index-and-categories time went
+from 6.3 s to 2.5 s.  Now the top time consumers are all Markdown
+rendering functions, except for 650 ms waiting for tar to finish.</p>
+<p>This in some sense makes the case for avoiding and parallelizing
+Markdown rerendering more urgent than before: previously Markdown took
+75% of the runtime, and now it takes 85%.</p>
+<p>So, my thought is to do the following:</p>
+<ol>
+<li>At program startup, read all the backlinks.</li>
+<li>For each note:<ol>
+<li>Generate a glob of metadata for a note from the triple store
+   (for example, the titles and note counts of categories) and the
+   backlinks.</li>
+<li>Compare the glob of metadata to the previous glob of metadata for
+   that note, stored on disk.  If it’s the same and the note source
+   file hasn’t changed, continue to the next note.</li>
+<li>Render the note and generate backlinks.</li>
+<li>Store the glob of metadata and the backlinks.</li>
+</ol>
+</li>
+<li>Update the backlinks store and do #2 a second time.  A second time
+   should be sufficient to reach a fixed point.  This should be done
+   automatically, rather than requiring the user to do it as
+   L<sup>A</sup>T<sub>E</sub>X does.</li>
+</ol>
+<p>This requires separate stores for the glob of inputs for a note and
+the glob of outputs (including backlinks).  I’m thinking this can be
+in places like .meta/cheap-frequency-detection.inputs and
+.meta/cheap-frequency-detection.outputs for the note
+notes/cheap-frequency-detection.html.</p>
+<p>The code path actually needs to be a little bit more complicated,
+because the set of other notes’ titles that the note HTML depends on
+is a function of the note source file’s contents, and finding out what
+that set is presently would require us to rerender the Markdown, which
+is what we’re trying to avoid.  But we don’t actually need to go that
+far — if the source file has changed, we need to rerender it anyway.</p>
+<p>We could imagine storing the titles of notes parsed from the HTML in
+the same store as the backlinks (thus the filename .output rather than
+.backlinks) in order to avoid opening and parsing the same files
+multiple times.</p>
+<p>This is of course very much the kind of thing discussed in
+<a href="../notes/minimal-dependency-system.html">A minimal dependency processing system</a>, <a href="../notes/dependent-data.html">Fault-tolerant in-memory cluster computations using containers; or, SPARK, simplified and made flexible</a>,
+<a href="../notes/blob-computation-notes.html">Kogluktualuk: an operating system based on caching coarse-grained deterministic computations</a>, and <a href="../notes/dehydrating-processes.html">Dehydrating processes and other interaction models</a>, and to a lesser
+extent <a href="../notes/dependencies.html">Simple dependencies in software</a>.  I haven’t written any of the systems described
+therein, so I need to do it by hand.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/caching.html">Caching</a> (25 notes)
+</li><li><a href="../topics/dercuano.html">Dercuano</a> (16 notes)
+</li><li><a href="../topics/hypertext.html">Hypertext</a> (13 notes)
+</li><li><a href="../topics/dependencies.html">Dependencies</a> (7 notes)
+</li></ul></div></html>

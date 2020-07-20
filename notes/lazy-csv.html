@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html><title>Storing CSV records in minimal memory in Java ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Storing CSV records in minimal memory in Java</h1><div class="metadata">Kragen Javier Sitaker, 2015-09-03
+(6 minutes)</div><p>Objective: store CSV records in minimal memory in Java.  Main
+sub-objective: minimize number of heap allocations without costing too
+much runtime.</p>
+<h2>Brief overview</h2>
+<p>A class per CSV format, with field types defined and fields named.
+Private booleans to indicate whether the fields have been parsed.
+Store CSV line in a char array.  Store comma offsets in int array.
+Actually, use the same array for both.  Loop over the line in getters
+to set the requested field when it's unknown.  Weakly reference String
+fields to avoid either retaining no-longer-used Strings on the heap or
+multiplying a String on the heap because it's gotten many times.
+Optionally intern the Strings in a (possibly weak) hash table to
+handle the common case where many lines have the same value for a
+string field.</p>
+<h2>In more detail</h2>
+<p>From a list of CSV fields and their types, we generate a class
+automatically with a getter method for each field.  Instantiating this
+class with a line from the file leaves behind only two heap
+allocations: one for the instance, and one for an array containing the
+line's characters and the offsets into them where each field starts.</p>
+<p>We could find the field boundaries lazily; in that case, the method
+template code looks something like:</p>
+<pre><code>boolean hasQuarter = false;
+int quarter = -4242;
+int getQuarter() {
+    if (hasQuarter) return quarter;
+if (knownOffsets &lt; 4) findFieldOffsetsUpTo(4);  // ensure offsets[3] ok
+int q = quarter = parseInt(data[3]);
+hasQuarter = true;
+return q;
+}
+</code></pre>
+<p>Thus when you invoke getQuarter() the usual case will be to check the
+boolean, find that it's true, fetch the field, and return it.  The
+next most common case will be to fetch <code>knownOffsets</code>, compare it to
+4, find that it's not less, and jump ahead to the call to <code>parseInt</code>,
+which iterates over the characters from the relevant point in the
+character array; hopefully that will get inlined.</p>
+<p>It might make more sense to always find the field offsets when the
+object is created (i.e. not find them lazily, but rather eagerly),
+because that would avoid storing knownOffsets and conditionally
+testing it every time a field is parsed.</p>
+<h2>Laziness</h2>
+<p>Most of the time that I'm processing CSV files, I don't process all
+the fields.  I might just want the maximum value of a single field,
+for example.</p>
+<p>(I'd actually like to be able to avoid doing even character set
+conversion, since it's both potentially lossy and also uses up CPU
+time for no good reason on fields that I'm not parsing.  Just keep the
+data in byte arrays.  This is inconvenient to do in Java.)</p>
+<h2>Strings</h2>
+<p>Strings are a little more difficult than primitive types like floats
+and doubles, because strings are heap-allocated, so if we're not
+careful, they can eat up a lot of memory and also put pressure on the
+garbage collector.  There are two strategies to deal with this:</p>
+<ol>
+<li>
+<p>Weak references.  A weak reference doesn't prevent an object from
+being collected by the garbage collector, but if the object hasn't
+been garbage-collected yet, it allows you to avoid recreating the
+     object.  So the idea is that when we lazily parse a string field, we
+store a weak reference to the created String value, and return a
+strong reference to it.  As long as the client program holds on to
+that String, we can keep returning references to it, but if it
+releases it, it becomes fair game for the garbage collector, and then
+we may have to recreate it if the program asks for it again.</p>
+</li>
+<li>
+<p>Interning.  Consider this CSV data from the R distribution:</p>
+<pre><code>Name,Country,City,OK,CountryCode
+"Argentina (La Plata)",Argentina,"La Plata",1,ar
+"Argentina (Mendoza)",Argentina,Mendoza,1,ar
+"Australia (Canberra)",Australia,Canberra,1,au
+"Australia (Melbourne)",Australia,Melbourne,1,au
+</code></pre>
+<p>Some of its text columns contain data that will occur only once,
+but other columns are drawn from a small set of alternatives, like
+the world's countries.  The most effective way to reduce memory
+usage for those other columns is to ensure that every CSV object
+returning the string "Argentina" from <code>getCountry()</code> is returning
+a reference to <em>the same</em> String object, so that it only has to
+exist once on the heap.  To achieve this, we'd maintain a hash
+table of existing "interned" strings, and when we want to parse
+out a field, we check to see if it's already in the table before
+we allocate it.</p>
+<p>This is a little bit tricky because using the standard Java
+HashMap or even Hashtable objects requires that we have already
+allocated the String, but a custom hash table implementation
+avoids that problem.</p>
+<p>The potential problem with interning is that if you intern values
+in a unique field, your hash table retains and eventually tenures
+strings that will never occur again and do not need to be
+retained.</p>
+</li>
+</ol>
+<p>These two strategies can be combined to get the best of both worlds: a
+custom hash table containing weak references to Strings both avoids
+duplicate allocation and avoids retaining data that doesn't need to be
+retained.</p>
+<p>Weak references are a little less efficient than strong references.  I
+don't yet know enough about Java's implementation of them to know
+whether they impose an extra cost on the garbage collector (push
+notifications) or on the mutator (pull notifications) or both.</p>
+<h2>Line parsing</h2>
+<p>One very common CSV format, Excel's, allows newlines inside of fields
+as long as they are inside of double quotes.  This implies that you
+cannot simply walk into Mordor by reading a line and turning it into a
+CSV object; you need to involve the CSV-parsing stakeholder earlier in
+the process so that it can tell you when you're done parsing a record.
+And, as long as it's doing that, it might as well remember where the
+fucking commas are.</p>
+<h2>External buffers</h2>
+<p>Going a little bit further to reducing allocations, copying, and
+bounds-checking, we could avoid creating a separate char array for
+each CSV object.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/java.html">Java</a> (5 notes)
+</li><li><a href="../topics/csv.html">Comma-separated values (CSV)</a> (2 notes)
+</li></ul></div></html>

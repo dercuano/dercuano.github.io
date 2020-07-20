@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html><title>Urban autarkic network ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Urban autarkic network</h1><div class="metadata">Kragen Javier Sitaker, 2018-04-27
+(1 minute)</div><p><a href="http://www.raspberry-pi-geek.com/Archive/2017/22/Capture-temperature-data-with-the-ESP8266-and-the-LM75-Sensor">The ESP8266 uses 200 mA at 3.3V when operating</a>, which is 660 mW.
+With a duty cycle of 4.5%, that’s 30 mW; in sleep mode it takes a bit
+under 3 mW.  <a href="https://www.eevblog.com/forum/projects/real-time-low-power-(10mw)-esp8266-expirments/">People report success in getting it to average
+18 mW</a>.  It costs about US$6.  <a href="http://hackaday.com/2014/09/26/esp8266-distance-testing/">Brian Benchoff reports a range of
+366 m</a> with the antenna that’s built into the printed circuit
+board.  The <a href="https://www.digikey.com/product-detail/en/ixys/SLMD121H04L/SLMD121H04L-ND/3463124">IXYS SLMD121H04L solar cell</a> costs US$6.20 in quantity
+1 and yields 89 mW in, presumably, full sun; it’s 43 mm x 14 mm
+(150 μW/mm²).  So you could run an ESP8266 off it during the daytime
+with a fairly reasonable duty cycle, given reasonable power circuits.
+A <a href="https://www.digikey.com/product-detail/en/epcos-tdk/B41231A7109M000/495-6149-ND/3493505">10000 μF 35V TDK aluminum electrolytic capacitor</a> costs US$2.60
+and is 22 mm diameter × 52 mm long; it can store, in theory, 6 joules,
+which is 9 seconds of full-duty-cycle operation.</p>
+<p>You could set up a mesh network of solar-powered ESP8266s 250 m apart
+in order to provide a communication line.  You could drop them in
+trees, on top of smokestacks, on the roofs of industrial buildings,
+painted black.  Each board might cost US$25, so you would need to
+spend US$100 per kilometer.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/electronics.html">Electronics</a> (138 notes)
+</li><li><a href="../topics/pricing.html">Pricing</a> (89 notes)
+</li><li><a href="../topics/independence.html">Independence</a> (63 notes)
+</li><li><a href="../topics/communication.html">Communication</a> (19 notes)
+</li><li><a href="../topics/radio.html">Radio</a> (8 notes)
+</li><li><a href="../topics/arduino.html">Arduino</a> (6 notes)
+</li></ul></div></html>

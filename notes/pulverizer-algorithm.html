@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html><title>Using Aryabhata’s pulverizer algorithm to calculate multiplicative inverses in prime Galois fields and other multiplicative groups ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Using Aryabhata’s pulverizer algorithm to calculate multiplicative inverses in prime Galois fields and other multiplicative groups</h1><div class="metadata">Kragen Javier Sitaker, 2017-01-06 (updated 2019-07-05)
+(4 minutes)</div>
+<p>The extended version of Euclid’s algorithm due to Aryabhata
+(the <a href="https://en.wikipedia.org/wiki/Ku%E1%B9%AD%E1%B9%ADaka">kuṭṭaka</a>
+(कुट्टक) or “pulverizer” algorithm) explains how to find
+the coefficients <em>s</em> and <em>t</em>
+such that <em>sa</em> + <em>tb</em> = gcd(<em>a</em>, <em>b</em>).  Except I
+don’t understand the explanation, so I am going to try to work through
+an example.</p>
+<p>Given 1247 and 1624.</p>
+<pre><code>1624 - 1247 = 377  ∴ 377 + 1247 = 1624
+1247 - 3·377 = 116 ∴ 116 + 3·377 = 1247
+377 - 3·116 = 29   ∴ 29 + 3·116 = 377
+116 - 4·29 = 0     ∴ 4·29 + 0 = 116 ∧ gcd(1624, 1247) = 29
+</code></pre>
+<p>So now I can try to express 29, the GCD, as linear combinations of the
+values on the other lines.  The first one is already done:
+29 = 1·377 - 3·116.  The previous pair was (1247, 377).  How can we
+get 29 as a linear combination of those?  We know that
+1247 = 116 + 3·377, but how does that help?</p>
+<p>Oh!  The thing that helps is actually the other direction:
+116 = 1247 - 3·377, which we can use to eliminate the 116 from
+377 - 3·116 = 29, rewriting it as
+377 - 3·(1247 - 3·377) = 29; 377 - 3·1247 + 9·377 = 29;
+10·377 - 3·1247 = 29.</p>
+<p>Then we can do the same thing again to re-express 29 from a (1247,
+377) basis to a (1624, 1247) basis, because 1624 - 1247 = 377.
+10·(1624 - 1247) - 3·1247 = 29; 10·1624 - 10·1247 - 3·1247 = 29;
+10·1624 - 13·1247 = 29.</p>
+<p>This is useful for finding multiplicative inverses, which only exist
+in the multiplicative group modulo n for numbers relatively prime to
+n.  In this case, if we divide by 29, we find that 10·56 - 13·43 = 1,
+so modulo 56, -13 (=43) and 43 are multiplicative inverses, and modulo
+43, 10 and 56 are.</p>
+<p>So after all these years I understand how to find multiplicative
+inverses efficiently in a Galois field.  At least a Galois field of
+prime order.</p>
+<p>If a multiplicative group order is a prime <em>n</em>, then you can also find the
+multiplicative inverse by taking to the power <em>n</em>-2, by Fermat’s Little
+Theorem, so, for example, 56⁴¹ % 43 = 10.  But that doesn’t work in
+general for multiplicative groups of any order: 56⁴² % 44 = 12, but
+because 56 and 44 have a common factor of 4, 56 has no multiplicative
+inverse in ℤ/44ℤ; 43⁵⁴ % 56 is 1, which not its multiplicative inverse
+in ℤ/56ℤ, because 1 is always its own multiplicative inverse.  43 is,
+as I said, its own multiplicative inverse in ℤ/56ℤ, and the pulverizer
+algorithm can compute this just as well without the extra confounding
+factor of 29:</p>
+<pre><code>56 - 43 = 13;
+43 - 3·13 = 4;
+13 - 3·4 = 1
+= 13 - 3·(43 - 3·13) = 10·13 - 3·43
+= 10·(56 - 43) - 3·43 = 10·56 - 13·43
+</code></pre>
+<p>Can I formalize this algorithm?  The forwards-backwards ordering seems
+to suggest recursion; we could perhaps try to define a function
+egcd(<em>a</em>, <em>b</em>) → (<em>s</em>, <em>t</em>, <em>g</em>) such that <em>sa</em> + <em>tb</em> = <em>g</em> and <em>g</em> =
+gcd(<em>a</em>, <em>b</em>).  The base case of the recursion would be, I suppose,
+that <em>a</em> % <em>b</em> = 0, in which case a valid answer is (0, 1, <em>b</em>).
+Otherwise, we have <em>q</em> = <em>a</em> // <em>b</em> and <em>r</em> = <em>a</em> % <em>b</em>, so <em>a</em> - <em>qb</em>
+= <em>r</em>, and we need to recurse with <em>s</em>, <em>t</em>, <em>g</em> = egcd(<em>b</em>, <em>r</em>).
+Assuming that succeeds somehow, we have <em>sb</em> + <em>tr</em> = <em>g</em>, so we can
+deduce that <em>g</em> = <em>sb</em> + <em>t</em>(<em>a</em> - <em>qb</em>) = (<em>s</em> - <em>tq</em>)<em>b</em> + <em>ta</em>, so
+we can return (<em>t</em>, <em>s</em> - <em>tq</em>, <em>g</em>).</p>
+<p>In Python:</p>
+<pre><code>def egcd(a, b):
+    q, r = divmod(a, b)
+    if r == 0:
+        return 0, 1, b
+
+    s, t, g = egcd(b, r)
+    assert s*b + t*r == g
+    return t, s - t*q, g
+</code></pre>
+<p>Applied, for example, to (70, 24), this gives -1·70 + 3·24 = 2, so in
+ℤ/12ℤ, 35⁻¹ = 11⁻¹ = -1 = 11, and in ℤ/35ℤ, 12⁻¹ = 3, both of which
+are correct.</p>
+<p>They say it is possible to extend this algorithm to non-prime-order
+Galois fields GF(<em>pⁿ</em>) where <em>n</em> &gt; 1 by using polynomial division, but I
+do not yet understand that.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li>Aryabhata</li></ul></div></html>

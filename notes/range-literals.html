@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html><title>Range literals ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Range literals</h1><div class="metadata">Kragen Javier Sitaker, 2014-04-24
+(6 minutes)</div><h2>Range literals</h2>
+<p>Python syntax and semantics, considered as executable pseudocode, has
+a curious wart relating to ranges of numbers.  Because it’s so common
+to store data in arrays in Python (called "lists"), this wart comes up
+often.</p>
+<p>This is: if we want to iterate over the numbers 1 to 15 (excluding
+15), we have to write:</p>
+<pre><code>for i in range(1, 15):
+    ...
+</code></pre>
+<p>But if we want to do something <code>f</code> with the corresponding elements of
+an array <code>arr</code>, we must write:</p>
+<pre><code>f(arr[1:15])
+</code></pre>
+<p>It’s possible to store the object encapsulating those indices from 1
+and 15 in another object and pass it to <code>arr</code> later.  You would think
+you would do it like this, like in Octave:</p>
+<pre><code>idx = 1:15
+f(arr[idx])
+</code></pre>
+<p>but actually that’s invalid syntax and you have to do it like this:</p>
+<pre><code>idx = slice(1, 15)
+f(arr[idx])
+</code></pre>
+<p>This syntax and function names are far from self-explanatory.  Far
+better, in terms of readability, would be to write this:</p>
+<pre><code>for i in 1:15:
+    ...
+</code></pre>
+<p>Or even this:</p>
+<pre><code>for i in (1:15):
+    ...
+</code></pre>
+<p>And, in terms of consistency, it would be far better for the
+expression syntax within <code>[]</code> to be the same as the expression syntax
+outside of them.  This would speed up the learning of Python.</p>
+<p>This is one of the few obstacles to universally using Python in place
+of more traditional pseudocodes in the explanation of algorithms.  As
+things are now, it is much clearer to write the traditional:</p>
+<pre><code>for i = 1 to 14
+    ...
+end for
+</code></pre>
+<p>than the Python</p>
+<pre><code>for i in range(1, 15):
+    ...
+</code></pre>
+<p>This proposed universality of the slice syntax would simplify this,
+although you'd still have to explain that <code>1:15</code> doesn't include 15.</p>
+<p>You could maybe make the argument that the extra redundancy improves
+the Python interpreter's error-reporting ability.  That is, there are
+some cases where someone might accidentally write a range literal, or
+something like one, which would currently be a syntax error, which
+would give you a less clear syntax error or even broken code.  I can
+think of a few possibler cases of this — when you want to iterate over
+an infinite range, for example:</p>
+<pre><code>for i in 2::
+    ...
+</code></pre>
+<p>Or worse:</p>
+<pre><code>for i in ::
+    ...
+</code></pre>
+<p>I think these can be basically solved by always requiring parens
+around the range literal, as is currently done with generator
+expressions, with the added looseness that the parens can also be
+square brackets:</p>
+<pre><code>for i in (2:):
+    ...
+for i in (:):
+    ...
+</code></pre>
+<h2>Negative indexing</h2>
+<p>Python's array indexing has an additional semantic wart, shared with
+Perl and I think originally from APL, which is that the use of
+negative indices counts from the end of the array.  This has
+occasionally worsened bugs in my Python code, but mostly it's just
+unnecessarily mysterious for newcomers to Python.</p>
+<p>I think a better approach would be to have a special object, called,
+say, <code>end</code> or <code>last</code>, which can have integers subtracted from it to
+produce indices that are interpreted to mean "N from the end".  You
+wouldn't be able to iterate directly over ranges containing it, but
+that's not really a problem.</p>
+<p>So, for example, you could say:</p>
+<pre><code>while line.endswith("\n") or line.endswith("\r"):
+    line = line[:end-1]
+</code></pre>
+<p>which I think is clearer than the current real Python code for doing
+this.  But you couldn't say:</p>
+<pre><code>for i in (:end-1):
+    print line[i]
+</code></pre>
+<p>This would also eliminate the need for omitted indices in slices.
+Rather than <code>arr[:]</code>, you could write <code>arr[0:end]</code>, at a slight cost
+in verbosity but a great gain in clarity, at least to my eyes.</p>
+<h2>Greek letters</h2>
+<p>JavaScript allows you to use Greek letters in your variable names,
+which lets you write code like this (from
+<a href="http://canonical.org/~kragen/sw/dev3/spirals.html">http://canonical.org/~kragen/sw/dev3/spirals.html</a>):</p>
+<pre><code>var Δθ = 1/r/2
+  , Δr = slope * Δθ
+;
+if (Δr &gt; 0.5) {
+  Δr = 0.5;
+  Δθ = Δr / slope;
+}
+if (neg) Δθ = -Δθ;
+
+r += Δr;
+θ += Δθ;
+</code></pre>
+<p>This code would be substantially wordier and less clear if it had to
+be written without Greek letters, and the same is true for a
+substantial amount of code that is more or less mathematical in
+nature.  (You could argue that Greek letters are going to be
+intimidating for people who aren’t familiar with math, but those
+people are going to have to learn the math before they understand the
+code anyway.)</p>
+<p>I would argue that being able to use Greek letters in pseudocode often
+improves its clarity substantially.</p>
+<h2>An example</h2>
+<p>Here's a function from the scrypt paper, rendered in the traditional
+ALGOLish pseudocode from the paper, though without the LaTeX
+typography:</p>
+<pre><code>Algorithm ROMix_H(B, N)
+Parameters:
+        H               A hash function.
+        k               Length of output produced by H, in bits.
+        Integerify      A bijective function from {0,1}^k to {0,...2^k-1}.
+Input:
+        B               Input of length k bits.
+        N               Integer work metric, &lt; 2^{k/8}
+Output:
+        B'              Output of length k bits.
+Steps:
+ 1: X ← B
+ 2: for i = 0 to N - 1 do
+ 3:   Vᵢ ← X
+ 4:   X  ← H(X)
+ 5: end for
+ 6: for i = 0 to N - 1 do
+ 7:   j ← Integerify(X) mod N
+ 8:   X ← H(X ⊕ Vⱼ)
+ 9: end for
+10: B' ← X
+</code></pre>
+<p>Here's the Python version, with the notational improvements suggested
+above:</p>
+<pre><code>def ROMix(H):
+    """H: a hash function producing k bits.
+    Returns a function(B, N):
+    B: Input suitable for H.
+    N: Integer work metric, &lt; 2**(k/8)
+    returns an output of length k bits.
+    Uses a bijective function Integerify from {0,1}^k to {0,...2**k-1}.
+    """
+
+    def f(B, N):
+        V = [B]
+        while len(V) &lt; N:
+            V.append(H(V[end-1]))
+
+        X = V[end-1]
+        for i in (0:N):
+            j = Integerify(X) % N
+            X = H(X ^ V[j])
+
+        return X
+
+    return f
+</code></pre>
+<p>I think this is substantially clearer than the original pseudocode
+version, especially if you already speak Python or C.  It would be
+better if the inner function <code>f</code> didn't have to be named, or if the
+return statement could be placed before its definition (as in JS).</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li></ul></div></html>

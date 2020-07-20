@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html><title>Salt slush refrigeration ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Salt slush refrigeration</h1><div class="metadata">Kragen Javier Sitaker, 2017-08-22 (updated 2019-10-08)
+(12 minutes)</div><p>Salt depresses the freezing point of water.  When you freeze salty
+water, the behavior depends on whether you’re at, above, or below the
+eutectic point, -21.1° and 27% NaCl.  If less saline than the eutectic
+point, first you get ice crystals sucking up heat and growing without
+much salt until the remaining brine is at the eutectic point, at which
+point it freezes.  If more saline than the eutectic point, instead you
+get salt crystals sucking up (much less) heat and growing without much
+water until the remaining brine is at the eutectic point, at which
+point it freezes.</p>
+<p>On the other hand, if you have salty ice and you melt it partway, the
+part that melts first will be the eutectic phase, leaving the
+remaining phase (either water or salt) more concentrated in the
+remaining crystals.  At this point you can mechanically separate the
+two with an arbitrarily small energy input.</p>
+<p>I was thinking that you could use this behavior somehow to get a
+refrigerator, but now I’m not sure you can.  It seems like the
+movement of mass into the eutectic phase is kind of unrecoverable by
+freezing and melting.  Maybe you could separate them with a pressure
+swing or by distillation.</p>
+<h2>Frozen salt water as a freezer thermal reservoir</h2>
+<p>(This comes from a discussion with SpeedEvil on Freenode.)</p>
+<p>But suppose you have a conventional freezer, cooled using a
+conventional refrigeration approach like the compression-condensation
+cycle or an ammonia-absorption cycle, and you’d like some resilience
+against problems --- either power outages, as in <a href="../notes/balcony-battery.html">Balcony battery</a>, or mechanical failures.  A phase-change thermal
+reservoir inside the freezer is one way to achieve this.</p>
+<p>However, just putting water bottles in the freezer is suboptimal.
+Normally the freezer is at -20° or so, and the water bottles won’t
+melt until 0°, which means that all your food also heats up to 0°,
+possibly allowing it to spoil or get soggy.  A lower-temperature
+phase-change material would work better, ideally something that melts
+just above the freezer’s normal temperature, like about -18° or so.</p>
+<p>You could try using just near-eutectic NaCl salt water, but you run
+the risk that, with repeated freeze-thaw cycles, it will separate ---
+I didn’t understand this until SpeedEvil explained it to me.</p>
+<p>Suppose it’s a little lower in salt content than the eutectic 27%.
+Low-salt-content crystals will freeze first, concentrating the salt in
+the remaining solution, and at -20°, you will be left with a large
+amount of lower-salt-content crystals floating on top of the remaining
+very-nearly-eutectic solution at the bottom.  If this system (because
+“mess” sounds too unappealing) melts, the higher-salt-content water is
+denser and thus will tend to stay at the bottom, although there will
+be a small amount of diffusion at the boundary layer.  If it then
+refreezes, the same thing will happen again, but this time the
+initially-freezing crystals will be even lower in salt content, and
+thus will freeze at an even higher temperature.</p>
+<p>Repeated cycles of this will eventually separate the mixture into a
+large amount of very-nearly-eutectic mix at the bottom, which never
+freezes, and a small amount of very-nearly-pure water at the top,
+which freezes far too easily, separated by a very thin diffusion
+layer.</p>
+<p>I think one possible cure is to make it a little <em>higher</em> in salt
+content than the eutectic 27%, so that the crystals that freeze first
+are higher in salt content than the eutectic, concentrating water in
+the bottom.  (I’m assuming that the crystals will still be water
+crystals and not salt; if not, this won’t work!)  This way, when the
+system melts again, the denser, saltier water liberated from the
+crystals at the top of the solution will not be stable in that
+position --- it will produce convection cells that carry it back
+toward the bottom of the tank.  This should provide some mixing, but
+I’m not sure if it will be enough.</p>
+<p>Another possible cure, of course, is to use an impeller or a spoon to
+mix the liquid when there is liquid.</p>
+<p>A third possibility is to immobilize the whole solution in some kind
+of gel, such as agar, so that the crystals cannot float or sink.  This
+way, the physical distance between the different phases of crystals
+remains small enough to prevent diffusion.  Over time, though, I think
+crystal formation in repeated freeze cycles will cut the gel matrix to
+shreds.</p>
+<p>A fourth possibility is to use a Peltier cooler on top of the
+salt-water tank inside the freezer to drop it an extra 2° relative to
+the rest of the freezer.  This is a relatively small temperature
+difference and a small heat flux, so the Peltier cooler should be
+relatively efficient, although its waste heat does add to the
+freezer’s load.</p>
+<p>A fifth possibility is to find another material whose aqueous solution
+has a slightly warmer eutectic point, one toward the bottom end of the
+freezer’s normal temperature range.  There are an abundance of
+inexpensive and nontoxic salts, acids, and bases that might work.
+Surely there is a database of their eutectic points somewhere.</p>
+<p>A sixth possibility is to just run the freezer a bit cooler, perhaps
+cooling the brine tank directly and arranging things so that heat from
+the outer walls diffuses first through the food and then into the
+brine tank, thus keeping the food a bit warmer than the brine tank.</p>
+<h3>Candidate eutectic systems</h3>
+<p>If NaCl·<em>n</em>H₂O is barely unacceptable, what might work better?
+Ternary aqueous salt systems (e.g. NaCl, KCl, H₂O) are probably going
+to have <em>lower</em> eutectic temperatures rather than higher ones.  For
+example, according to a paper by Hall, Sterner, and Bodnar in 1988 on
+“Freezing point depression of NaCl–KCl–H₂O solutions”, this system has
+a eutectic at -22.9° at 74% water, 20.5% NaCl, and the remainder KCl.
+(I think those are weight fractions, not mole fractions.)  So we can
+probably mostly restrict our attention to binary systems of water plus
+a single solute.</p>
+<p>For storing in conjunction with food we probably want something
+nontoxic and non-caustic; even nitrates, bromides, or soluble
+hydroxides would be questionable.  I think this mostly restricts us to
+soluble chlorides, acetates, formates, phosphates, bicarbonates,
+carbonates, and sulfates of potassium, sodium, magnesium, calcium, and
+perhaps ammonium and aluminum, plus nontoxic water-soluble organic
+compounds like urea.</p>
+<table class="eutectic">
+       <tr><th>Material<th>Eutectic temperature with water
+       <tr><td>CaCl₂   <td><a href="https://www.peterschemical.com/calcium-chloride-vs-magnesium-chloride/">-51°
+       <tr><td>MgCl₂   <td>-33°
+       <tr><td>KCl     <td><a href="http://frisbeetool.eu/FrisbeeTool/03help/Phasechangematerials.html"
+                          >-11°</a> at 19.5% (plus additives)<br />
+                           Or -10.8° at 19.1% in Willem van der Tempel’s
+                           2012 thesis on “Eutectic Freeze Crystallization”;
+                           eutectic given as 19.4 wt% KCl.
+       <tr><td>Urea    <br />
+               (NH₂CONH₂)
+                       <td>-12°, Frisbeetool (plus additives)
+       <tr><td>Na₂SO₄ <br /> (mirabilite)
+                       <td>-1.24° I think at about 3.98%
+       <tr><td>CaSO₄   <td>Insoluble, that’s plaster, dude
+       <tr><td>MgSO₄   <td>about -5° at about 19%
+       <tr><td>NaH₂PO₄ <td><a href="http://www.phasediagram.dk/binary/sodiumphosphate.htm"
+                           >about -10° at about 35%?</a>
+       <tr><td>NaNO₃   <td>-17.45° at 37.93% (Holmberg, 1968, AE-340)
+       <tr><td>Na₂CO₃  <td>-2.06° at 5.70% (Holmberg)
+       <tr><td>KNO₃    <td>-2.87° at 10.29% (Holmberg)
+       <tr><td>K₂SO₄   <td>-1.59° at 6.48% (Holmberg)
+       <tr><td>NH₄Cl   <td>-15° (Frisbeetool)
+       <tr><td>AlCl₃   <td>caustic and somewhat toxic,
+                           but also I don’t know
+       <tr><td>Sodium acetate<br />
+               (CH₃COONa)
+                       <td><a href="https://www.researchgate.net/figure/Phase-diagram-of-sodium-acetate-and-water-A-Vapor-B-Anhydrous-sodium-acetate-and_fig1_277726287"
+                           >about -18° at about 22%</a>
+       <tr><td>CH₃COOK <td><a href="http://glte.org/sites/default/files/Keep_deicing.pdf"
+                           >-60° at 49%</a>
+       <tr><td>NaHCO₃  <td><a href="https://www.coolseparations.nl/wp-content/uploads/2017/12/Spronsen-EFC-from-the-ternary-Na2CO3-NaHCO3-H2O-system-A-novel-SWC-for-the-recovery-of-soda-2010.pdf"
+                           >-2.23° at about 6.2%</a>
+       <tr><td>Na₂CO₃  <td>-2.13° at about 5.5% (same source)
+       <tr><td>NH₄H₂PO₄<br />
+               (monoammonium phosphate)
+                       <td><a href="http://adsabs.harvard.edu/abs/1999JCrGr.198..744V"
+                           >-4.15°?</a>
+       <tr><td>Al₂(SO₄)₃<td>No freaking idea
+</table>
+
+<style>
+table.eutectic td { vertical-align: top }
+</style>
+
+<p>From this I think we can conclude that potassium chloride is a very
+promising choice, despite the dozens of other compounds I haven’t
+investigated yet; and you could probably use urea, ammonium chloride,
+or sodium acetate.  (Urea might require some extra measures to prevent
+bacterial growth; ammonium chloride might outgas ammonia, perhaps
+eventually exploding if sealed.)  Ternary eutectics involving some of
+the salts in the -10°–0° range might be interesting, too — perhaps
+they could either combine with one another or with something like
+potassium chloride to give a more ideal eutectic point.</p>
+<p>Some of these systems have a serious supercooling problem — sodium
+acetate is famous for this property.  If the solution is sufficiently
+capable of supercooling, you might be able to cool it to the freezer’s
+minimum temperature of -20° or whatever while the reservoir remained
+entirely liquid — and then, if it started freezing, it would <em>heat the
+freezer back up</em> to its eutectic temperature until it finished
+freezing.  I think some of the “additives” mentioned above by
+Frisbeetool are actually for nucleation sites to prevent supercooling.
+You’d think boiling stones would be a sufficient solution to this
+problem, but maybe not?</p>
+<p>Non-aqueous solvents such as propylene glycol might be worth
+investigating, but giving up
+water’s enormous enthalpy of fusion of 333 kJ/kg seems like a
+sacrifice that’s probably not worth making.  Amusing thought: heavy
+water has both a larger enthalpy of fusion and smaller freezing point
+depression, and it’s not sufficiently toxic to rule it out for this
+purpose; it’s just far too expensive at present.</p>
+<h3>System sizing</h3>
+<p>The worst power outage I’ve had to endure was three weeks at
+Christmas, in the worst heat of the summer.  Suppose that a normal
+refrigerator requires about 220 W, as suggested in <a href="../notes/household-thermal-stores.html">Household thermal stores</a>, so a normal chest freezer might require
+300 W, or perhaps 100 W if superinsulated.  Three weeks of 200 W is
+360 MJ, so keeping food frozen through such an outage would require on
+the order of one tonne of salty ice — half a tonne if you could hit
+the 100-W figure, or only 256 kg or so if you could insulate all the
+way to 50 W.  By contrast, keeping food frozen for an extra day (at
+200 W) would require only 17 MJ or 50 kg of ice, and keeping it frozen
+during the night when the solar panels are off would require only
+about 25 kg of ice.</p>
+<p>At the tonne level, the cost of the phase-change material becomes
+significant, potentially hundreds of dollars for the salt.</p>
+<h2>Why freezer thermal stores are important</h2>
+<p>Solar photovoltaic energy is on track to be by far the cheapest source
+of energy to date, but energy storage — especially kilowatt-scale
+energy storage — is not cheap.  If you can run your freezer only on
+sunny days, when energy is abundant, you can save yourself or your
+municipality the need to use scarce cloudy-day or scarcer nighttime
+energy to keep your food cold.  The kind of phase-change thermal
+reservoir discussed above is about two or four orders of magnitude
+cheaper than batteries, which are still US$100 to US$200 per kilowatt
+hour (US$30 to US$60 per megajoule).</p>
+<p>Why do I say such a thermal store would be cheaper?  According to <a href="../notes/climate-control.html">Thermodynamic systems in housing</a>, water’s heat of fusion is 333 kJ/kg, so 3 kg per
+megajoule — at the US$0.58/kℓ cost for expensive reverse-osmosis
+water from Sorek cited in <a href="../notes/desalination-comment.html">Calculations about desalination in Israel</a>, water costs
+US$0.0017 per 3 liters and thus per megajoule.  Adding a controlled
+amount of salt might add a bit to that cost, but I don’t think it’s
+more than an order of magnitude.  According to <a href="../notes/minimal-food.html">A minimal-cost diet with adequate nutrition in Argentina in 2017 is US$0.67 per day</a>,
+supermarket salt cost AR$41.65 per kg in 2012 when AR$16 was US$1, so
+that’s almost US$3 per kg, or US$1 per 3-kg megajoule; but I’m pretty
+sure bulk rock salt is at least one order of magnitude cheaper than
+that.</p>
+<p>A freezer designed for use in this way would probably be a bit larger
+than the freezers we currently use.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/materials.html">Materials</a> (112 notes)
+</li><li><a href="../topics/pricing.html">Pricing</a> (89 notes)
+</li><li><a href="../topics/energy.html">Energy</a> (63 notes)
+</li><li><a href="../topics/thermodynamics.html">Thermodynamics</a> (49 notes)
+</li><li><a href="../topics/solar.html">Solar</a> (30 notes)
+</li><li><a href="../topics/facepalm.html">Facepalm</a> (24 notes)
+</li><li><a href="../topics/the-future.html">The future</a> (20 notes)
+</li><li><a href="../topics/cooling.html">Cooling</a> (15 notes)
+</li><li><a href="../topics/water.html">Water</a> (13 notes)
+</li><li><a href="../topics/phase-change-materials.html">Phase change materials</a> (8 notes)
+</li></ul></div></html>

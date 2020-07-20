@@ -1,0 +1,2315 @@
+<!DOCTYPE html>
+<html><title>Dercuano version 20191230</title><meta charset="utf-8"></meta><link href="liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Dercuano</h1><p><a href="http://canonical.org/~kragen/dercuano-20191230.tar.gz">Dercuano is a self-contained downloadable HTML tarball</a> containing a
+book’s worth of disorganized notes I’ve made over the last few years.
+As an alternative option for printing and for
+computer systems incapable of handling a
+downloadable HTML tarball, I've hacked together <a href="http://canonical.org/~kragen/dercuano.20191230.pdf">an inferior PDF
+rendering of it</a> as well, which comes to some 3900 pages, formatted for
+comfortable reading on hand computers.</p>
+<p>Buried among the errors, red herrings, and ratholes, there
+are numerous wonderful insights (perhaps even a few of them original),
+many fascinating facts about the world (many of which are true, and a
+few of which are original observations), and a wide variety of
+inventive ideas about what is possible and what could be done, in
+particular ideas about how to improve the world with new hardware and
+software — a few of them workable.  I’ve published little of it
+previously.</p>
+<h2>Disclaimer, preface, and warning</h2>
+<p>Mostly, I made
+these notes for myself, though with the intention of someday getting
+most of them into shape for publication, but lacking the discipline imposed by
+regular publication, that’s probably not going to happen.  It may not
+happen anyway.  So, fuck it!  Here it is, incomplete as it is — I hope
+you enjoy it!</p>
+<h3>Beware, this is (almost) all wrong</h3>
+<p>Much of what is written here is wrong in a variety of ways.</p>
+<ul>
+<li>Some of it is factually wrong (for example, on many occasions I confused
+  the vector space GF(2)³² with the very different field GF(2³²) of degree-32
+  polynomials over GF(2));</li>
+<li>some of it was factually correct at one point but has since become outdated;</li>
+<li>some of it is okay at a factual level but has led me to incorrect
+  conclusions due to my misunderstanding of the relationships between
+  the facts;</li>
+<li>some of it is just a farrago of incoherent sentence fragments;</li>
+<li>some of it is a collection of atomic facts that are individually
+  coherent and could, in theory, be assembled into a meaningful whole,
+  but so far have not been;</li>
+<li>some of it documents the embarrassingly long path of reasoning by
+  which I eventually argued myself around to a reasonable conclusion
+  which was, in retrospect, obvious from the start; and</li>
+<li>some of it, perhaps most of it, amounts to getting distracted from
+  the most important aspects of an issue by some minor detail.</li>
+</ul>
+<p>On the other hand, some of it is correct.  Of the correct part, most
+is unoriginal — sometimes I’m just taking notes on well-established
+concepts, and sometimes I’m laboriously rediscovering things that are
+already obvious to others — while some small part is both original and correct.
+Unfortunately, I don’t know which part.</p>
+<p>Most of these notes are about things I barely understood, or
+didn’t really understand at all, when I wrote the notes.  In some
+cases, I later came to understand them better, but in other cases I’ve
+lost even what understanding I had.  Nearly every note is incomplete;
+of those that are complete, very few have been checked for correctness
+or revised for readability.  So, beware.</p>
+<p>Many of the dates are only approximate.</p>
+<h3>Dercuano is scholarly work in progress, but not a completed scholarly publication</h3>
+<p>One of the distinguishing features of scholarly publications, as currently
+understood, is that they are consciously situated with regard to the
+existing state of knowledge: they are aware of the state of the art;
+they build on its successes (rather than falling victim to known
+pitfalls); they explicitly describe how they relate to that existing
+knowledge, declaring which pieces of its foundation are sourced from
+existing work and what its novel contributions are; and they give
+credit to existing scholarly work.</p>
+<p>By and large, I appreciate these values, and I would like to do work
+that practices them.  Sometimes, in the past, I have.  Dercuano is not
+such a work.  It is full of cases where I rediscovered known ideas
+(sometimes incorrectly) and cases where I think something is true, due
+to other people’s previous work, but I don’t remember who demonstrated
+it, or in many cases, precisely what they demonstrated.  In many cases
+there’s existing work in a field that I haven’t done the work to
+understand; often I find that attempting to rederive such work from
+first principles is the best way for me to understand it, and much of
+Dercuano consists of such attempts.  This is not due to malice, but
+simply because doing scholarly work properly is a lot of effort, and I
+haven’t finished that work, and in fact I’ve given up on ever finishing it for
+most of the notes in Dercuano.  From a scholarly perspective, Dercuano
+is best understood as a collection of working notes on ideas that
+mostly seem promising and merit further investigation, which could lead to
+a scholarly publication, rather than a scholarly publication in itself.</p>
+<p>The work that leads up to a scholarly publication invariably involves
+a great deal of information-gathering, experimentation, thinking,
+revision, and usually discussion before reaching the point of actually
+representing an advance on the state of the art.  When you begin
+learning about a topic, you have no idea what the state of the art is,
+what is true or false, or what will work;
+bit by bit, you find these things out.  Sometimes this
+process is recorded, for example in laboratory notebooks, but it
+usually remains secret, in part because of all of the embarrassing
+errors during the process.  Preregistration of clinical trials is
+starting to reduce this secrecy in medicine, but it would be wonderful
+to see more people doing more of their thinking in the open.  Dercuano
+is an example of what I would like to see more of: scholarly work
+exposed and done in the open even before reaching the level of
+a scholarly publication.  I am fortunate to have been in the position
+where I could do this.</p>
+<p>Often in Dercuano I refer to something being "published".  By this I
+generally mean "made public".  There's a current fad in academia (over
+the last, say, half century) to use "published" to mean "brought up to
+the standards of scholarly publication and approved as such by means
+of scholarly peer review".  This is usually not what I mean.</p>
+<h3>Size and public-domain dedication</h3>
+<p>On 2019-12-30 as I write this, the Dercuano tarball is 3.6 megabytes
+and contains some 1.2 million words in 882 notes,
+about 3500 paperback pages’
+worth of text.  The PDF rendering mentioned above uses a page size
+slightly smaller than standard for improved readability on hand
+computers.</p>
+<p>As far as I’m concerned, everyone is free to redistribute Dercuano, in
+whole or in part, modified or unmodified, with or without credit; I
+waive all rights associated with it to the maximum extent possible
+under applicable law.  Where applicable, I abandon its copyright to
+the public domain.  I wrote and published Dercuano in Argentina in 2019.</p>
+<p>The exception to the above public-domain dedication is the ET Book
+font family used, licensed under <a href="liabilities/LICENSE.ETBook">the X11
+license</a>.  This doesn’t impede you from
+redistributing or modifying Dercuano but does prohibit you from
+removing the font’s copyright notice and license (unless you also
+remove the font).  The PDF embeds part of FreeFont and of the DejaVu
+fonts, <a href="liabilities/dejavu-copyright">whose copyright notices are also
+included</a>, but DejaVu and FreeFont are
+not used in the HTML tarball.</p>
+<p>The note on <a href="notes/nova-rdos.html">Nova RDOS</a> quotes significant
+amounts of source code from the Data General Nova RDOS operating
+system for the purpose of study and criticism ("I don't know how you
+start designing an operating system in 1977 and screw up the design
+this badly").</p>
+<h3>Gitlab</h3>
+<p>At this writing, there’s <a href="https://gitlab.com/kragen/dercuano">a replica of this repo on
+Gitlab</a>.</p><h2>Notes</h2><h3>2007</h3><ol><li><a href="notes/backus-rebuttal.html">Why John Backus Was on the Wrong Track</a>
+2007 (updated 2019-05-05) (48 minutes)
+</li><li><a href="notes/20q.html">Some notes from playing 20q.net</a>
+2007 to 2009 (22 minutes)
+</li><li><a href="notes/air-conditioning.html">Air conditioning</a>
+2007 to 2009 (21 minutes)
+</li><li><a href="notes/art_svp_render_aa-notes.html">I think I understand how to use libart’s antialiased rendering API now</a>
+2007 to 2009 (10 minutes)
+</li><li><a href="notes/barcode-receipts.html">Barcode receipts</a>
+2007 to 2009 (6 minutes)
+</li><li><a href="notes/barcodes.html">A 2007 overview of matrix barcodes</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/bicicleta-maps.html">Bicicleta maps</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/bytecodes-slow.html">Using bytecode won’t make your  interpreter fast</a>
+2007 to 2009 (26 minutes)
+</li><li><a href="notes/c-bad.html">C bad</a>
+2007 to 2009 (4 minutes)
+</li><li><a href="notes/coolest-bug.html">The coolest bug in Ur-Scheme</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/coordinate-stack.html">A stack of coordinate contexts</a>
+2007 to 2009 (9 minutes)
+</li><li><a href="notes/cute-transform-trick.html">A cute algorithm for card-image templates</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/double-ended-log-structured-filesystem.html">Double ended log structured filesystem</a>
+2007 to 2009 (4 minutes)
+</li><li><a href="notes/eforth-notes.html">Notes on reading eForth</a>
+2007 to 2009 (9 minutes)
+</li><li><a href="notes/eforth86-notes.html">Notes on reading eForth 1.0 for the 8086</a>
+2007 to 2009 (5 minutes)
+</li><li><a href="notes/emacs22-annoyances.html">Emacs22 annoyances</a>
+2007 to 2009 (4 minutes)
+</li><li><a href="notes/energy-prices.html">A comparison of prices for different forms of energy</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/enum-bin-tree.html">Enumerating binary trees and their elements</a>
+2007 to 2009 (4 minutes)
+</li><li><a href="notes/erlang-musings.html">Erlang musings</a>
+2007 to 2009 (3 minutes)
+</li><li><a href="notes/error-reporting.html">Error Reporting is Part of the Programmer's User Interface</a>
+2007 to 2009 (18 minutes)
+</li><li><a href="notes/escheme.html">Eur-Scheme: a simplified Ur-Scheme</a>
+2007 to 2009 (13 minutes)
+</li><li><a href="notes/forth-looping.html">Forth looping</a>
+2007 to 2009 (16 minutes)
+</li><li><a href="notes/free-software-debugging.html">Free software debugging</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/funbot.html">IRC bots with object-oriented equational rewrite rules</a>
+2007 to 2009 (6 minutes)
+</li><li><a href="notes/gaim-group-chat.html">Gaim group chat</a>
+2007 to 2009 (3 minutes)
+</li><li><a href="notes/gas-interesting.html">Interesting features of the GNU assembler Gas</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/gelfand-principle.html">The Gelfand Principle, or how to choose educational examples</a>
+2007 to 2009 (8 minutes)
+</li><li><a href="notes/git-data.html">Git data</a>
+2007 to 2009 (5 minutes)
+</li><li><a href="notes/git-learnings.html">Git learnings</a>
+2007 to 2009 (3 minutes)
+</li><li><a href="notes/high-risk-behavior.html">High-risk behavior in context</a>
+2007 to 2009 (5 minutes)
+</li><li><a href="notes/html-succinct.html">HTML is terser and more robust than S-expressions</a>
+2007 to 2009 (4 minutes)
+</li><li><a href="notes/low-level-stuff.html">Learning low level stuff is not just fun, but also useful</a>
+2007 to 2009 (5 minutes)
+</li><li><a href="notes/lucenefs.html">A filesystem design sketch modeled on Lucene</a>
+2007 to 2009 (43 minutes)
+</li><li><a href="notes/matrix-multiply-2.html">Designing a Scheme for APL-like array computations, like Lush</a>
+2007 to 2009 (4 minutes)
+</li><li><a href="notes/microfinance.html">Microfinance</a>
+2007 to 2009 (6 minutes)
+</li><li><a href="notes/mingw.html">Developing Win32 programs on Debian</a>
+2007 to 2009 (12 minutes)
+</li><li><a href="notes/nested-inheritance.html">Nested inheritance</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/oed-copyright-info.html">Copyright status of the Oxford English Dictionary: relevant data</a>
+2007 to 2009 (3 minutes)
+</li><li><a href="notes/polycaprolactone.html">Polycaprolactone</a>
+2007 to 2009 (3 minutes)
+</li><li><a href="notes/qemu.html">Notes on running QEMU on Debian Etch</a>
+2007 to 2009 (3 minutes)
+</li><li><a href="notes/qemu-desktop.html">Running your regular desktop in QEMU?</a>
+2007 to 2009 (3 minutes)
+</li><li><a href="notes/quasiquote-patterns.html">Quasiquote patterns</a>
+2007 to 2009 (9 minutes)
+</li><li><a href="notes/raph-io.html">Notes on Raph Levien's "Io" Programming Language</a>
+2007 to 2009 (10 minutes)
+</li><li><a href="notes/rich-programmers.html">Rich programmers</a>
+2007 to 2009 (4 minutes)
+</li><li><a href="notes/saas-ops.html">Does SAAS make it harder to ship?  I doubt it.</a>
+2007 to 2009 (7 minutes)
+</li><li><a href="notes/schimmler-parallelism-asymptotic-gain.html">Schimmler parallelism asymptotic gain</a>
+2007 to 2009 (1 minute)
+</li><li><a href="notes/simple-programs.html">Studies in Simplicity</a>
+2007 to 2009 (5 minutes)
+</li><li><a href="notes/small-tcp.html">A survey of small TCP/IP implementations</a>
+2007 to 2009 (4 minutes)
+</li><li><a href="notes/strawberry-miles.html">Food miles imply insignificant energy costs</a>
+2007 to 2009 (4 minutes)
+</li><li><a href="notes/strlen-utf8-reddit-responses.html">Maybe Counting Characters in UTF-8 Strings Isn't Fast After All!</a>
+2007 to 2009 (15 minutes)
+</li><li><a href="notes/tagged-dataflow.html">Tagged dataflow</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/thunderbird-on-7G.html">Why Thunderbird is inadequate for opening a 7-gigabyte mbox</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/tiled-database.html">The Problem: Writing With One Access Pattern, Reading With Another</a>
+2007 to 2009 (19 minutes)
+</li><li><a href="notes/tiny-compu.html">Programming paradigms for tiny microcontrollers</a>
+2007 to 2009 (6 minutes)
+</li><li><a href="notes/units-finkel.html">The AL programming language, dimensional analysis, and typing: do different dimensions really exist?</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/upg-notes.html">User-per-group (UPG), umask, and “Permission denied” on shared Git repos via ssh</a>
+2007 to 2009 (4 minutes)
+</li><li><a href="notes/value-restriction-modula-3.html">ML’s value restriction and the Modula-3 typing system</a>
+2007 to 2009 (3 minutes)
+</li><li><a href="notes/vanagon-mail.html">Vanagon mail</a>
+2007 to 2009 (3 minutes)
+</li><li><a href="notes/whats-wrong-with-dotdot.html">What’s wrong with ../../?</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/win32-startup.html">Win32 startup</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/wood-pda.html">wood and stone personal digital assistants</a>
+2007 to 2009 (6 minutes)
+</li><li><a href="notes/writing-math-in-unicode-with-compose.html">Writing math in Unicode with the Compose key</a>
+2007 to 2009 (2 minutes)
+</li><li><a href="notes/matrix-multiply.html">Index set inference or domain inference for programming with indexed families</a>
+2007 to 2009 (updated 2019-05-05) (27 minutes)
+</li><li><a href="notes/smoothing.html">Additive smoothing for Markov models</a>
+2007 to 2009 (updated 2019-05-19) (11 minutes)
+</li><li><a href="notes/views-and-ometa.html">OMeta contains Wadler's "Views"</a>
+2007 to 2009 (updated 2019-05-20) (13 minutes)
+</li><li><a href="notes/science-espeak.html">Improving “science” in eSpeak's lexicon</a>
+2007 to 2009 (updated 2019-06-27) (15 minutes)
+</li><li><a href="notes/tiny-interpreters-for-microcontrollers.html">bytecode interpreters for tiny computers</a>
+2007-09 (61 minutes)
+</li></ol><h3>2008</h3><ol><li><a href="notes/solar-economics.html">The economics of solar energy</a>
+2008 (27 minutes)
+</li><li><a href="notes/crank-comment.html">On hanging out with cranks</a>
+2008-04 (4 minutes)
+</li><li><a href="notes/smoky-day.html">Smoky day</a>
+2008-04-19 (4 minutes)
+</li><li><a href="notes/tech-predictions.html">Predictions for future technological development (2008)</a>
+2008-04-19 (11 minutes)
+</li></ol><h3>2010</h3><ol><li><a href="notes/mechanical-computers.html">mechanical computation: with Merkle gates, height fields, and thread</a>
+2010-06-28 (36 minutes)
+</li></ol><h3>2012</h3><ol><li><a href="notes/new-os-ui.html">How should we design a UI for a new OS?</a>
+2012-10-10 (updated 2012-10-11) (4 minutes)
+</li><li><a href="notes/solar-notes-2012-10-15.html">Pensamientos acerca de diseñar un calefón solar</a>
+2012-10-15 (2 minutes)
+</li><li><a href="notes/solar-notes-2012-10-15-2.html">Más pensamientos acerca de diseñar un calefón solar</a>
+2012-10-15 (5 minutes)
+</li><li><a href="notes/passively-safe-solar-hot-water.html">Passively safe solar hot water</a>
+2012-10-15 (updated 2012-10-16) (6 minutes)
+</li><li><a href="notes/bottles.html">Storing dry bulk foods in used Coke bottles</a>
+2012-10-15 (updated 2012-10-21) (5 minutes)
+</li><li><a href="notes/5menu.html">In what sense is e the optimal branching factor, and what does it mean for menu tree design?</a>
+2012-12-04 (3 minutes)
+</li><li><a href="notes/interval-minimum.html">Worst-case-logarithmic-time reduction over arbitrary intervals over arbitrary semigroups</a>
+2012-12-04 (5 minutes)
+</li><li><a href="notes/summed-area-tables.html">a logarithmic-time alternative to summed-area tables for reducing arbitrary semigroup operations over arbitrary ranges (a generalization of RMQ segment trees)</a>
+2012-12-06 (updated 2013-05-17) (10 minutes)
+</li><li><a href="notes/screensize.html">How can we take advantage of 16:9 screens for programming?</a>
+2012-12-17 (2 minutes)
+</li><li><a href="notes/golang.html">Giving Golang a second look for writing a mailreader (in 2012)</a>
+2012-12-17 (updated 2013-05-17) (2 minutes)
+</li></ol><h3>2013</h3><ol><li><a href="notes/underground-arcology.html">Notes and calculations on building luxury underground arcologies for whoever wants them</a>
+2013-04-17 (updated 2019-08-27) (66 minutes)
+</li><li><a href="notes/food-storage.html">Food storage</a>
+2013-05-11 (updated 2013-05-17) (54 minutes)
+</li><li><a href="notes/10klux-led.html">Illuminating yourself with 10 kilolux of LEDs to combat seasonal affective disorder</a>
+2013-05-17 (5 minutes)
+</li><li><a href="notes/alastair-thesis-review.html">Alastair thesis review</a>
+2013-05-17 (1 minute)
+</li><li><a href="notes/charge-transfer-servo.html">Charge transfer servo</a>
+2013-05-17 (2 minutes)
+</li><li><a href="notes/cheap-shit-ultrawideband.html">Cheap shit ultrawideband</a>
+2013-05-17 (10 minutes)
+</li><li><a href="notes/clamp-on-transformer.html">Harvesting energy with a clamp-on transformer</a>
+2013-05-17 (7 minutes)
+</li><li><a href="notes/clickable-terminal-patterns.html">Clickable terminal patterns</a>
+2013-05-17 (2 minutes)
+</li><li><a href="notes/constant-factor-worse.html">Only a constant factor worse</a>
+2013-05-17 (16 minutes)
+</li><li><a href="notes/critbit.html">Use crit-bit trees as the fundamental string-set data structure</a>
+2013-05-17 (3 minutes)
+</li><li><a href="notes/critical-defense-mass.html">Critical defense mass</a>
+2013-05-17 (14 minutes)
+</li><li><a href="notes/cycle-sort.html">Cycle sort</a>
+2013-05-17 (1 minute)
+</li><li><a href="notes/dependency.html">How can we usefully cache screen images for incrementalization?</a>
+2013-05-17 (18 minutes)
+</li><li><a href="notes/dollar-auction.html">Dollar auctions and tournaments in human society</a>
+2013-05-17 (7 minutes)
+</li><li><a href="notes/evaporation-chimney.html">Evaporation chimney</a>
+2013-05-17 (13 minutes)
+</li><li><a href="notes/ghettobotics.html">Ghettobotics: making robots out of trash</a>
+2013-05-17 (41 minutes)
+</li><li><a href="notes/high-bandwidth-avr-oscilloscope.html">You’re pretty much fucked if you want to build an oscilloscope on the AVR’s ADC</a>
+2013-05-17 (3 minutes)
+</li><li><a href="notes/inventing-the-future.html">Who is inventing the future in 2013?</a>
+2013-05-17 (1 minute)
+</li><li><a href="notes/iterative-string-formatting.html">Iterative string formatting</a>
+2013-05-17 (9 minutes)
+</li><li><a href="notes/magnetoresistive-relay.html">Steampunk spintronics: magnetoresistive relay logic?</a>
+2013-05-17 (15 minutes)
+</li><li><a href="notes/makers.html">Review notes for Chris Anderson’s “Makers”</a>
+2013-05-17 (5 minutes)
+</li><li><a href="notes/method-of-differences.html">Achieving smooth curves in scanline image generation</a>
+2013-05-17 (1 minute)
+</li><li><a href="notes/qemacs-bugs.html">The delta from QEmacs,with only 88 commands, to a usable Emacs, is small</a>
+2013-05-17 (2 minutes)
+</li><li><a href="notes/quad-compression.html">Quadtree compression of terminal video RAM to do a megapixel windowing system in 6 KiB</a>
+2013-05-17 (9 minutes)
+</li><li><a href="notes/refractory.html">Improvising high-temperature refractory materials for pottery kilns</a>
+2013-05-17 (4 minutes)
+</li><li><a href="notes/saturation-detector.html">Saturation detector</a>
+2013-05-17 (3 minutes)
+</li><li><a href="notes/simple-system-language.html">Simple system language</a>
+2013-05-17 (7 minutes)
+</li><li><a href="notes/time-domain-lightning-triggering.html">Time domain lightning triggering</a>
+2013-05-17 (4 minutes)
+</li><li><a href="notes/typed-apl.html">APL with typed indices</a>
+2013-05-17 (11 minutes)
+</li><li><a href="notes/ultrasonic-radio.html">A unicast phased-array ultrasonic “radio”</a>
+2013-05-17 (4 minutes)
+</li><li><a href="notes/executable-quaject-dom.html">Optimizing the Visitor pattern on the DOM using Quaject-style dynamic code generation</a>
+2013-05-17 (updated 2013-05-20) (21 minutes)
+</li><li><a href="notes/hadamard-ecc.html">Constructing error-correcting codes using Hadamard transforms</a>
+2013-05-17 (updated 2013-05-20) (22 minutes)
+</li><li><a href="notes/instant-hypertext.html">Instant hypertext</a>
+2013-05-17 (updated 2013-05-20) (14 minutes)
+</li><li><a href="notes/language-id.html">Distinguishing natural languages with 3-grams of characters</a>
+2013-05-17 (updated 2013-05-20) (7 minutes)
+</li><li><a href="notes/pencil-lead-resistive-touchscreen.html">A resistive-capacitive trackpad made from garbage and three ADC microcontroller pins</a>
+2013-05-17 (updated 2013-05-20) (17 minutes)
+</li><li><a href="notes/ultraslow-radio.html">Ultraslow radio for resilient global communication</a>
+2013-05-17 (updated 2013-05-20) (26 minutes)
+</li><li><a href="notes/tinkerers-tricorder.html">The Tinkerer’s Tricorder</a>
+2013-05-17 (updated 2014-04-24) (27 minutes)
+</li><li><a href="notes/trellis-coded-buttons.html">Trellis-coded buttons to run a whole keyboard off two microcontroller pins</a>
+2013-05-17 (updated 2019-06-13) (30 minutes)
+</li><li><a href="notes/ansi-links.html">A proposal to support hypertext links in ANSI terminals</a>
+2013-05-17 (updated 2019-12-26) (13 minutes)
+</li><li><a href="notes/2013-june-6.html">Personal notes from 2013-06-06</a>
+2013-06-06 (updated 2014-04-24) (11 minutes)
+</li></ol><h3>2014</h3><ol><li><a href="notes/cps-refactoring.html">When and why exactly should your code “tell, not ask”? That is, use CPS?</a>
+2014-01-08 (4 minutes)
+</li><li><a href="notes/journal-feb.html">Some personal notes from February 2014</a>
+2014-02-13 (8 minutes)
+</li><li><a href="notes/constant-space-grep.html">Constant-space grep</a>
+2014-02-24 (3 minutes)
+</li><li><a href="notes/full-res-globe.html">Full res globe</a>
+2014-02-24 (1 minute)
+</li><li><a href="notes/named-stack-forth.html">Forth with named stacks</a>
+2014-02-24 (7 minutes)
+</li><li><a href="notes/object-embedding.html">Embedding objects inside other objects in memory, versus by-reference fields</a>
+2014-02-24 (13 minutes)
+</li><li><a href="notes/post-http-overview.html">Stuff I’ve posted to kragen-tol over the years about post-HTTP</a>
+2014-02-24 (12 minutes)
+</li><li><a href="notes/simple-log-sets.html">Simple persistent in-memory dictionaries with log² lookups and logarithmic insertion</a>
+2014-02-24 (6 minutes)
+</li><li><a href="notes/square-wave-synthesis.html">Square wave synthesis</a>
+2014-02-24 (2 minutes)
+</li><li><a href="notes/sunday.html">A Sunday in 2014</a>
+2014-02-24 (3 minutes)
+</li><li><a href="notes/twingler.html">Twingler</a>
+2014-02-24 (7 minutes)
+</li><li><a href="notes/2nd-order-diffs.html">Compression with second-order diffs</a>
+2014-04-24 (3 minutes)
+</li><li><a href="notes/3d-printing-lut.html">Notes on 3-D printing a mechanical LUT</a>
+2014-04-24 (3 minutes)
+</li><li><a href="notes/apagon2.html">Jim Weirich’s death and my daily life</a>
+2014-04-24 (5 minutes)
+</li><li><a href="notes/basic-income-argentina.html">What would a basic income guarantee for Argentina cost?</a>
+2014-04-24 (7 minutes)
+</li><li><a href="notes/bike-charger.html">Bike charger</a>
+2014-04-24 (2 minutes)
+</li><li><a href="notes/blackout.html">Notes from a Buenos Aires blackout, summer 2013-2014</a>
+2014-04-24 (15 minutes)
+</li><li><a href="notes/bottle-washing.html">Bottle washing</a>
+2014-04-24 (7 minutes)
+</li><li><a href="notes/cfktweets.html">Cristina Fernández de Kirchner tweets about the attempt to kidnap Assange</a>
+2014-04-24 (3 minutes)
+</li><li><a href="notes/energy-future.html">The future of the human energy market (2014)</a>
+2014-04-24 (19 minutes)
+</li><li><a href="notes/fixed-point.html">Fixed point</a>
+2014-04-24 (1 minute)
+</li><li><a href="notes/fukushima-leak.html">Fukushima leak</a>
+2014-04-24 (6 minutes)
+</li><li><a href="notes/future-economics.html">2025 manufacturing and economics scenario</a>
+2014-04-24 (24 minutes)
+</li><li><a href="notes/garbage-network.html">Building a resilient network out of litter</a>
+2014-04-24 (4 minutes)
+</li><li><a href="notes/holographic-archival.html">Holographic archival</a>
+2014-04-24 (10 minutes)
+</li><li><a href="notes/inflatable-stool.html">Inflatable stool</a>
+2014-04-24 (6 minutes)
+</li><li><a href="notes/landsat-8.html">Handling Landsat 8 images in limited RAM with netpbm</a>
+2014-04-24 (4 minutes)
+</li><li><a href="notes/lattices.html">lattices, powersets, bitstrings, and efficient OLAP</a>
+2014-04-24 (17 minutes)
+</li><li><a href="notes/mechanical-computers-2.html">Nobody has yet constructed a mechanical universal digital computer</a>
+2014-04-24 (6 minutes)
+</li><li><a href="notes/offline.html">Offline datasets</a>
+2014-04-24 (15 minutes)
+</li><li><a href="notes/optimum-trits.html">Precisely how is 3 “optimal” for one-hot state machines, sparse FIR kernels, etc.?</a>
+2014-04-24 (8 minutes)
+</li><li><a href="notes/ostinatto.html">Ostinatto</a>
+2014-04-24 (4 minutes)
+</li><li><a href="notes/password-bits.html">How to use “correct horse battery staple” as an encryption key, including a recommended 4096-word list</a>
+2014-04-24 (44 minutes)
+</li><li><a href="notes/phyle.html">What might Diamond-Age-like phyles look like in the real 21st century?</a>
+2014-04-24 (9 minutes)
+</li><li><a href="notes/planar-lookup-tables.html">Planar lookup tables</a>
+2014-04-24 (2 minutes)
+</li><li><a href="notes/plato-inferior.html">Plato was not particularly democratic; ἄρχειν is not “participating in politics”</a>
+2014-04-24 (5 minutes)
+</li><li><a href="notes/polynomial-spline-fir.html">Polynomial-spline FIR kernels by integrating sparse kernels</a>
+2014-04-24 (12 minutes)
+</li><li><a href="notes/randomized-pdm.html">Randomizing delta-sigma conversion to eliminate aliasing</a>
+2014-04-24 (7 minutes)
+</li><li><a href="notes/range-literals.html">Range literals</a>
+2014-04-24 (6 minutes)
+</li><li><a href="notes/simplifying-code-with-concurrent-iteration.html">Simplifying code with concurrent iteration</a>
+2014-04-24 (2 minutes)
+</li><li><a href="notes/square-wave-filtering.html">Some speculative thoughts on DSP algorithms</a>
+2014-04-24 (20 minutes)
+</li><li><a href="notes/surveillance.html">In a world with ubiquitous surveillance, what does politics look like?</a>
+2014-04-24 (11 minutes)
+</li><li><a href="notes/very-composite-numbers.html">Very composite numbers</a>
+2014-04-24 (4 minutes)
+</li><li><a href="notes/wheel-state-machine.html">An extremely simple electromechanical state machine</a>
+2014-04-24 (16 minutes)
+</li><li><a href="notes/planar-state-machine.html">Making a mechanical state machine via sheet cutting</a>
+2014-04-24 (updated 2015-09-03) (7 minutes)
+</li><li><a href="notes/topics-2014.html">Ideas to ship in 2014</a>
+2014-04-24 (updated 2019-05-05) (35 minutes)
+</li><li><a href="notes/bottlecaps.html">Comparison of the PCO-1810 and PCO-1881 plastic bottlecap standards</a>
+2014-05-25 (updated 2016-07-27) (2 minutes)
+</li><li><a href="notes/algebraic-graphics.html">An algebraic approach to 3D geometry</a>
+2014-06-03 (updated 2014-06-29) (22 minutes)
+</li><li><a href="notes/dependencies.html">Simple dependencies in software</a>
+2014-06-05 (9 minutes)
+</li><li><a href="notes/division.html">Division</a>
+2014-06-05 (14 minutes)
+</li><li><a href="notes/archival-transparencies.html">Archival transparencies</a>
+2014-06-05 (updated 2014-06-29) (7 minutes)
+</li><li><a href="notes/dontmove.html">The Dontmove archival virtual machine</a>
+2014-06-29 (5 minutes)
+</li><li><a href="notes/listened-intently.html">He listened to the human intently</a>
+2014-06-29 (4 minutes)
+</li><li><a href="notes/uvc-archiving.html">Archival with a universal virtual computer (UVC)</a>
+2014-06-29 (17 minutes)
+</li><li><a href="notes/xchg-machine.html">XCHG: An Archival Swap Machine</a>
+2014-06-29 (7 minutes)
+</li><li><a href="notes/treeslice.html">Modeling trees with slices containing metaballs</a>
+2014-06-29 (updated 2014-07-02) (6 minutes)
+</li><li><a href="notes/involute-bristles.html">Slotted tape with skewed involute roulette bristles as an alternative to hose clamps and possibly screws</a>
+2014-07-02 (6 minutes)
+</li><li><a href="notes/capillary-heat-exchanger.html">Heat exchangers modeled on retia mirabilia might reach 4 TW/m³</a>
+2014-07-16 (updated 2019-08-21) (14 minutes)
+</li><li><a href="notes/imgui.html">How to generate unique IDs for IMGUI object persistence?</a>
+2014-09-02 (3 minutes)
+</li><li><a href="notes/interval-ifs-rendering.html">Rendering iterated function systems (IFSes) with interval arithmetic</a>
+2014-09-02 (6 minutes)
+</li><li><a href="notes/psychedelic-buenos-aires.html">Buenos Aires seen from behind the mirror</a>
+2014-09-02 (7 minutes)
+</li><li><a href="notes/reactive-crawler.html">A reactive crawler using Amygdala</a>
+2014-09-02 (updated 2014-09-19) (4 minutes)
+</li><li><a href="notes/keyboard-powered-computers.html">Keyboard-powered computers</a>
+2014-10-25 (updated 2018-10-28) (26 minutes)
+</li><li><a href="notes/mechano-optical-vector-display.html">A mechano-optical vector display for animation archival</a>
+2014-12-28 (updated 2015-09-03) (28 minutes)
+</li></ol><h3>2015</h3><ol><li><a href="notes/transactional-screen-updates.html">Transactional screen updates</a>
+2015-04-01 (10 minutes)
+</li><li><a href="notes/entry-c.html">Entry-C: a Simula-like backwards-compatible object-oriented C</a>
+2015-04-05 (updated 2017-04-03) (24 minutes)
+</li><li><a href="notes/alphanumerenglish.html">Alphanumerenglish</a>
+2015-04-06 (updated 2016-07-27) (6 minutes)
+</li><li><a href="notes/principled-apl.html">A principled rethinking of array languages like APL</a>
+2015-05-16 (updated 2019-09-30) (31 minutes)
+</li><li><a href="notes/cubic-sort-merge.html">You can’t sort a file whose size is cubic in your RAM size in two passes, only quadratic</a>
+2015-05-28 (5 minutes)
+</li><li><a href="notes/ndarray-java.html">Ndarray java</a>
+2015-05-28 (1 minute)
+</li><li><a href="notes/dependency-bibliography.html">Automatic dependency management</a>
+2015-05-28 (updated 2015-09-03) (5 minutes)
+</li><li><a href="notes/dependent-data.html">Fault-tolerant in-memory cluster computations using containers; or, SPARK, simplified and made flexible</a>
+2015-05-28 (updated 2016-06-22) (16 minutes)
+</li><li><a href="notes/random-codes.html">Practically decodable random error correction codes with popcount</a>
+2015-07-01 (updated 2015-09-03) (6 minutes)
+</li><li><a href="notes/editor-buffers.html">Editor buffers</a>
+2015-07-15 (updated 2015-09-03) (16 minutes)
+</li><li><a href="notes/powerful-primitives.html">More thoughts on powerful primitives for simplified computer systems architecture</a>
+2015-08-18 (updated 2015-11-02) (165 minutes)
+</li><li><a href="notes/bayesian-and-gricean-programming.html">Bayesian and Gricean programming</a>
+2015-08-20 (3 minutes)
+</li><li><a href="notes/cobstrings.html">Cobstrings</a>
+2015-08-21 (updated 2015-08-31) (5 minutes)
+</li><li><a href="notes/raggedcolumns.html">Raggedcolumns</a>
+2015-08-28 (3 minutes)
+</li><li><a href="notes/3d-printing-design.html">We should use end-to-end optimization algorithms for 3-D printing design</a>
+2015-09-03 (14 minutes)
+</li><li><a href="notes/alien-game-challenge.html">Alien game challenge</a>
+2015-09-03 (6 minutes)
+</li><li><a href="notes/call-cc-flatmap-asm.html">Implementing flatMap in terms of call/cc, as in Raph Levien’s Io</a>
+2015-09-03 (3 minutes)
+</li><li><a href="notes/cfg-parsing-approximation.html">Parsing a conservative approximation of a CFG with a FSM</a>
+2015-09-03 (7 minutes)
+</li><li><a href="notes/content-addressable-storage-server.html">A simple content-addressable storage-server protocol</a>
+2015-09-03 (3 minutes)
+</li><li><a href="notes/desbarrerarme.html">Desbarrerarme: a UI for speaking to people</a>
+2015-09-03 (5 minutes)
+</li><li><a href="notes/dnd-calculator.html">drag-and-drop calculator for touch devices</a>
+2015-09-03 (5 minutes)
+</li><li><a href="notes/imgui-drawing.html">An IMGUI-style drawing API isn’t necessarily just immediate-mode graphics</a>
+2015-09-03 (3 minutes)
+</li><li><a href="notes/incremental-mapreduce.html">Incremental MapReduce for Abelian-group reduction functions</a>
+2015-09-03 (4 minutes)
+</li><li><a href="notes/lazy-csv.html">Storing CSV records in minimal memory in Java</a>
+2015-09-03 (6 minutes)
+</li><li><a href="notes/memoize-the-stack.html">Memoize the stack</a>
+2015-09-03 (5 minutes)
+</li><li><a href="notes/one-motor-robot.html">A one-motor robot</a>
+2015-09-03 (13 minutes)
+</li><li><a href="notes/optical-lever-thermometer.html">Optical lever thermometer</a>
+2015-09-03 (1 minute)
+</li><li><a href="notes/order-id.html">Assigning consistent order IDs</a>
+2015-09-03 (3 minutes)
+</li><li><a href="notes/quadratic-opacity-holograms.html">Quadratic opacity holograms</a>
+2015-09-03 (7 minutes)
+</li><li><a href="notes/querying.html">Efficiently querying a log of everything that ever happened</a>
+2015-09-03 (7 minutes)
+</li><li><a href="notes/read-lunar-plaque.html">Can you read the lunar lander’s plaque from Earth? Or write a new one?</a>
+2015-09-03 (9 minutes)
+</li><li><a href="notes/rhythm-codes.html">Rhythm codes</a>
+2015-09-03 (4 minutes)
+</li><li><a href="notes/simplified-computing.html">Simplified computing, down to the level of mining raw materials</a>
+2015-09-03 (22 minutes)
+</li><li><a href="notes/synthgramelodia-interactive.html">Would Synthgramelodia make a good base for livecoding music?</a>
+2015-09-03 (8 minutes)
+</li><li><a href="notes/ternary-mergesort.html">Ternary mergesort</a>
+2015-09-03 (2 minutes)
+</li><li><a href="notes/waterproofing.html">Waterproofing</a>
+2015-09-03 (4 minutes)
+</li><li><a href="notes/spline-convolution.html">Very fast FIR filtering with time-domain zero stuffing and splines</a>
+2015-09-03 (updated 2015-09-07) (13 minutes)
+</li><li><a href="notes/convolution-surface-plotting.html">Convolution surface plotting</a>
+2015-09-03 (updated 2015-09-13) (2 minutes)
+</li><li><a href="notes/parallel-nfa.html">Parallel NFA evaluation</a>
+2015-09-03 (updated 2015-10-01) (8 minutes)
+</li><li><a href="notes/hand-powered-computer.html">A hand-powered computer?</a>
+2015-09-03 (updated 2017-07-19) (11 minutes)
+</li><li><a href="notes/tapered-thread.html">Tapered thread</a>
+2015-09-03 (updated 2019-06-10) (4 minutes)
+</li><li><a href="notes/bitstream-dsp.html">Bitstream dsp</a>
+2015-09-03 (updated 2019-06-23) (3 minutes)
+</li><li><a href="notes/convolution-with-intervals.html">Convolution with intervals</a>
+2015-09-07 (1 minute)
+</li><li><a href="notes/convolution-applications.html">Convolution applications</a>
+2015-09-07 (updated 2019-08-14) (9 minutes)
+</li><li><a href="notes/powder-bed-3d-printing.html">Likely-feasible non-flux-deposition powder-bed 3-D printing processes</a>
+2015-09-11 (updated 2019-12-20) (49 minutes)
+</li><li><a href="notes/cpu-ui.html">Making the CPU instruction set a usable interactive user interface</a>
+2015-09-17 (8 minutes)
+</li><li><a href="notes/hash-feature-detection.html">Hash feature detection</a>
+2015-09-17 (5 minutes)
+</li><li><a href="notes/interactive-calculator-0.html">Interactive calculator 0</a>
+2015-09-17 (2 minutes)
+</li><li><a href="notes/interval-filters.html">Interval filters</a>
+2015-09-17 (2 minutes)
+</li><li><a href="notes/piano-synthesis.html">Piano synthesis</a>
+2015-09-17 (updated 2017-07-19) (6 minutes)
+</li><li><a href="notes/gittable-sql.html">Gittable sql</a>
+2015-09-25 (updated 2015-09-26) (6 minutes)
+</li><li><a href="notes/3d-ui.html">Simplifying computing systems by having fewer kinds of graphics</a>
+2015-10-13 (10 minutes)
+</li><li><a href="notes/viral-wiki.html">Viral wiki</a>
+2015-10-15 (3 minutes)
+</li><li><a href="notes/fast-geo-maps-on-android.html">Fast geographical maps on Android</a>
+2015-10-16 (9 minutes)
+</li><li><a href="notes/galician-mover.html">José, the Galician mover</a>
+2015-11-09 (2 minutes)
+</li><li><a href="notes/virtual-instruments.html">Virtual instruments</a>
+2015-11-09 (3 minutes)
+</li><li><a href="notes/gui-lib.html">Minimal GUI libraries</a>
+2015-11-14 (updated 2015-11-15) (5 minutes)
+</li><li><a href="notes/hash-gossip-exchange.html">Hash gossip exchange</a>
+2015-11-19 (4 minutes)
+</li><li><a href="notes/logarithmic-maintainability-and-coupling.html">Logarithmic maintainability and coupling</a>
+2015-11-23 (7 minutes)
+</li><li><a href="notes/hot-wire-saw.html">Hot wire saw</a>
+2015-12-28 (updated 2019-06-02) (10 minutes)
+</li></ol><h3>2016</h3><ol><li><a href="notes/hypertext-authoring.html">Writing hypertext is still a pain</a>
+2016-02-18 (6 minutes)
+</li><li><a href="notes/exponential-technology-and-capital.html">Exponential technology and capital</a>
+2016-02-18 (updated 2017-07-19) (8 minutes)
+</li><li><a href="notes/electrodeposition-3d-printing.html">Electrodeposition 3d printing</a>
+2016-02-19 (4 minutes)
+</li><li><a href="notes/pareja-necesidades.html">¿Qué necesito para relación de pareja?</a>
+2016-03-09 (6 minutes)
+</li><li><a href="notes/lz77-ret.html">Improving LZ77 compression with a RET bytecode</a>
+2016-04-05 (updated 2016-04-06) (3 minutes)
+</li><li><a href="notes/anytime-realtime.html">Anytime realtime</a>
+2016-04-22 (4 minutes)
+</li><li><a href="notes/js-type-inference.html">A type-inferred dialect of JS</a>
+2016-04-22 (4 minutes)
+</li><li><a href="notes/material-merits.html">Material merits</a>
+2016-05-08 (6 minutes)
+</li><li><a href="notes/trees-as-code.html">Trees as code</a>
+2016-05-10 (4 minutes)
+</li><li><a href="notes/archival-vm.html">Designing an archival virtual machine</a>
+2016-05-12 (6 minutes)
+</li><li><a href="notes/code-fragments.html">A variety of code fragments for testing proposed language designs</a>
+2016-05-18 (19 minutes)
+</li><li><a href="notes/mcmurdo.html">US$10M for a new, much better McMurdo Base, or less</a>
+2016-05-18 (updated 2016-05-19) (7 minutes)
+</li><li><a href="notes/linear-trees.html">Linear trees</a>
+2016-05-19 (updated 2016-05-20) (6 minutes)
+</li><li><a href="notes/springs.html">Spring energy density</a>
+2016-05-28 (updated 2016-06-06) (13 minutes)
+</li><li><a href="notes/wikipedia-people.html">Wikipedia people</a>
+2016-06-01 (6 minutes)
+</li><li><a href="notes/circle-portal-gui.html">Circle-portal GUI</a>
+2016-06-03 (11 minutes)
+</li><li><a href="notes/visual-expanding-startle.html">Do visually expanding images evoke an orienting response, or the startle response, and what does that mean for ZUIs?</a>
+2016-06-03 (14 minutes)
+</li><li><a href="notes/gaussian-spline-reconstruction.html">Gaussian spline reconstruction</a>
+2016-06-05 (updated 2016-06-06) (5 minutes)
+</li><li><a href="notes/book-in-itself.html">The book written in itself</a>
+2016-06-12 (updated 2016-06-14) (18 minutes)
+</li><li><a href="notes/new-home.html">Phase-change heat reservoirs for household climate control</a>
+2016-06-14 (updated 2016-06-17) (13 minutes)
+</li><li><a href="notes/mechanical-buck-converter.html">Mechanical buck converter</a>
+2016-06-20 (5 minutes)
+</li><li><a href="notes/climate-control.html">Thermodynamic systems in housing</a>
+2016-06-28 (24 minutes)
+</li><li><a href="notes/single-mosfet-gate.html">Making a logic gate of a single MOSFET</a>
+2016-06-28 (5 minutes)
+</li><li><a href="notes/string-cutting-cardboard.html">String cutting cardboard</a>
+2016-06-30 (5 minutes)
+</li><li><a href="notes/glass-fluxing-3d-printing.html">Flux deposition for 3-D printing in glass and metals</a>
+2016-07-03 (15 minutes)
+</li><li><a href="notes/transmission-line-computer.html">Transmission line computer</a>
+2016-07-11 (updated 2019-07-23) (7 minutes)
+</li><li><a href="notes/class-d-microcontroller-amp.html">How can we build an efficient microcontroller-based amplifier?</a>
+2016-07-13 (5 minutes)
+</li><li><a href="notes/jellybeans-2016.html">Jellybean ICs 2016</a>
+2016-07-14 (updated 2019-05-05) (17 minutes)
+</li><li><a href="notes/statically-bounding-runtime.html">Statically bounding runtime</a>
+2016-07-19 (4 minutes)
+</li><li><a href="notes/blob-computation-notes.html">Kogluktualuk: an operating system based on caching coarse-grained deterministic computations</a>
+2016-07-23 (21 minutes)
+</li><li><a href="notes/one-operand-stack-machine.html">A one-operand stack machine</a>
+2016-07-24 (updated 2016-07-25) (12 minutes)
+</li><li><a href="notes/compact-namespace-sharing.html">Compact namespace sharing</a>
+2016-07-25 (7 minutes)
+</li><li><a href="notes/ai-predictor-image-compression.html">Improving lossless image compression with basic machine learning algorithms</a>
+2016-07-27 (2 minutes)
+</li><li><a href="notes/append-only-unique-string-pool.html">Append only unique string pool</a>
+2016-07-27 (2 minutes)
+</li><li><a href="notes/capacitance.html">How would you maximize the energy density of a capacitor?</a>
+2016-07-27 (5 minutes)
+</li><li><a href="notes/electroluminescent-matrix.html">Electroluminescent matrix</a>
+2016-07-27 (2 minutes)
+</li><li><a href="notes/interval-radiosity.html">Interval radiosity</a>
+2016-07-27 (1 minute)
+</li><li><a href="notes/matrix-memory.html">Matrix memory</a>
+2016-07-27 (1 minute)
+</li><li><a href="notes/ancient-roman-photography.html">Vitruvius could have taken photographs</a>
+2016-07-30 (1 minute)
+</li><li><a href="notes/arduino-radio.html">Arduino radio</a>
+2016-07-30 (4 minutes)
+</li><li><a href="notes/coinductive-keyboard.html">Coinductive keyboard</a>
+2016-07-30 (4 minutes)
+</li><li><a href="notes/solar-cell-geiger-counter.html">Solar-cell Geiger counters</a>
+2016-07-30 (1 minute)
+</li><li><a href="notes/transmission-line-diode-computation.html">Transmission line diode computation</a>
+2016-07-30 (3 minutes)
+</li><li><a href="notes/algorithm-time-capsule.html">Algorithm time capsule</a>
+2016-08-11 (1 minute)
+</li><li><a href="notes/automated-fabrication-and-3d-printing-outlook.html">2016 outlook for automated fabrication and 3-D printing</a>
+2016-08-11 (20 minutes)
+</li><li><a href="notes/desalination-comment.html">Calculations about desalination in Israel</a>
+2016-08-11 (3 minutes)
+</li><li><a href="notes/etymology-of-tradeoff.html">The etymology of “tradeoff”</a>
+2016-08-11 (5 minutes)
+</li><li><a href="notes/executable-scholarship.html">Executable scholarship, or algorithmic scholarly communication</a>
+2016-08-11 (13 minutes)
+</li><li><a href="notes/prototyping-stuff.html">Prototyping stuff</a>
+2016-08-11 (1 minute)
+</li><li><a href="notes/solar-dehumidifier.html">Solar dehumidifier</a>
+2016-08-11 (5 minutes)
+</li><li><a href="notes/opacity-holograms.html">Opacity holograms</a>
+2016-08-16 (8 minutes)
+</li><li><a href="notes/oscilloscopes.html">Argentine oscilloscope pricing 2016</a>
+2016-08-16 (4 minutes)
+</li><li><a href="notes/phosphorescent-laser-display.html">Phosphorescent laser display</a>
+2016-08-16 (8 minutes)
+</li><li><a href="notes/hot-oil-cutter.html">Hot oil cutter</a>
+2016-08-16 (updated 2016-08-17) (8 minutes)
+</li><li><a href="notes/internal-determinism.html">Internal determinism</a>
+2016-08-17 (2 minutes)
+</li><li><a href="notes/heck-balls.html">Heckballs: a laser-cuttable MDF set of building blocks</a>
+2016-08-17 (updated 2016-08-30) (24 minutes)
+</li><li><a href="notes/flexures.html">Flexures</a>
+2016-08-24 (updated 2016-08-26) (6 minutes)
+</li><li><a href="notes/interval-functions.html">Affine arithmetic has quadratic convergence when interval arithmetic has linear convergence</a>
+2016-08-24 (updated 2017-01-18) (10 minutes)
+</li><li><a href="notes/time-series-data-type.html">Time series data type</a>
+2016-08-26 (3 minutes)
+</li><li><a href="notes/starfield-servo.html">Starfield servo</a>
+2016-08-30 (updated 2018-11-07) (13 minutes)
+</li><li><a href="notes/pulley-generator.html">Pulley generator</a>
+2016-09-05 (2 minutes)
+</li><li><a href="notes/rosetta-opacity-hologram.html">Rosetta opacity hologram</a>
+2016-09-05 (8 minutes)
+</li><li><a href="notes/sliding-rmq-splitting.html">Robust hashsplitting with sliding Range Minimum Query</a>
+2016-09-05 (7 minutes)
+</li><li><a href="notes/state-of-the-world.html">State of the world 2016</a>
+2016-09-05 (10 minutes)
+</li><li><a href="notes/regenerator-gas-kiln.html">Regenerator gas kiln</a>
+2016-09-05 (updated 2017-04-10) (9 minutes)
+</li><li><a href="notes/spring-energy-density.html">Spring energy density</a>
+2016-09-05 (updated 2019-04-20) (3 minutes)
+</li><li><a href="notes/greenlocks.html">Low-cost green thread locks</a>
+2016-09-06 (2 minutes)
+</li><li><a href="notes/internet-collapse.html">The internet is probably not going to collapse for economic reasons</a>
+2016-09-06 (9 minutes)
+</li><li><a href="notes/intro-to-algorithms.html">Intro to algorithms</a>
+2016-09-06 (4 minutes)
+</li><li><a href="notes/java.html">Notes on higher-order programming on the JVM</a>
+2016-09-06 (6 minutes)
+</li><li><a href="notes/laser-logic.html">Digital logic with lasers, induced X-ray emission, and neutron-induced fission, for femtosecond switching times?</a>
+2016-09-06 (3 minutes)
+</li><li><a href="notes/regenerative-fuel-air-cutting.html">Regenerative fuel air cutting</a>
+2016-09-06 (4 minutes)
+</li><li><a href="notes/subterranean-glazing.html">Subterranean glazing</a>
+2016-09-06 (25 minutes)
+</li><li><a href="notes/sun-cutter.html">Sun cutter</a>
+2016-09-06 (9 minutes)
+</li><li><a href="notes/low-power-micros.html">Low-power microcontrollers for a low-power computer</a>
+2016-09-06 (updated 2018-10-28) (18 minutes)
+</li><li><a href="notes/lithium-fission-energy.html">Lithium fission energy</a>
+2016-09-06 (updated 2019-09-16) (6 minutes)
+</li><li><a href="notes/house-scrubber.html">House scrubber</a>
+2016-09-06 (updated 2019-11-25) (13 minutes)
+</li><li><a href="notes/cpc-burner.html">Soldering with a compound parabolic concentrator or even just an imaging lens</a>
+2016-09-07 (2 minutes)
+</li><li><a href="notes/dht-chat.html">DHT bulletin board</a>
+2016-09-07 (7 minutes)
+</li><li><a href="notes/filled-fdm.html">Filling hollow FDM things with other materials</a>
+2016-09-07 (5 minutes)
+</li><li><a href="notes/mergesort.html">An almost-in-place mergesort</a>
+2016-09-07 (5 minutes)
+</li><li><a href="notes/microprint-visor.html">Microprint visor</a>
+2016-09-07 (2 minutes)
+</li><li><a href="notes/tahoe-isam.html">ISAM designs for Tahoe-LAFS</a>
+2016-09-07 (2 minutes)
+</li><li><a href="notes/mic-energy-harvesting.html">Mic energy harvesting</a>
+2016-09-07 (updated 2016-09-08) (5 minutes)
+</li><li><a href="notes/dht-incentives.html">Solving the incentive problem for censorship-resistant DHTs</a>
+2016-09-07 (updated 2019-05-21) (3 minutes)
+</li><li><a href="notes/iq-statistics.html">High academic achievement almost certainly depends more on tutoring than group averages by race or sex</a>
+2016-09-08 (3 minutes)
+</li><li><a href="notes/natlang-hacking-language.html">Toward a language for hacking around with natural-language processing algorithms</a>
+2016-09-08 (7 minutes)
+</li><li><a href="notes/circuit-notation.html">Circuit notation</a>
+2016-09-08 (updated 2017-04-18) (7 minutes)
+</li><li><a href="notes/graph-construction.html">Graph construction</a>
+2016-09-08 (updated 2017-07-19) (23 minutes)
+</li><li><a href="notes/kinect-modeling.html">Kinect modeling</a>
+2016-09-16 (1 minute)
+</li><li><a href="notes/lambertian-3d-scanning.html">Reconstructing a 3-D Lambertian surface from video with a moving light source</a>
+2016-09-16 (1 minute)
+</li><li><a href="notes/message-queuing.html">Queueing messages to amortize dynamic dispatch and take advantage of hardware heterogeneity</a>
+2016-09-17 (13 minutes)
+</li><li><a href="notes/computer-algebras-ii.html">Further notes on algebras for dark silicon</a>
+2016-09-17 (updated 2017-04-18) (23 minutes)
+</li><li><a href="notes/solar-computer.html">Solar-powered portable computers</a>
+2016-09-17 (updated 2018-10-28) (15 minutes)
+</li><li><a href="notes/stack-drex.html">DReX and “regular string transformations”: would an RPN DSL work well?</a>
+2016-09-19 (3 minutes)
+</li><li><a href="notes/transceiver-ics.html">License-free femtowatt UHF radio transceiver ICs under a μJ per bit</a>
+2016-09-19 (5 minutes)
+</li><li><a href="notes/zinc-pcbs.html">Laser ablation of zinc or pewter for printed circuit boards</a>
+2016-09-19 (4 minutes)
+</li><li><a href="notes/simple-state-machines.html">Simple state machines</a>
+2016-09-19 (updated 2016-09-24) (8 minutes)
+</li><li><a href="notes/gradient-rendering.html">Gradient rendering</a>
+2016-09-24 (11 minutes)
+</li><li><a href="notes/hybrid-ram.html">Hybrid RAM</a>
+2016-09-24 (5 minutes)
+</li><li><a href="notes/vitriol-copper-plating-iron.html">Immersion plating of copper on iron with blue vitriol</a>
+2016-09-24 (8 minutes)
+</li><li><a href="notes/expressive-basis-change.html">Changing the basis to a more expressive one with better affordances</a>
+2016-09-29 (5 minutes)
+</li><li><a href="notes/scicalc-usability.html">Usability of scientific calculators</a>
+2016-09-29 (19 minutes)
+</li><li><a href="notes/dynamical-systems.html">Notations for defining dynamical systems</a>
+2016-10-03 (updated 2016-10-06) (6 minutes)
+</li><li><a href="notes/arc-marking-surface.html">Marking metal surfaces with arcs</a>
+2016-10-06 (4 minutes)
+</li><li><a href="notes/compressed-sensing-microscope.html">Compressed sensing microscope</a>
+2016-10-06 (7 minutes)
+</li><li><a href="notes/cross-current-zone-melting.html">Cross current zone melting</a>
+2016-10-06 (1 minute)
+</li><li><a href="notes/freeze-distillation.html">Freeze distillation at 1 Hz</a>
+2016-10-06 (5 minutes)
+</li><li><a href="notes/gradient-refractive-index.html">3-D printing glass with continuously varying refractive indices for optics without internal surfaces</a>
+2016-10-06 (3 minutes)
+</li><li><a href="notes/hot-air-ice-shaping.html">Hot air ice shaping</a>
+2016-10-06 (4 minutes)
+</li><li><a href="notes/spatial-domain-particle-filters.html">Texture synthesis with spatial-domain particle filters</a>
+2016-10-06 (2 minutes)
+</li><li><a href="notes/spark-particulate-sieve.html">Spark particulate sieve</a>
+2016-10-06 (updated 2016-10-11) (7 minutes)
+</li><li><a href="notes/iron-frequency.html">La vibración del hierro, ¿es de baja frecuencia o qué?</a>
+2016-10-07 (3 minutes)
+</li><li><a href="notes/raytracing.html">Current hardware trends tend toward raytracing</a>
+2016-10-07 (4 minutes)
+</li><li><a href="notes/count-left.html">Counting the number of spaces to the left in parallel</a>
+2016-10-11 (5 minutes)
+</li><li><a href="notes/stupid-register-allocation.html">What’s the dumbest register allocator that might give you reasonable performance?</a>
+2016-10-11 (15 minutes)
+</li><li><a href="notes/surrealist-code.html">Surrealist code</a>
+2016-10-11 (3 minutes)
+</li><li><a href="notes/maestros.html">Statement from the Confederation of Teachers</a>
+2016-10-11 (updated 2016-10-12) (4 minutes)
+</li><li><a href="notes/vec-calc.html">Generalizing my RPN calculator to support refactoring</a>
+2016-10-17 (12 minutes)
+</li><li><a href="notes/wwiii-genesis.html">World War III is starting (?)</a>
+2016-10-17 (2 minutes)
+</li><li><a href="notes/linux-on-e403s.html">Installing Debian GNU/Linux on an ASUS E403S</a>
+2016-10-23 (10 minutes)
+</li><li><a href="notes/chintzy-depth-of-field.html">Chintzy depth of field</a>
+2016-10-27 (1 minute)
+</li><li><a href="notes/tostudy.html">Topics to study in 2016</a>
+2016-10-27 (updated 2016-11-15) (37 minutes)
+</li><li><a href="notes/analogies.html">Analogies between spring–mass–dashpot systems, electrical systems, and fluidic systems</a>
+2016-10-30 (4 minutes)
+</li><li><a href="notes/academic-lineage.html">Academic lineage</a>
+2016-10-30 (updated 2019-11-24) (15 minutes)
+</li><li><a href="notes/recuperator-heat-storage.html">Recuperator heat storage</a>
+2016-11-01 (updated 2019-08-21) (4 minutes)
+</li><li><a href="notes/selfish-conformity.html">Selfish conformity</a>
+2016-11-15 (5 minutes)
+</li><li><a href="notes/the-real-problem.html">The problem is not that people are not turning to real journalism anymore</a>
+2016-11-15 (8 minutes)
+</li><li><a href="notes/clanking-replicators.html">Clanking replicators</a>
+2016-11-30 (3 minutes)
+</li><li><a href="notes/self-replication-limits.html">Approaches to limiting self-replication</a>
+2016-11-30 (7 minutes)
+</li><li><a href="notes/shuffle-hypercube.html">Bitsliced operations with a hypercube of shuffle operations</a>
+2016-11-30 (2 minutes)
+</li><li><a href="notes/jello-printing.html">Jello printing</a>
+2016-12-14 (8 minutes)
+</li><li><a href="notes/nonlinear-differential-amplification.html">Nonlinear differential amplification</a>
+2016-12-14 (2 minutes)
+</li><li><a href="notes/solar-air-conditioner.html">A design sketch of an air conditioner powered by solar thermal power</a>
+2016-12-22 (updated 2017-01-04) (29 minutes)
+</li><li><a href="notes/passive-ultrasound-sonar.html">Passive ultrasound sonar</a>
+2016-12-28 (1 minute)
+</li><li><a href="notes/minios.html">MiniOS</a>
+2016-12-28 (updated 2017-01-03) (6 minutes)
+</li></ol><h3>2017</h3><ol><li><a href="notes/top-n.html">The paradoxical complexity of computing the top N</a>
+2017-01-04 (7 minutes)
+</li><li><a href="notes/spaced-practice-capacity.html">The ultimate capacity of human memory if spaced-practice memorization works as advertised</a>
+2017-01-04 (updated 2017-01-08) (14 minutes)
+</li><li><a href="notes/one-line-thoughts.html">One-line thoughts that don’t merit separate notes</a>
+2017-01-04 (updated 2017-02-25) (4 minutes)
+</li><li><a href="notes/pulverizer-algorithm.html">Using Aryabhata’s pulverizer algorithm to calculate multiplicative inverses in prime Galois fields and other multiplicative groups</a>
+2017-01-06 (updated 2019-07-05) (4 minutes)
+</li><li><a href="notes/lerp-type.html">What is the type of lerp?</a>
+2017-01-08 (5 minutes)
+</li><li><a href="notes/rubius-book.html">Where did the Rubius comic book come from?</a>
+2017-01-10 (4 minutes)
+</li><li><a href="notes/quicklayout.html">Quicklayout</a>
+2017-01-10 (updated 2017-01-18) (3 minutes)
+</li><li><a href="notes/golang-rust-similarities.html">Similarities between Golang and Rust</a>
+2017-01-11 (updated 2017-01-17) (7 minutes)
+</li><li><a href="notes/self-replication-changes.html">Self replication changes</a>
+2017-01-16 (5 minutes)
+</li><li><a href="notes/clay-fabrication-objectives.html">Clay fabrication objectives</a>
+2017-01-16 (updated 2017-01-17) (3 minutes)
+</li><li><a href="notes/millikiln.html">Millikiln</a>
+2017-01-17 (updated 2017-03-02) (4 minutes)
+</li><li><a href="notes/bubble-display.html">Bubble display</a>
+2017-01-24 (updated 2017-08-03) (1 minute)
+</li><li><a href="notes/constant-time-sets-for-pixel-painting.html">Constant time sets for pixel painting</a>
+2017-02-07 (2 minutes)
+</li><li><a href="notes/text-editor-slow-keys.html">Text editor slow keys</a>
+2017-02-07 (2 minutes)
+</li><li><a href="notes/jellybeans.html">My attempt to learn about jellybean electronic components</a>
+2017-02-08 (updated 2019-09-29) (22 minutes)
+</li><li><a href="notes/v-plotter-servo.html">Servoing a V-plotter with a webcam?</a>
+2017-02-16 (3 minutes)
+</li><li><a href="notes/wang-tile-addition.html">Wang tile addition</a>
+2017-02-16 (3 minutes)
+</li><li><a href="notes/finite-function-circuits.html">Finite function circuits</a>
+2017-02-16 (updated 2019-05-17) (29 minutes)
+</li><li><a href="notes/non-inverting-logic.html">Non-inverting logic</a>
+2017-02-18 (updated 2019-07-20) (8 minutes)
+</li><li><a href="notes/7-segment-font.html">A 7-segment-display font with 68 glyphs</a>
+2017-02-21 (4 minutes)
+</li><li><a href="notes/lab-power-supply.html">Lab power supply</a>
+2017-02-21 (updated 2018-06-18) (17 minutes)
+</li><li><a href="notes/flux-deposition.html">3-D printing by flux deposition</a>
+2017-02-24 (updated 2019-07-27) (21 minutes)
+</li><li><a href="notes/vibratory-powder-delivery.html">Vibratory powder delivery</a>
+2017-02-25 (2 minutes)
+</li><li><a href="notes/electric-micro-kiln.html">An electric furnace the size of a sake cup</a>
+2017-02-25 (updated 2017-03-02) (10 minutes)
+</li><li><a href="notes/passivhaus-seasonal-thermal-store.html">Passivhaus seasonal thermal store</a>
+2017-03-02 (updated 2017-03-07) (2 minutes)
+</li><li><a href="notes/set-hashing.html">Set hashing</a>
+2017-03-09 (9 minutes)
+</li><li><a href="notes/burst-computation.html">Burst computation</a>
+2017-03-20 (13 minutes)
+</li><li><a href="notes/cartesian-product-storage.html">Cartesian product storage</a>
+2017-03-20 (3 minutes)
+</li><li><a href="notes/passive-dehumidifier.html">Passive dehumidifier</a>
+2017-03-20 (14 minutes)
+</li><li><a href="notes/rapid-dac.html">Augmenting a slow precise ADC with a sloppy fast high-pass filtered parallel ADC</a>
+2017-03-20 (2 minutes)
+</li><li><a href="notes/thredsnek.html">Thredsnek: a tiny Python-flavored programming language</a>
+2017-03-20 (7 minutes)
+</li><li><a href="notes/web-press.html">The continuous-web press and the continuous press of the World-Wide Web</a>
+2017-03-20 (6 minutes)
+</li><li><a href="notes/oo-bytecode.html">A sketch of a minimalist bytecode for object-oriented languages</a>
+2017-03-20 (updated 2017-06-20) (13 minutes)
+</li><li><a href="notes/avr-programming.html">Loading new firmware on an AVR</a>
+2017-03-31 (3 minutes)
+</li><li><a href="notes/avr-radio.html">Could you do DDS of comprehensible radio signals with an Arduino?</a>
+2017-03-31 (4 minutes)
+</li><li><a href="notes/hash-cache.html">Amnesic hash tables for stochastically LRU memoization</a>
+2017-04-03 (1 minute)
+</li><li><a href="notes/bitbang-usb.html">Can you bitbang USB with an ATMega’s RC oscillator?</a>
+2017-04-04 (1 minute)
+</li><li><a href="notes/ice-pants.html">Ice pants</a>
+2017-04-04 (updated 2019-01-22) (17 minutes)
+</li><li><a href="notes/magic-kazoo.html">The Magic Kazoo: a synthesizer you stick in your mouth</a>
+2017-04-04 (updated 2019-05-12) (6 minutes)
+</li><li><a href="notes/dbm-history.html">The history of NoSQL and dbm</a>
+2017-04-10 (16 minutes)
+</li><li><a href="notes/editor-protocol.html">Byte-stream pipe and antipipe façade objects for editor buffers</a>
+2017-04-10 (3 minutes)
+</li><li><a href="notes/incremental-persistent-binary-array-sets.html">Incremental persistent binary array sets</a>
+2017-04-10 (4 minutes)
+</li><li><a href="notes/studies-support-authority.html">Studies support authority</a>
+2017-04-10 (2 minutes)
+</li><li><a href="notes/disk-oscilloscope.html">Disk oscilloscope</a>
+2017-04-10 (updated 2017-06-20) (3 minutes)
+</li><li><a href="notes/tv-oscilloscope.html">TV oscilloscope</a>
+2017-04-10 (updated 2017-06-20) (4 minutes)
+</li><li><a href="notes/rpncalc-thoughts.html">Reflections on rebraining calculators with this RPN calculator code I just wrote</a>
+2017-04-11 (4 minutes)
+</li><li><a href="notes/serialization.html">Secure, self-describing, self-delimiting serialization for Python</a>
+2017-04-11 (8 minutes)
+</li><li><a href="notes/colector-solar-de-agua-caliente.html">¿Se puede armar un colector solar de agua caliente que anda en invierno acá en Buenos Aires?</a>
+2017-04-17 (2 minutes)
+</li><li><a href="notes/parallel-dfa.html">Parallel DFA execution</a>
+2017-04-18 (9 minutes)
+</li><li><a href="notes/solar-system-scale-model.html">Solar system scale model</a>
+2017-04-18 (1 minute)
+</li><li><a href="notes/quasicard.html">Quasicard: a hypothetical reimagining of HyperCard and TiddlyWiki</a>
+2017-04-18 (updated 2017-06-09) (18 minutes)
+</li><li><a href="notes/laser-printer-oscilloscope.html">Laser printer oscilloscope</a>
+2017-04-18 (updated 2017-06-20) (2 minutes)
+</li><li><a href="notes/micro-editor-os.html">Minimum hardware and software to get a flexible notetaking device running</a>
+2017-04-28 (4 minutes)
+</li><li><a href="notes/string-tuple-encoding.html">String tuple encoding</a>
+2017-04-28 (2 minutes)
+</li><li><a href="notes/hipster-stack-2017.html">Hipster stack 2017</a>
+2017-04-28 (updated 2017-05-04) (26 minutes)
+</li><li><a href="notes/vco-digitization.html">Can a simple nonlinear VCO enable super cheap oscilloscopes?</a>
+2017-05-04 (updated 2017-05-10) (5 minutes)
+</li><li><a href="notes/dumb-vocoder.html">Dumb vocoder</a>
+2017-05-10 (2 minutes)
+</li><li><a href="notes/generic-programming.html">Generic programming with proofs, specification, refinement, and specialization</a>
+2017-05-10 (6 minutes)
+</li><li><a href="notes/gpio-peripherals.html">Adding GPIO lines over USB with a Saleae logic analyzer</a>
+2017-05-10 (1 minute)
+</li><li><a href="notes/pattern-matching-and-finite-functions.html">Pattern matching and finite functions</a>
+2017-05-10 (14 minutes)
+</li><li><a href="notes/reduced-affine-arithmetic-raytracer.html">Reduced affine arithmetic raytracer</a>
+2017-05-10 (1 minute)
+</li><li><a href="notes/sparkle-wheel-display.html">Sparkle wheel display</a>
+2017-05-10 (6 minutes)
+</li><li><a href="notes/vcr-oscilloscope.html">VCR oscilloscope</a>
+2017-05-10 (updated 2017-06-20) (2 minutes)
+</li><li><a href="notes/flying-spot-reilluminatable-stage.html">Flying spot reilluminatable stage</a>
+2017-05-15 (1 minute)
+</li><li><a href="notes/relational-modeling.html">Relational modeling</a>
+2017-05-17 (updated 2017-06-01) (6 minutes)
+</li><li><a href="notes/9-bit-plotter-streams.html">A plotter language of 9-bit bytes</a>
+2017-05-29 (updated 2017-06-01) (11 minutes)
+</li><li><a href="notes/inverse-filtering-control.html">High-precision control of low-stiffness sytems with bounded-Q resonances</a>
+2017-05-29 (updated 2017-06-01) (4 minutes)
+</li><li><a href="notes/ideas-to-explore.html">Ideas to explore</a>
+2017-05-29 (updated 2019-09-15) (3 minutes)
+</li><li><a href="notes/illumination-cost.html">Illumination cost</a>
+2017-05-31 (3 minutes)
+</li><li><a href="notes/fast-sea-salt-evaporator.html">Fast sea salt evaporator</a>
+2017-06-01 (3 minutes)
+</li><li><a href="notes/laser-cut-box.html">How cheap can laser-cut boxes be?</a>
+2017-06-01 (2 minutes)
+</li><li><a href="notes/karplus-strong-pll.html">Karplus–Strong PLLs</a>
+2017-06-09 (1 minute)
+</li><li><a href="notes/caching-screen-contents.html">Caching screen contents</a>
+2017-06-14 (2 minutes)
+</li><li><a href="notes/asciibetical-encoding.html">ASCIIbetically homomorphic encodings of general data structures</a>
+2017-06-15 (2 minutes)
+</li><li><a href="notes/coap-thoughts.html">What’s wrong with CoAP</a>
+2017-06-15 (3 minutes)
+</li><li><a href="notes/lexical-gaps.html">Lexical gaps</a>
+2017-06-15 (1 minute)
+</li><li><a href="notes/micro-pubsub.html">Micro pubsub</a>
+2017-06-15 (8 minutes)
+</li><li><a href="notes/minimal-food.html">A minimal-cost diet with adequate nutrition in Argentina in 2017 is US$0.67 per day</a>
+2017-06-15 (4 minutes)
+</li><li><a href="notes/nova-rdos.html">Nova RDOS</a>
+2017-06-15 (22 minutes)
+</li><li><a href="notes/paper-editing.html">Paper editing</a>
+2017-06-15 (3 minutes)
+</li><li><a href="notes/web-prefetch.html">Web prefetch</a>
+2017-06-15 (1 minute)
+</li><li><a href="notes/golomb-coded-belt.html">Golomb-coding operands as belt offsets likely won’t increase code density much</a>
+2017-06-15 (updated 2017-06-20) (6 minutes)
+</li><li><a href="notes/pixel-stream.html">Pixel stream</a>
+2017-06-15 (updated 2018-10-26) (4 minutes)
+</li><li><a href="notes/fast-message-router.html">Fast message router</a>
+2017-06-15 (updated 2019-07-23) (15 minutes)
+</li><li><a href="notes/database-explorer.html">Database explorer</a>
+2017-06-20 (2 minutes)
+</li><li><a href="notes/service-oriented-mail.html">Service-oriented email</a>
+2017-06-20 (updated 2017-06-21) (15 minutes)
+</li><li><a href="notes/ccd-oscilloscope.html">CCD oscilloscope</a>
+2017-06-20 (updated 2017-07-04) (7 minutes)
+</li><li><a href="notes/screen-dirty-bitmap-tree.html">Compressing a screen update with a tree of dirty bits</a>
+2017-06-21 (1 minute)
+</li><li><a href="notes/stm-rest.html">A REST interface to a software transactional memory</a>
+2017-06-21 (2 minutes)
+</li><li><a href="notes/recycling-distillation.html">A quintuple-acting vacuum cascade to recycle heat for more efficient distillation and desalination</a>
+2017-06-21 (updated 2019-12-27) (3 minutes)
+</li><li><a href="notes/stack-stack.html">A stack of stacks for simple modular electronics</a>
+2017-06-27 (5 minutes)
+</li><li><a href="notes/cic-fonts.html">CIC-filter fonts</a>
+2017-06-28 (1 minute)
+</li><li><a href="notes/cic-vocoder.html">Can you make a vocoder simpler using CIC filters?</a>
+2017-06-28 (updated 2018-06-17) (2 minutes)
+</li><li><a href="notes/cheap-frequency-detection.html">Cheap frequency detection</a>
+2017-06-29 (updated 2019-06-19) (50 minutes)
+</li><li><a href="notes/fm-chirp-sonar.html">FM chirp sonar</a>
+2017-07-04 (1 minute)
+</li><li><a href="notes/coolants.html">Coolants</a>
+2017-07-04 (updated 2017-07-12) (11 minutes)
+</li><li><a href="notes/japan-energy-autarky.html">Japan can achieve energy autarky via solar energy, but not much before 2027</a>
+2017-07-12 (4 minutes)
+</li><li><a href="notes/binary-translation-register-maps.html">Binary translation register maps</a>
+2017-07-19 (1 minute)
+</li><li><a href="notes/blob-computation.html">Blob computation</a>
+2017-07-19 (2 minutes)
+</li><li><a href="notes/compact-code-cpu.html">Compact code cpu</a>
+2017-07-19 (3 minutes)
+</li><li><a href="notes/complementary-goods-in-home-economics.html">Complementary goods in home economics</a>
+2017-07-19 (3 minutes)
+</li><li><a href="notes/constant-current-switching-capacitor-charging.html">Constant current switching capacitor charging</a>
+2017-07-19 (1 minute)
+</li><li><a href="notes/differential-spiral-cam.html">Differential spiral cam</a>
+2017-07-19 (9 minutes)
+</li><li><a href="notes/distributed-computing-environment.html">Distributed computing environment</a>
+2017-07-19 (8 minutes)
+</li><li><a href="notes/double-heap-sequence.html">Double heap sequence</a>
+2017-07-19 (2 minutes)
+</li><li><a href="notes/dyneema.html">Dyneema</a>
+2017-07-19 (2 minutes)
+</li><li><a href="notes/ideal-language-syntax.html">Ideal language syntax</a>
+2017-07-19 (1 minute)
+</li><li><a href="notes/imbalance-copyright.html">The imbalance inherent in copyright systems</a>
+2017-07-19 (2 minutes)
+</li><li><a href="notes/parametric-polymorphism-and-columns.html">Parametric polymorphism and columns</a>
+2017-07-19 (2 minutes)
+</li><li><a href="notes/piezoelectric-engraving.html">Piezoelectric engraving</a>
+2017-07-19 (4 minutes)
+</li><li><a href="notes/pipe-dome.html">Pipe dome</a>
+2017-07-19 (7 minutes)
+</li><li><a href="notes/rasterizing-polies.html">Rasterizing polies</a>
+2017-07-19 (3 minutes)
+</li><li><a href="notes/replicating-education.html">Replicating education</a>
+2017-07-19 (7 minutes)
+</li><li><a href="notes/rubber-air-conditioner.html">Rubber air conditioner</a>
+2017-07-19 (2 minutes)
+</li><li><a href="notes/self-compiler-bootstrapping.html">Options for bootstrapping a compiler from a tiny compiler using Brainfuck</a>
+2017-07-19 (2 minutes)
+</li><li><a href="notes/solar-computer-2.html">Solar computer 2</a>
+2017-07-19 (3 minutes)
+</li><li><a href="notes/term-rewriting.html">Term rewriting</a>
+2017-07-19 (3 minutes)
+</li><li><a href="notes/tournament.html">A tournament to decide which notes to devote attention to polishing</a>
+2017-07-19 (2 minutes)
+</li><li><a href="notes/vector-instructions.html">Vector instructions</a>
+2017-07-19 (2 minutes)
+</li><li><a href="notes/vector-js-codegen.html">JIT-compiling array computation graphs in JS</a>
+2017-07-19 (1 minute)
+</li><li><a href="notes/vectorized-prefix-sum.html">Vectorized prefix sum</a>
+2017-07-19 (5 minutes)
+</li><li><a href="notes/water-tower-preparedness.html">Energy storage in a personal water tower: pretty impractical</a>
+2017-07-19 (2 minutes)
+</li><li><a href="notes/z-machine-ops.html">The Z-machine memory model</a>
+2017-07-19 (4 minutes)
+</li><li><a href="notes/zombie-contingency-plan.html">Zombie contingency plan</a>
+2017-07-19 (9 minutes)
+</li><li><a href="notes/xor-1-to-1-hashing.html">Xor 1 to 1 hashing</a>
+2017-07-19 (updated 2017-08-03) (10 minutes)
+</li><li><a href="notes/copper-plating-furniture.html">Copper plating furniture</a>
+2017-07-19 (updated 2017-09-01) (4 minutes)
+</li><li><a href="notes/multiplication-with-squares.html">Multiplication with squares</a>
+2017-07-19 (updated 2019-07-09) (5 minutes)
+</li><li><a href="notes/rpn-ui.html">An RPN CPU instruction set doubling as user interface</a>
+2017-07-19 (updated 2019-07-10) (21 minutes)
+</li><li><a href="notes/affine-arithmetic-optimization.html">Affine arithmetic optimization</a>
+2017-07-19 (updated 2019-09-15) (3 minutes)
+</li><li><a href="notes/3d-printing-stone.html">Approaches to 3-D printing in sandstone</a>
+2017-08-03 (5 minutes)
+</li><li><a href="notes/interactive-bandwidth.html">Interactive bandwidth</a>
+2017-08-03 (2 minutes)
+</li><li><a href="notes/pouch-kafka-log-sync.html">Kafka-like feeds for offline-first browser apps</a>
+2017-08-03 (5 minutes)
+</li><li><a href="notes/real-time-windowing.html">Real time windowing</a>
+2017-08-03 (9 minutes)
+</li><li><a href="notes/cached-soa-desktop.html">Cached SOA desktop</a>
+2017-08-03 (updated 2018-10-26) (6 minutes)
+</li><li><a href="notes/frequency-identification-dsp.html">Another candidate lightweight frequency tracking algorithm</a>
+2017-08-18 (4 minutes)
+</li><li><a href="notes/hammering-toolhead.html">Hammering toolhead</a>
+2017-08-18 (6 minutes)
+</li><li><a href="notes/futuristic-os.html">What does a futuristic OS look like?</a>
+2017-08-18 (updated 2019-05-05) (6 minutes)
+</li><li><a href="notes/codex-arundel.html">Notes on scraping the Codex Arundel to preserve it</a>
+2017-08-22 (1 minute)
+</li><li><a href="notes/deep-freeze.html">Deep freeze</a>
+2017-08-22 (updated 2019-01-22) (7 minutes)
+</li><li><a href="notes/salt-slush-refrigeration.html">Salt slush refrigeration</a>
+2017-08-22 (updated 2019-10-08) (12 minutes)
+</li><li><a href="notes/minimal-dependency-system.html">A minimal dependency processing system</a>
+2017-09-21 (3 minutes)
+</li><li><a href="notes/minimal-transaction-system.html">Minimal transaction system</a>
+2017-09-21 (5 minutes)
+</li><li><a href="notes/general-purpose-layout-syntax.html">General purpose layout syntax</a>
+2017-11-10 (updated 2019-09-01) (34 minutes)
+</li><li><a href="notes/free-text-prolog.html">Querying a pile of free-text strings with quasi-Prolog</a>
+2017-11-17 (6 minutes)
+</li></ol><h3>2018</h3><ol><li><a href="notes/interactive-calculator.html">Interactive calculator</a>
+2018-04-26 (16 minutes)
+</li><li><a href="notes/interactive-geometry.html">Interactive geometry</a>
+2018-04-26 (1 minute)
+</li><li><a href="notes/two-thumb-quasimodal.html">Two-thumb quasimodal multitouch interaction techniques</a>
+2018-04-26 (11 minutes)
+</li><li><a href="notes/wizards-castle-analysis.html">Some notes on reverse-engineering The Wizard’s Castle</a>
+2018-04-26 (9 minutes)
+</li><li><a href="notes/absurd-household-materials.html">Absurd household materials</a>
+2018-04-26 (updated 2018-05-18) (8 minutes)
+</li><li><a href="notes/add-angles.html">The tangent of the sum of two angles</a>
+2018-04-27 (1 minute)
+</li><li><a href="notes/bench-trash-power-supply.html">Bench trash power supply</a>
+2018-04-27 (9 minutes)
+</li><li><a href="notes/cassette-tape-capacity.html">Cassette tape capacity</a>
+2018-04-27 (1 minute)
+</li><li><a href="notes/constant-space-flexible-data.html">Constant space flexible data</a>
+2018-04-27 (5 minutes)
+</li><li><a href="notes/cyclic-fabrication-system.html">A brief note on autonomous cyclic fabrication systems from inorganic raw materials</a>
+2018-04-27 (1 minute)
+</li><li><a href="notes/earring-computer.html">Earring computer</a>
+2018-04-27 (1 minute)
+</li><li><a href="notes/fitdraw.html">Optimization-based painting software</a>
+2018-04-27 (1 minute)
+</li><li><a href="notes/forthlocals.html">Rarely are function-local variables in Forth justified</a>
+2018-04-27 (10 minutes)
+</li><li><a href="notes/framed-belt-dsp.html">Framed-belt DSP</a>
+2018-04-27 (3 minutes)
+</li><li><a href="notes/frustration.html">Frustration</a>
+2018-04-27 (2 minutes)
+</li><li><a href="notes/gradient-overlay.html">Gradient overlay</a>
+2018-04-27 (2 minutes)
+</li><li><a href="notes/grain-editor.html">A sentence-granularity hypertext editor</a>
+2018-04-27 (4 minutes)
+</li><li><a href="notes/incremental-recomputation.html">Incremental recomputation</a>
+2018-04-27 (12 minutes)
+</li><li><a href="notes/laser-etched-archival.html">Data archival on gold leaf or Mylar with DVD-writer lasers or sparks</a>
+2018-04-27 (5 minutes)
+</li><li><a href="notes/lisp-15-forth.html">Lisp 1.5 in a stack bytecode: can we get from machine code to Lisp in 45 lines of code?</a>
+2018-04-27 (4 minutes)
+</li><li><a href="notes/literate-programming.html">Literate programs should include example output, like Jupyter, but Jupyter is imperfect</a>
+2018-04-27 (3 minutes)
+</li><li><a href="notes/low-carb-diets.html">Low-carbohydrate diets are ecologically sustainable</a>
+2018-04-27 (2 minutes)
+</li><li><a href="notes/minimal-distributed-streams.html">Minimal distributed streams</a>
+2018-04-27 (5 minutes)
+</li><li><a href="notes/obscurity-platform.html">Obscurity platform</a>
+2018-04-27 (1 minute)
+</li><li><a href="notes/pliant.html">Some notes on FullPliant and Pliant</a>
+2018-04-27 (9 minutes)
+</li><li><a href="notes/random-port-trials.html">How inefficient is SNAT hole-punching via random port trials?</a>
+2018-04-27 (2 minutes)
+</li><li><a href="notes/restful-stateful-connection.html">Compressing REST transactions with per-connection state</a>
+2018-04-27 (11 minutes)
+</li><li><a href="notes/urban-autarkic-network.html">Urban autarkic network</a>
+2018-04-27 (1 minute)
+</li><li><a href="notes/laser-cut-next-step.html">Laser cut next step</a>
+2018-04-27 (updated 2018-04-30) (7 minutes)
+</li><li><a href="notes/pitch-detection.html">How can we do online pitch detection?</a>
+2018-04-27 (updated 2018-04-30) (6 minutes)
+</li><li><a href="notes/mail-reader.html">Mail reader</a>
+2018-04-27 (updated 2018-06-18) (7 minutes)
+</li><li><a href="notes/2017-sap-allocation.html">2017 [Provisional English translation of intercepted transmission]</a>
+2018-04-27 (updated 2018-07-14) (13 minutes)
+</li><li><a href="notes/minimal-window-system.html">A minimal window system</a>
+2018-04-27 (updated 2018-10-26) (12 minutes)
+</li><li><a href="notes/code-gobbets.html">Composing code gobbets with implicit dependencies</a>
+2018-04-27 (updated 2019-05-21) (3 minutes)
+</li><li><a href="notes/failure-free.html">Patterns for failure-free, bounded-space, and bounded-time programming</a>
+2018-04-27 (updated 2019-09-10) (42 minutes)
+</li><li><a href="notes/current-source-grid.html">Exploration of using RF current sources instead of ELF voltage sources for mains power</a>
+2018-04-30 (updated 2018-07-05) (29 minutes)
+</li><li><a href="notes/air-filter.html">Notes on a possible household air filter</a>
+2018-05-05 (updated 2018-05-15) (10 minutes)
+</li><li><a href="notes/ideas-to-pursue.html">Ideas to pursue</a>
+2018-05-05 (updated 2018-08-16) (6 minutes)
+</li><li><a href="notes/uhmwpe-hammock.html">You can stuff a UHMWPE hammock in your wallet</a>
+2018-05-15 (updated 2018-10-28) (11 minutes)
+</li><li><a href="notes/gradient-descent-beyond-machine-learning.html">Gradient descent beyond machine learning</a>
+2018-05-18 (2 minutes)
+</li><li><a href="notes/radiant-heating.html">Radiant heating</a>
+2018-05-20 (3 minutes)
+</li><li><a href="notes/home-dehumidifier.html">Home dehumidifier</a>
+2018-05-20 (updated 2019-04-02) (12 minutes)
+</li><li><a href="notes/dsp-olap-cube.html">Accelerating convolution and correlation with short periodic waveforms using OLAP marginal prefix sums</a>
+2018-06-05 (4 minutes)
+</li><li><a href="notes/dutch-auction-raffle.html">Dutch auction raffle</a>
+2018-06-05 (3 minutes)
+</li><li><a href="notes/oscilloscope-screens.html">Oscilloscope screens</a>
+2018-06-05 (2 minutes)
+</li><li><a href="notes/uhmwpe-clothes.html">UHMWPE clothes could be lightweight and sturdy</a>
+2018-06-05 (3 minutes)
+</li><li><a href="notes/clisweep.html">Clisweep</a>
+2018-06-06 (3 minutes)
+</li><li><a href="notes/parsing.html">Toward a minimal PEG parsing engine</a>
+2018-06-06 (4 minutes)
+</li><li><a href="notes/whistle-detection.html">Whistle detection</a>
+2018-06-06 (updated 2018-12-02) (18 minutes)
+</li><li><a href="notes/arduino-curve-tracer.html">Arduino curve tracer</a>
+2018-06-17 (10 minutes)
+</li><li><a href="notes/diode-logic.html">Diode logic</a>
+2018-06-17 (16 minutes)
+</li><li><a href="notes/multitouch-livecoding.html">Multitouch livecoding</a>
+2018-06-17 (1 minute)
+</li><li><a href="notes/resistor-assortment.html">Resistor assortment</a>
+2018-06-17 (4 minutes)
+</li><li><a href="notes/snap-logic.html">Snap logic</a>
+2018-06-17 (3 minutes)
+</li><li><a href="notes/tub-heating.html">Heating my apartment with a plastic tub of hot water</a>
+2018-06-17 (3 minutes)
+</li><li><a href="notes/word-stream-architecture.html">Word stream architecture</a>
+2018-06-17 (13 minutes)
+</li><li><a href="notes/transistors-vs-microcontrollers.html">Transistors vs. Microcontrollers</a>
+2018-06-17 (updated 2018-07-05) (8 minutes)
+</li><li><a href="notes/phase-vocoder-fm-sdr.html">Is a phase vocoder or a bunch of PLLs a more efficient way to listen to all FM radio stations at once?</a>
+2018-06-17 (updated 2019-07-29) (7 minutes)
+</li><li><a href="notes/switchers-and-adc.html">Turning off the power supply for every sample to reduce noise</a>
+2018-06-18 (2 minutes)
+</li><li><a href="notes/plastics.html">Why is there so much anti-plastic sentiment? Visibility, Arcadian primitivism, conspicuous consumption, and profit.</a>
+2018-06-21 (7 minutes)
+</li><li><a href="notes/lithium-battery-welder.html">Lithium battery welder</a>
+2018-06-21 (updated 2019-01-22) (2 minutes)
+</li><li><a href="notes/twi-bus.html">The TWI and I²C buses and better alternatives like CAN and RS-485</a>
+2018-06-28 (updated 2018-07-05) (24 minutes)
+</li><li><a href="notes/class-d-amp-hacking.html">Hacking a buck converter into a class-D amplifier?</a>
+2018-06-30 (4 minutes)
+</li><li><a href="notes/feather.html">The Adafruit Feather</a>
+2018-06-30 (1 minute)
+</li><li><a href="notes/stm32.html">Notes on the STM32 microcontroller family</a>
+2018-06-30 (updated 2018-11-12) (42 minutes)
+</li><li><a href="notes/electric-hammer.html">Electric hammer</a>
+2018-07-02 (updated 2018-07-05) (14 minutes)
+</li><li><a href="notes/capacitors.html">Capacitors: some notes on tradeoffs</a>
+2018-07-05 (5 minutes)
+</li><li><a href="notes/barrel-safety.html">Barrel safety</a>
+2018-07-14 (3 minutes)
+</li><li><a href="notes/flexible-text-query.html">Flexible text query</a>
+2018-07-14 (4 minutes)
+</li><li><a href="notes/hot-water-bottles.html">Hot water bottles</a>
+2018-07-14 (4 minutes)
+</li><li><a href="notes/quasimode-keyboard.html">Quasimode keyboard</a>
+2018-07-14 (24 minutes)
+</li><li><a href="notes/stm32-adc.html">Can you turbocharge the STM32 ADC to build an oscilloscope?</a>
+2018-07-14 (5 minutes)
+</li><li><a href="notes/agenda-hypertext.html">Agenda hypertext</a>
+2018-07-14 (updated 2018-07-15) (2 minutes)
+</li><li><a href="notes/byte-prefix-tuple-space.html">Byte prefix tuple space</a>
+2018-07-14 (updated 2018-07-15) (4 minutes)
+</li><li><a href="notes/microlens-vibrating-lightfield.html">Microlens vibrating lightfield</a>
+2018-07-14 (updated 2018-07-15) (11 minutes)
+</li><li><a href="notes/top-algorithms.html">Top algorithms</a>
+2018-07-29 (4 minutes)
+</li><li><a href="notes/comparable-counters.html">Comparable counters</a>
+2018-08-16 (1 minute)
+</li><li><a href="notes/nutra-circuits.html">Notes on circuitry for the Nutra seed activator</a>
+2018-08-16 (20 minutes)
+</li><li><a href="notes/wang-tile-font.html">Wang tile font</a>
+2018-08-16 (5 minutes)
+</li><li><a href="notes/gradient-pixels.html">Gradient pixels</a>
+2018-08-16 (updated 2018-10-28) (9 minutes)
+</li><li><a href="notes/caustics.html">Caustics</a>
+2018-08-18 (updated 2019-11-08) (8 minutes)
+</li><li><a href="notes/android-qr.html">Notes on QR code capabilities on typical Android hand computers</a>
+2018-09-10 (2 minutes)
+</li><li><a href="notes/arbitrary-light-transfers.html">You can’t construct optical systems with arbitrary light transfers, but you can do some awesome shit</a>
+2018-09-10 (11 minutes)
+</li><li><a href="notes/caustic-simulation.html">Caustic simulation</a>
+2018-09-10 (updated 2018-11-04) (2 minutes)
+</li><li><a href="notes/immediate-mode-productive-grammars.html">Immediate mode productive grammars</a>
+2018-09-13 (8 minutes)
+</li><li><a href="notes/golang-bugs.html">Golang bugs</a>
+2018-09-13 (updated 2018-10-28) (6 minutes)
+</li><li><a href="notes/window-systems.html">Window systems</a>
+2018-10-26 (1 minute)
+</li><li><a href="notes/wercam-nonscriptable-windows.html">A nonscriptable design for the Wercam windowing system</a>
+2018-10-26 (updated 2018-11-13) (6 minutes)
+</li><li><a href="notes/wercam-scriptable-windows.html">Scriptable windowing for Wercam</a>
+2018-10-26 (updated 2019-07-24) (26 minutes)
+</li><li><a href="notes/bit-difference-array.html">Bit difference array</a>
+2018-10-28 (10 minutes)
+</li><li><a href="notes/cubic-quintic-upsampling.html">Quintic upsampling of time-series with 1½ multiplies per sample</a>
+2018-10-28 (2 minutes)
+</li><li><a href="notes/digital-noise-generators.html">Digital noise generators</a>
+2018-10-28 (2 minutes)
+</li><li><a href="notes/eink-design.html">Text editor design for e-ink displays</a>
+2018-10-28 (23 minutes)
+</li><li><a href="notes/hand-drawn-font-compositing.html">Hand drawn font compositing</a>
+2018-10-28 (2 minutes)
+</li><li><a href="notes/life-octaves.html">Life octaves</a>
+2018-10-28 (2 minutes)
+</li><li><a href="notes/three-phase-oscillating-belt.html">Three phase oscillating belt</a>
+2018-10-28 (4 minutes)
+</li><li><a href="notes/time-domain-analog-chaos.html">Time domain analog chaos</a>
+2018-10-28 (4 minutes)
+</li><li><a href="notes/tio2-iridescent-printing.html">Electrolytic anodizing, with a small movable electrode</a>
+2018-10-28 (2 minutes)
+</li><li><a href="notes/bubbleos.html">Speculative plans for BubbleOS</a>
+2018-10-28 (updated 2019-02-24) (12 minutes)
+</li><li><a href="notes/asus-gpu.html">Notes on the Intel N3700 i915 GPU in this ASUS E403S laptop</a>
+2018-10-28 (updated 2019-05-05) (3 minutes)
+</li><li><a href="notes/cheap-textures.html">Cheap textures</a>
+2018-10-28 (updated 2019-05-05) (5 minutes)
+</li><li><a href="notes/lenovo-gpu.html">The details of the GPU in this laptop</a>
+2018-10-29 (2 minutes)
+</li><li><a href="notes/dilating-letterforms.html">Dilating letterforms</a>
+2018-11-04 (15 minutes)
+</li><li><a href="notes/gauzy-shit.html">Gauzy shit</a>
+2018-11-04 (4 minutes)
+</li><li><a href="notes/bitwise-sets.html">Performance properties of sets of bitwise operations</a>
+2018-11-06 (updated 2018-11-07) (16 minutes)
+</li><li><a href="notes/vector-vm.html">A simple virtual machine for vector math?</a>
+2018-11-06 (updated 2018-11-09) (15 minutes)
+</li><li><a href="notes/bootstrapping-instruction-set.html">Bootstrapping instruction set</a>
+2018-11-06 (updated 2019-05-03) (19 minutes)
+</li><li><a href="notes/hypertext-archival-wiki.html">Archival of hypertext with arbitrary interactive programs: a design outline</a>
+2018-11-09 (3 minutes)
+</li><li><a href="notes/recurrent-comb-cascade.html">Recurrent comb cascade</a>
+2018-11-09 (updated 2018-11-10) (2 minutes)
+</li><li><a href="notes/antialiased-line-drawing.html">Antialiased line drawing</a>
+2018-11-13 (updated 2019-09-01) (4 minutes)
+</li><li><a href="notes/atmospheric-pressure-harvesting-phoenix-egg.html">Atmospheric pressure harvesting phoenix egg</a>
+2018-11-23 (14 minutes)
+</li><li><a href="notes/leconscrip.html">Leconscrip: a family of JS subsets for BubbleOS</a>
+2018-11-23 (2 minutes)
+</li><li><a href="notes/tagging-parser.html">Tagging parsers</a>
+2018-11-23 (updated 2018-12-10) (9 minutes)
+</li><li><a href="notes/fast-gsave.html">Fast gsave</a>
+2018-11-27 (5 minutes)
+</li><li><a href="notes/parallel-register-file.html">Parallel register file</a>
+2018-11-27 (2 minutes)
+</li><li><a href="notes/shetter-bell.html">What would a better Unix shell look like?</a>
+2018-11-27 (1 minute)
+</li><li><a href="notes/stretch-alien.html">The Stretch book is truly alien</a>
+2018-11-27 (6 minutes)
+</li><li><a href="notes/skeletal-js.html">How small can we make a comfortable subset of JS?</a>
+2018-11-27 (updated 2018-12-02) (3 minutes)
+</li><li><a href="notes/8-bit-fsms.html">What can you build out of 256-byte ROMs?</a>
+2018-12-02 (1 minute)
+</li><li><a href="notes/binate-kanren.html">Binate and KANREN</a>
+2018-12-02 (3 minutes)
+</li><li><a href="notes/sparse-filters.html">Sparse filters</a>
+2018-12-02 (4 minutes)
+</li><li><a href="notes/stereographic-map-app.html">Stereographic map app</a>
+2018-12-02 (2 minutes)
+</li><li><a href="notes/household-thermal-stores.html">Household thermal stores</a>
+2018-12-02 (updated 2018-08-19) (27 minutes)
+</li><li><a href="notes/arduino-safety.html">Arduino safety</a>
+2018-12-10 (4 minutes)
+</li><li><a href="notes/constant-space-lists.html">Constant space lists</a>
+2018-12-10 (10 minutes)
+</li><li><a href="notes/counter-fsm.html">Turning a delay line into a counter with a FSM</a>
+2018-12-10 (1 minute)
+</li><li><a href="notes/minimal-imperative-language.html">Minimal imperative language</a>
+2018-12-10 (7 minutes)
+</li><li><a href="notes/prototyping-environment.html">Toward a lightweight, high-performance software prototyping environment</a>
+2018-12-10 (15 minutes)
+</li><li><a href="notes/bleep.html">The Bleep ultrasonic modem for local data communication</a>
+2018-12-10 (updated 2018-12-11) (8 minutes)
+</li><li><a href="notes/cpu-with-knobs.html">A two-operand calculator supporting programming by demonstration</a>
+2018-12-11 (22 minutes)
+</li><li><a href="notes/graceful-ecc-degradation.html">Broadcast ECC with graceful degradation, or avoiding the cliff effect</a>
+2018-12-18 (5 minutes)
+</li><li><a href="notes/lua-%2523-operator.html">Improving Lua #L with incremental prefix sum in the ∧ monoid</a>
+2018-12-18 (7 minutes)
+</li><li><a href="notes/matrix-exponentiation-linear-circuits.html">Matrix exponentiation linear circuits</a>
+2018-12-18 (4 minutes)
+</li><li><a href="notes/dsp-pipeline.html">Evaluating DSP operations in minimal buffer space by pipelining</a>
+2018-12-18 (updated 2018-12-19) (20 minutes)
+</li><li><a href="notes/sample-reversal.html">Sample reversal</a>
+2018-12-18 (updated 2019-01-17) (5 minutes)
+</li><li><a href="notes/convolution-bokeh.html">Real-time bokeh algorithms, and other convolution tricks</a>
+2018-12-18 (updated 2019-08-15) (23 minutes)
+</li><li><a href="notes/augmenting.html">Commentaries on reading Engelbart’s “Augmenting Human Intellect”</a>
+2018-12-24 (updated 2018-12-25) (25 minutes)
+</li><li><a href="notes/imgui-tk.html">IMGUI programming compared to Tcl/Tk</a>
+2018-12-24 (updated 2018-12-31) (8 minutes)
+</li><li><a href="notes/yeso-notes.html">Yeso notes</a>
+2018-12-25 (updated 2019-01-01) (11 minutes)
+</li><li><a href="notes/dehydrating-processes.html">Dehydrating processes and other interaction models</a>
+2018-12-28 (updated 2019-01-01) (36 minutes)
+</li></ol><h3>2019</h3><ol><li><a href="notes/imgui-programming-language.html">IMGUI programming language</a>
+2019-01-01 (updated 2019-07-30) (21 minutes)
+</li><li><a href="notes/cleanup-child.html">Supervisor children for fault-tolerant Unix command-line programs</a>
+2019-01-04 (3 minutes)
+</li><li><a href="notes/bresenham-erosion.html">Some notes on morphology, including improvements on Urbach and Wilkinson’s erosion/dilation algorithm</a>
+2019-01-04 (updated 2019-11-12) (26 minutes)
+</li><li><a href="notes/median-filtering.html">Median filtering</a>
+2019-01-17 (11 minutes)
+</li><li><a href="notes/raid-zim.html">Raid zim</a>
+2019-01-17 (updated 2019-02-08) (1 minute)
+</li><li><a href="notes/transactional-event-handlers.html">Transactional event handlers</a>
+2019-01-24 (14 minutes)
+</li><li><a href="notes/transactional-memory.html">Transactional memory, immediate-mode structured graphics, serialization, backtracking, and parsing</a>
+2019-01-25 (7 minutes)
+</li><li><a href="notes/testing-introspection.html">The uses of introspection, reflection, and personal supercomputers in software testing</a>
+2019-02-04 (updated 2019-03-11) (12 minutes)
+</li><li><a href="notes/oberon.html">A review of Wirth’s Project Oberon book</a>
+2019-02-04 (updated 2019-03-19) (63 minutes)
+</li><li><a href="notes/fast-secure-pubsub.html">Fast secure pubsub</a>
+2019-02-04 (updated 2019-12-03) (2 minutes)
+</li><li><a href="notes/golang-stdlib.html">My notes from learning the Golang standard library</a>
+2019-02-08 (20 minutes)
+</li><li><a href="notes/immutable-filesystem.html">Immutability-based filesystems: interfaces, problems, and benefits</a>
+2019-02-08 (updated 2019-03-19) (23 minutes)
+</li><li><a href="notes/square-multiply-pipeline.html">Hardware multiplication with square tables</a>
+2019-02-08 (updated 2019-07-09) (4 minutes)
+</li><li><a href="notes/balcony-battery.html">Balcony battery</a>
+2019-02-11 (updated 2019-12-06) (6 minutes)
+</li><li><a href="notes/friction-cutting-plastic.html">Friction-cutting plastic</a>
+2019-02-25 (8 minutes)
+</li><li><a href="notes/tunnel-prt.html">Ultralight tunnel personal rapid transit</a>
+2019-03-11 (15 minutes)
+</li><li><a href="notes/aluminum-foil-spif.html">Single-point incremental forming of aluminum foil</a>
+2019-03-11 (updated 2019-06-10) (14 minutes)
+</li><li><a href="notes/bitcoin-uses.html">What are Bitcoin’s uses other than sidestepping the law?</a>
+2019-03-11 (updated 2019-07-05) (6 minutes)
+</li><li><a href="notes/elastic-metamaterials.html">Elastic metamaterials</a>
+2019-03-19 (17 minutes)
+</li><li><a href="notes/india-rubber-memory.html">India rubber memory</a>
+2019-03-19 (4 minutes)
+</li><li><a href="notes/sliding-rmq-achievements.html">Tabulating your top event of the month efficiently using RMQ algorithms</a>
+2019-03-19 (8 minutes)
+</li><li><a href="notes/mayonnaise.html">Mayonnaise</a>
+2019-03-19 (updated 2019-06-10) (10 minutes)
+</li><li><a href="notes/honk-development.html">Honk development</a>
+2019-03-21 (2 minutes)
+</li><li><a href="notes/weregild.html">Weregild</a>
+2019-03-24 (3 minutes)
+</li><li><a href="notes/matrix-power-euler.html">Accelerating Euler’s Method on linear time-invariant systems by exponentiating matrices</a>
+2019-03-24 (updated 2019-04-02) (7 minutes)
+</li><li><a href="notes/affine-ivp.html">Solving initial-value problems faster and with guaranteed error bounds with affine arithmetic</a>
+2019-04-02 (5 minutes)
+</li><li><a href="notes/fractal-palettes.html">Fractal palettes</a>
+2019-04-02 (7 minutes)
+</li><li><a href="notes/high-efficiency-speaker-driver.html">Groping toward a high-efficiency speaker driver</a>
+2019-04-02 (15 minutes)
+</li><li><a href="notes/sous-vide.html">Sous vide</a>
+2019-04-02 (2 minutes)
+</li><li><a href="notes/gardening-machines.html">Gardening machines</a>
+2019-04-02 (updated 2019-04-24) (32 minutes)
+</li><li><a href="notes/paper-foil-relays.html">Paper/foil relays</a>
+2019-04-02 (updated 2019-10-23) (13 minutes)
+</li><li><a href="notes/audio-video-boustrophedon-sync.html">Audio video boustrophedon sync</a>
+2019-04-03 (2 minutes)
+</li><li><a href="notes/capacitive-dlp.html">Macroscopic capacitive DLP</a>
+2019-04-08 (1 minute)
+</li><li><a href="notes/caustic-business-card.html">Caustic business card</a>
+2019-04-08 (3 minutes)
+</li><li><a href="notes/video-game-ide.html">An IDE modeled on video games</a>
+2019-04-08 (5 minutes)
+</li><li><a href="notes/progressive-revealment-crypto.html">Progressive revealment crypto</a>
+2019-04-10 (2 minutes)
+</li><li><a href="notes/moon-flag-telescope.html">Seeing the Apollo flags from Earth would require a telescope 27× the size of the Gran Telescopio Canarias</a>
+2019-04-10 (updated 2019-04-16) (2 minutes)
+</li><li><a href="notes/building-blocks.html">Maximal-flexibility designs for printable building blocks</a>
+2019-04-20 (18 minutes)
+</li><li><a href="notes/karatsuba.html">Karatsuba</a>
+2019-04-20 (2 minutes)
+</li><li><a href="notes/meditation.html">A note on meditation</a>
+2019-04-20 (1 minute)
+</li><li><a href="notes/minetest-addiction.html">Why Minetest is so addictive</a>
+2019-04-20 (8 minutes)
+</li><li><a href="notes/notch-scorn.html">Notch scorn</a>
+2019-04-20 (5 minutes)
+</li><li><a href="notes/plastic-cutters.html">Plastic cutters</a>
+2019-04-20 (5 minutes)
+</li><li><a href="notes/waterfryer.html">Waterfryer</a>
+2019-04-20 (1 minute)
+</li><li><a href="notes/bus-waiting.html">When should you give up waiting for the bus and just walk?</a>
+2019-04-24 (5 minutes)
+</li><li><a href="notes/fencepost-editor.html">Fencepost cognitive interface errors in text editing</a>
+2019-04-24 (24 minutes)
+</li><li><a href="notes/hall-effect-logic.html">Hall-effect Wheatstone bridges for impractical steampunk electronic logic gates</a>
+2019-04-24 (2 minutes)
+</li><li><a href="notes/plasma-glazing.html">Plasma glazing</a>
+2019-04-24 (1 minute)
+</li><li><a href="notes/dercuano-stylesheet-notes.html">Dercuano stylesheet notes</a>
+2019-04-28 (updated 2019-05-09) (72 minutes)
+</li><li><a href="notes/dercuano-formula-display.html">Dercuano formula display</a>
+2019-04-30 (5 minutes)
+</li><li><a href="notes/ibniz-assembler.html">Three-stack generic macro assembler (design sketch)</a>
+2019-04-30 (8 minutes)
+</li><li><a href="notes/dercuano-drawings.html">Dercuano drawings</a>
+2019-04-30 (updated 2019-05-30) (18 minutes)
+</li><li><a href="notes/dercuano-calculation.html">Dercuano calculation</a>
+2019-05-01 (3 minutes)
+</li><li><a href="notes/cold-plasma-oxidation.html">Cold plasma oxidation</a>
+2019-05-01 (updated 2019-08-21) (7 minutes)
+</li><li><a href="notes/array-fields.html">Why the Cartesian product of fields isn’t a field</a>
+2019-05-02 (2 minutes)
+</li><li><a href="notes/string-instrument-servo.html">Measuring submicron displacements by pitch bending a slide guitar</a>
+2019-05-05 (18 minutes)
+</li><li><a href="notes/fitts-law-musings.html">Some musings on applying Fitts’s Law to user interface design and data compression</a>
+2019-05-06 (updated 2019-05-09) (27 minutes)
+</li><li><a href="notes/factored-drawing.html">Designing a drawing editor for well-factored drawings</a>
+2019-05-07 (9 minutes)
+</li><li><a href="notes/scrubber-mask.html">Scrubber mask</a>
+2019-05-08 (5 minutes)
+</li><li><a href="notes/texture-algebra.html">An algebra of textures for interactive composition</a>
+2019-05-08 (4 minutes)
+</li><li><a href="notes/free-space-optical-coding-gain.html">Free space optical coding gain</a>
+2019-05-08 (updated 2019-05-09) (4 minutes)
+</li><li><a href="notes/granite-texture.html">Granite texture</a>
+2019-05-08 (updated 2019-05-09) (5 minutes)
+</li><li><a href="notes/phase-change-soldering-iron.html">A phase-change soldering iron</a>
+2019-05-08 (updated 2019-05-09) (14 minutes)
+</li><li><a href="notes/dercuano-rendering.html">Dercuano rendering</a>
+2019-05-11 (updated 2019-05-12) (3 minutes)
+</li><li><a href="notes/temporally-indexed-log-ram.html">A language whose memory model is a bunch of temporally-indexed logs</a>
+2019-05-12 (updated 2018-05-21) (20 minutes)
+</li><li><a href="notes/image-approximation.html">Image approximation</a>
+2019-05-14 (10 minutes)
+</li><li><a href="notes/dercuano-search.html">Dercuano search</a>
+2019-05-16 (2 minutes)
+</li><li><a href="notes/on-influencers.html">On influencers</a>
+2019-05-16 (3 minutes)
+</li><li><a href="notes/dercuano-hand-computers.html">How to make Dercuano work on hand computers?</a>
+2019-05-18 (updated 2019-12-30) (61 minutes)
+</li><li><a href="notes/relational-modeling-and-apl.html">Relational modeling and APL</a>
+2019-05-20 (updated 2019-05-21) (5 minutes)
+</li><li><a href="notes/micro-math-plus.html">First impressions on using the μMath+ calculator program for Android</a>
+2019-05-21 (13 minutes)
+</li><li><a href="notes/dercuano-backlinks.html">Dercuano backlinks</a>
+2019-05-22 (7 minutes)
+</li><li><a href="notes/profile-guided-parsing.html">Profile-guided parser optimization should enable parsing of gigabytes per second</a>
+2019-05-23 (8 minutes)
+</li><li><a href="notes/big-if-true.html">Things in Dercuano that would be big if true</a>
+2019-05-24 (updated 2019-08-21) (24 minutes)
+</li><li><a href="notes/msdos-slash-separator.html">Microsoft Windows uses \ for filenames because OS/8 programs used / for switches</a>
+2019-05-25 (2 minutes)
+</li><li><a href="notes/categorical-zero-sum-prohibition.html">Categorical zero sum prohibition</a>
+2019-05-27 (updated 2019-06-01) (23 minutes)
+</li><li><a href="notes/babbage-differences.html">On the method of finite differences used in Babbage’s Difference Engine</a>
+2019-05-31 (6 minutes)
+</li><li><a href="notes/inductor-thermocouple-sensing.html">Inductor thermocouple sensing</a>
+2019-06-01 (21 minutes)
+</li><li><a href="notes/midpoint-method-texture-mapping.html">Midpoint method texture mapping</a>
+2019-06-01 (3 minutes)
+</li><li><a href="notes/induction-kiln.html">Induction kiln</a>
+2019-06-02 (19 minutes)
+</li><li><a href="notes/sip-2019.html">Notes on SIP VoIP in 2019</a>
+2019-06-07 (updated 2019-06-28) (8 minutes)
+</li><li><a href="notes/7805-6-volts.html">How to get 6 volts out of a 7805, and why you shouldn’t</a>
+2019-06-08 (updated 2019-06-10) (8 minutes)
+</li><li><a href="notes/recursive-curves.html">Recursive curves</a>
+2019-06-10 (5 minutes)
+</li><li><a href="notes/drone-cutting.html">Drone cutting</a>
+2019-06-11 (12 minutes)
+</li><li><a href="notes/smooth-hysteresis.html">Smooth hysteresis</a>
+2019-06-11 (13 minutes)
+</li><li><a href="notes/computation-with-strain.html">Computation with strain</a>
+2019-06-13 (17 minutes)
+</li><li><a href="notes/foil-origami-robots.html">Foil origami robots</a>
+2019-06-13 (updated 2019-06-14) (10 minutes)
+</li><li><a href="notes/observable-transaction-possibilities.html">Observable transaction possibilities</a>
+2019-06-15 (10 minutes)
+</li><li><a href="notes/goertzel-minsky-pll-prefix-sums.html">Using the Goertzel algorithm, the Minsky algorithm, PLLs, and prefix sums for frequency detection</a>
+2019-06-16 (updated 2019-07-05) (39 minutes)
+</li><li><a href="notes/better-be-weird.html">Better be weird</a>
+2019-06-17 (updated 2019-06-24) (9 minutes)
+</li><li><a href="notes/array-intervals.html">Reducing the cost of self-verifying arithmetic with array operations</a>
+2019-06-23 (15 minutes)
+</li><li><a href="notes/implementation-separation.html">Separating implementation, optimization, and proofs</a>
+2019-06-26 (updated 2019-07-22) (41 minutes)
+</li><li><a href="notes/kernel-code-generation.html">Kernel code generation</a>
+2019-07-02 (6 minutes)
+</li><li><a href="notes/fractional-reserve-banking.html">Replacing fractional-reserve banking with a bond market disintermediated with a blockchain</a>
+2019-07-03 (6 minutes)
+</li><li><a href="notes/analemma-sundial.html">Analemma sundial</a>
+2019-07-05 (11 minutes)
+</li><li><a href="notes/prolog-table-outlining.html">Prolog table outlining</a>
+2019-07-05 (11 minutes)
+</li><li><a href="notes/fermat-primes.html">Fermat primes</a>
+2019-07-07 (4 minutes)
+</li><li><a href="notes/bedroom-co2.html">Reducing nighttime bedroom CO₂ levels</a>
+2019-07-08 (updated 2019-07-09) (14 minutes)
+</li><li><a href="notes/square-table-differences.html">A failed attempt to make squares cheaper to compute</a>
+2019-07-09 (updated 2019-07-11) (4 minutes)
+</li><li><a href="notes/intermittent-fluid-flow-for-heat-transport.html">Intermittent fluid flow for heat transport</a>
+2019-07-10 (4 minutes)
+</li><li><a href="notes/scratch-hologram-polyhedron.html">Some extensions of William Beaty’s scratch holograms</a>
+2019-07-11 (9 minutes)
+</li><li><a href="notes/coffee-humidity-sensing.html">Measuring the moisture content of coffee and other things with dielectric spectroscopy</a>
+2019-07-16 (updated 2019-07-17) (28 minutes)
+</li><li><a href="notes/assembler-bootstrapping.html">Assembler bootstrapping</a>
+2019-07-18 (updated 2019-12-08) (16 minutes)
+</li><li><a href="notes/direct-addressing.html">Techniques for, e.g., avoiding indexed-offset addressing on the 8080</a>
+2019-07-20 (updated 2019-07-24) (27 minutes)
+</li><li><a href="notes/genetic-secants.html">Using the method of secants for general optimization</a>
+2019-07-22 (updated 2019-11-26) (13 minutes)
+</li><li><a href="notes/phase-relations.html">Phase relations</a>
+2019-07-23 (updated 2019-07-24) (4 minutes)
+</li><li><a href="notes/spiral-chinese-windlass.html">Spiral chinese windlass</a>
+2019-07-23 (updated 2019-07-24) (7 minutes)
+</li><li><a href="notes/lithium-supplies.html">Terrestrial lithium supplies provide adequate energy storage to reach Kardashev Type 1</a>
+2019-07-25 (6 minutes)
+</li><li><a href="notes/energy-storage-efficiency.html">Energy storage efficiency</a>
+2019-07-30 (4 minutes)
+</li><li><a href="notes/cardboard-furniture.html">Cardboard furniture</a>
+2019-08-01 (updated 2019-08-11) (15 minutes)
+</li><li><a href="notes/sandwich-theory.html">Sandwich theory</a>
+2019-08-05 (updated 2019-08-29) (31 minutes)
+</li><li><a href="notes/needle-binder-injection-printing.html">Needle binder injection printing</a>
+2019-08-05 (updated 2019-12-30) (12 minutes)
+</li><li><a href="notes/human-memorable-secret-sharing.html">Human memorable secret sharing</a>
+2019-08-10 (2 minutes)
+</li><li><a href="notes/broken-computer-frustrations.html">Broken computer frustrations</a>
+2019-08-11 (2 minutes)
+</li><li><a href="notes/%25241-recognizer-diagrams.html">$1 recognizer diagrams</a>
+2019-08-11 (updated 2019-10-24) (15 minutes)
+</li><li><a href="notes/ceramic-grid-plate.html">Printed circuits on fired-clay ceramic</a>
+2019-08-13 (11 minutes)
+</li><li><a href="notes/svd-convolution.html">The miraculous low-rank SVD approximate convolution algorithm</a>
+2019-08-14 (updated 2019-08-15) (31 minutes)
+</li><li><a href="notes/harmonic-motion-chain-robot.html">Harmonic motion chain robot</a>
+2019-08-16 (2 minutes)
+</li><li><a href="notes/rubber-wheel-pinch-drive.html">Rubber wheel pinch drive</a>
+2019-08-16 (updated 2019-08-18) (8 minutes)
+</li><li><a href="notes/specialization.html">The fable of the specialized fox</a>
+2019-08-17 (1 minute)
+</li><li><a href="notes/complex-linear-regression.html">Complex linear regression (in the field ℂ of complex numbers)</a>
+2019-08-17 (updated 2019-08-18) (9 minutes)
+</li><li><a href="notes/adaptive-hill-climbing.html">Robust local search in vector spaces using adaptive step sizes, and thoughts on extending quasi-Newton methods</a>
+2019-08-17 (updated 2019-09-15) (15 minutes)
+</li><li><a href="notes/linear-optimization-landscape.html">Some notes on the landscape of linear optimization software and applications</a>
+2019-08-21 (updated 2019-08-25) (35 minutes)
+</li><li><a href="notes/renesas-rl78.html">the oversold-as-low-power Renesas RL78 microcontroller line</a>
+2019-08-27 (10 minutes)
+</li><li><a href="notes/bitbang-am-radio.html">Can you bitbang wireless communication between AVRs?  How about AM-radio energy harvesting?</a>
+2019-08-27 (updated 2019-08-28) (37 minutes)
+</li><li><a href="notes/text-relational-query.html">Text relational query</a>
+2019-08-28 (10 minutes)
+</li><li><a href="notes/8080-opcode-map.html">An 8080 opcode map in octal</a>
+2019-08-28 (updated 2019-11-24) (11 minutes)
+</li><li><a href="notes/multitouch-puppeteering.html">Multitouch and accelerometer puppeteering</a>
+2019-08-29 (updated 2019-09-01) (12 minutes)
+</li><li><a href="notes/interval-trees-over-sequences.html">Query evaluation with interval-annotated trees over sequences</a>
+2019-08-30 (updated 2019-09-03) (30 minutes)
+</li><li><a href="notes/autism-is-overfitting.html">Autism is overfitting</a>
+2019-08-31 (1 minute)
+</li><li><a href="notes/differentiable-neighborhood-regression.html">Differentiable neighborhood regression</a>
+2019-08-31 (15 minutes)
+</li><li><a href="notes/everything-is-money.html">Everything is money?</a>
+2019-08-31 (4 minutes)
+</li><li><a href="notes/gold-leaf-trusses.html">Gold leaf trusses</a>
+2019-08-31 (11 minutes)
+</li><li><a href="notes/sparse-kernel-cascade-gabor-approximation.html">Image filtering with an approximate Gabor wavelet or Morlet wavelet using a cascade of sparse convolution kernels</a>
+2019-08-31 (updated 2019-09-08) (28 minutes)
+</li><li><a href="notes/cloth-structure-from-shading.html">Cloth structure from shading</a>
+2019-09-01 (2 minutes)
+</li><li><a href="notes/processing-halftoning.html">Processing halftoning</a>
+2019-09-01 (15 minutes)
+</li><li><a href="notes/sparse-filter-response-shaping.html">A bag of candidate techniques for sparse filter design</a>
+2019-09-01 (18 minutes)
+</li><li><a href="notes/debokehfication.html">Debokehfication</a>
+2019-09-01 (updated 2019-09-12) (4 minutes)
+</li><li><a href="notes/dercuano-plotting.html">Dercuano plotting</a>
+2019-09-03 (updated 2019-09-05) (34 minutes)
+</li><li><a href="notes/photodiode-camera.html">Photodiode camera</a>
+2019-09-04 (16 minutes)
+</li><li><a href="notes/implicit-language.html">A formal language for defining implicitly parameterized functions</a>
+2019-09-05 (updated 2019-09-30) (29 minutes)
+</li><li><a href="notes/leds-are-inefficient.html">Can artificially-lit vertical farming compete with greenhouses?</a>
+2019-09-08 (12 minutes)
+</li><li><a href="notes/bokeh-pointcasting.html">Bokeh pointcasting</a>
+2019-09-08 (updated 2019-09-09) (16 minutes)
+</li><li><a href="notes/hearing-aid.html">Hearing aids for disability compensation, protection, and augmentation</a>
+2019-09-08 (updated 2019-09-09) (4 minutes)
+</li><li><a href="notes/lenticular-deflector.html">Lenticular deflector</a>
+2019-09-08 (updated 2019-09-09) (9 minutes)
+</li><li><a href="notes/pythagorean-cement-pipes.html">Pythagorean cement pipes for your shower singing</a>
+2019-09-08 (updated 2019-09-09) (7 minutes)
+</li><li><a href="notes/why-html-is-not-a-programming-language.html">What it means that HTML is “not a programming language”, and why the ignorant sometimes think otherwise</a>
+2019-09-09 (updated 2019-10-01) (24 minutes)
+</li><li><a href="notes/isotropic-texture-effects.html">Isotropic nonlinear texture effects for letterforms from a scale-space representation</a>
+2019-09-10 (16 minutes)
+</li><li><a href="notes/nonlinear-bounded-leaky-integrator.html">Nonlinear bounded leaky integrator</a>
+2019-09-11 (8 minutes)
+</li><li><a href="notes/affine-arithmetic-newton.html">Fast mathematical optimization with affine arithmetic</a>
+2019-09-15 (5 minutes)
+</li><li><a href="notes/affine-database.html">An affine-arithmetic database index for rapid historical securities formula queries</a>
+2019-09-15 (15 minutes)
+</li><li><a href="notes/sparse-sinc.html">Sparse sinc</a>
+2019-09-15 (10 minutes)
+</li><li><a href="notes/notes-on-local-file-browsing.html">Notes on local file browsing</a>
+2019-09-15 (updated 2019-09-28) (4 minutes)
+</li><li><a href="notes/capacitor-dropper.html">Capacitive droppers and transformerless power supplies</a>
+2019-09-18 (11 minutes)
+</li><li><a href="notes/btree-ropes.html">B-Tree ropes</a>
+2019-09-24 (updated 2019-09-25) (19 minutes)
+</li><li><a href="notes/flat-dict-lang.html">A homoiconic language with a finite-map-based data model rather than lists?</a>
+2019-09-25 (updated 2019-09-28) (46 minutes)
+</li><li><a href="notes/audio-tablet.html">Audio tablet</a>
+2019-09-28 (7 minutes)
+</li><li><a href="notes/salt-water-linear-motor.html">Methods of pumping ice-vest coolant silently</a>
+2019-09-28 (12 minutes)
+</li><li><a href="notes/dercuano-grinding.html">Dercuano grinding</a>
+2019-10-01 (12 minutes)
+</li><li><a href="notes/expanded-mineral-beads.html">Expanded mineral beads</a>
+2019-10-01 (12 minutes)
+</li><li><a href="notes/incremental-union-find.html">Is there an incremental union find algorithm?</a>
+2019-10-01 (8 minutes)
+</li><li><a href="notes/bootos-notes.html">Notes on Óscar Toledo G.’s bootOS</a>
+2019-10-07 (updated 2019-10-08) (28 minutes)
+</li><li><a href="notes/bistable-magnetic-electromechanical-display.html">Bistable magnetic electromechanical display</a>
+2019-10-24 (16 minutes)
+</li><li><a href="notes/car-charger.html">Examination of a shitty USB car charger</a>
+2019-10-24 (13 minutes)
+</li><li><a href="notes/resurrecting-duckling-hashing.html">Resurrecting duckling hashing</a>
+2019-10-26 (updated 2019-11-10) (8 minutes)
+</li><li><a href="notes/pwm-comb.html">Comb filtering PWM</a>
+2019-10-28 (4 minutes)
+</li><li><a href="notes/fabric-optimization.html">Fabric optimization</a>
+2019-10-28 (updated 2019-10-29) (17 minutes)
+</li><li><a href="notes/hadamard-rhythms.html">Hadamard rhythms</a>
+2019-11-01 (6 minutes)
+</li><li><a href="notes/hot-lye-granite-cutting.html">Hot lye granite cutting</a>
+2019-11-01 (2 minutes)
+</li><li><a href="notes/negative-weight-undirected-graphs.html">Negative weight undirected graphs</a>
+2019-11-01 (8 minutes)
+</li><li><a href="notes/sparse-filter-optimization.html">Sparse filter optimization</a>
+2019-11-01 (5 minutes)
+</li><li><a href="notes/interval-raymarching.html">Interval raymarching</a>
+2019-11-02 (updated 2019-11-10) (6 minutes)
+</li><li><a href="notes/rsync-message-base.html">Rsync message base</a>
+2019-11-08 (updated 2019-11-30) (29 minutes)
+</li><li><a href="notes/shaped-hammer-face-giant-pressure.html">Shaped hammer face giant pressure</a>
+2019-11-10 (21 minutes)
+</li><li><a href="notes/sdf-notes.html">Some thoughts on SDF raymarching</a>
+2019-11-11 (updated 2019-12-10) (31 minutes)
+</li><li><a href="notes/audio-logic-analyzer.html">Audio logic analyzer</a>
+2019-11-12 (3 minutes)
+</li><li><a href="notes/camera-flash-extrapolation.html">Camera flash extrapolation</a>
+2019-11-12 (6 minutes)
+</li><li><a href="notes/derivative-based-control.html">Derivative based control</a>
+2019-11-12 (6 minutes)
+</li><li><a href="notes/fm-voice.html">Applying FM synthesis to natural sounds such as voices</a>
+2019-11-12 (2 minutes)
+</li><li><a href="notes/kerr-snow-display.html">Kerr snow display</a>
+2019-11-12 (3 minutes)
+</li><li><a href="notes/nonconductive-relays.html">Nonconductive relays</a>
+2019-11-12 (3 minutes)
+</li><li><a href="notes/approximate-optimization.html">Approximate optimization</a>
+2019-11-13 (3 minutes)
+</li><li><a href="notes/arcadian-plastics.html">Arcadian plastics</a>
+2019-11-19 (3 minutes)
+</li><li><a href="notes/heliogen.html">Heliogen</a>
+2019-11-19 (6 minutes)
+</li><li><a href="notes/gpt-2-scenery.html">GPT-2 sets the scene</a>
+2019-11-22 (updated 2019-12-01) (22 minutes)
+</li><li><a href="notes/diesel-electrolysis.html">Why you can't run a diesel engine on water and diesel fuel with electrolysis</a>
+2019-11-24 (2 minutes)
+</li><li><a href="notes/the-suburbean.html">The Suburbean: a minimally-mobile dwelling machine with months of autonomy</a>
+2019-11-24 (updated 2019-12-03) (32 minutes)
+</li><li><a href="notes/uhmwpe-rope-bridge-bootstrapping.html">Bootstrapping rope bridges and other tensile structures with UHMWPE-bearing drones</a>
+2019-11-25 (5 minutes)
+</li><li><a href="notes/underwater-energy-autonomy.html">Underwater energy autonomy</a>
+2019-11-25 (9 minutes)
+</li><li><a href="notes/extending-heckballs.html">Extending Heckballs</a>
+2019-11-26 (6 minutes)
+</li><li><a href="notes/oval-cam-lock.html">Oval cam lock</a>
+2019-11-26 (5 minutes)
+</li><li><a href="notes/parabolic-optimization.html">Rediscovering successive parabolic interpolation: derivative-free optimization of scalar functions by fitting a parabola</a>
+2019-11-26 (updated 2019-11-27) (8 minutes)
+</li><li><a href="notes/incremental-roller-comb-forming.html">Incremental roller comb forming</a>
+2019-11-27 (4 minutes)
+</li><li><a href="notes/byte-stream-gui-applications.html">Byte-stream GUI applications</a>
+2019-11-29 (updated 2019-11-30) (17 minutes)
+</li><li><a href="notes/backwards-cockcroft-walton.html">Backwards cockcroft walton</a>
+2019-12-01 (2 minutes)
+</li><li><a href="notes/high-temperature-semiconductors.html">High temperature semiconductors</a>
+2019-12-01 (2 minutes)
+</li><li><a href="notes/rf-modulation-sdr-low-power-tv.html">Transmitting low-power TV signals around your house via RF modulation with an SDR</a>
+2019-12-01 (6 minutes)
+</li><li><a href="notes/english-diphones.html">English diphones</a>
+2019-12-03 (5 minutes)
+</li><li><a href="notes/bytecode-pubsub.html">Bytecode pubsub</a>
+2019-12-04 (6 minutes)
+</li><li><a href="notes/memory-safe-virtual-machines.html">Memory safe virtual machines</a>
+2019-12-04 (14 minutes)
+</li><li><a href="notes/10tcl-ui.html">10tcl ui</a>
+2019-12-06 (17 minutes)
+</li><li><a href="notes/introduction-to-closures.html">Introduction to closures</a>
+2019-12-07 (5 minutes)
+</li><li><a href="notes/forth-assembling.html">Forth assembling</a>
+2019-12-08 (updated 2019-12-11) (18 minutes)
+</li><li><a href="notes/really-simple-lab-power-supply.html">Really simple lab power supply</a>
+2019-12-10 (7 minutes)
+</li><li><a href="notes/immediate-mode-parsers.html">Immediate-mode PEG parsers in assembly language</a>
+2019-12-10 (updated 2019-12-11) (21 minutes)
+</li><li><a href="notes/short-words.html">Short words</a>
+2019-12-10 (updated 2019-12-11) (4 minutes)
+</li><li><a href="notes/arm-assembly.html">My very first toddling steps in ARM assembly language</a>
+2019-12-10 (updated 2019-12-13) (46 minutes)
+</li><li><a href="notes/berlinite-gel.html">Berlinite gel</a>
+2019-12-14 (updated 2019-12-15) (10 minutes)
+</li><li><a href="notes/nomadic-furniture-optimization.html">Nomadic furniture optimization</a>
+2019-12-15 (2 minutes)
+</li><li><a href="notes/phase-change-unplugged-oven.html">Phase change unplugged oven</a>
+2019-12-15 (0 minutes)
+</li><li><a href="notes/eliminate-backpatching.html">Can you eliminate backpatching?</a>
+2019-12-17 (8 minutes)
+</li><li><a href="notes/hypothesis-evolution.html">Hypothesis evolution</a>
+2019-12-17 (4 minutes)
+</li><li><a href="notes/magic-sinewave-filter.html">Magic sinewave filter</a>
+2019-12-17 (6 minutes)
+</li><li><a href="notes/argentine-electric-bill.html">Argentine electric bill</a>
+2019-12-18 (3 minutes)
+</li><li><a href="notes/sulfuric-acid-dehydration-printing.html">Sulfuric acid dehydration printing</a>
+2019-12-18 (updated 2019-12-19) (3 minutes)
+</li><li><a href="notes/sorting-in-logic.html">Sorting in logic</a>
+2019-12-28 (2 minutes)
+</li><li><a href="notes/finishing-dercuano.html">Finishing Dercuano</a>
+2019-12-30 (9 minutes)
+</li></ol><div><h2>Topics</h2><ul><li><a href="topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="topics/electronics.html">Electronics</a> (138 notes)
+</li><li><a href="topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="topics/physics.html">Physics</a> (119 notes)
+</li><li><a href="topics/materials.html">Materials</a> (112 notes)
+</li><li><a href="topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="topics/pricing.html">Pricing</a> (89 notes)
+</li><li><a href="topics/math.html">Math</a> (78 notes)
+</li><li><a href="topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="topics/history.html">History</a> (71 notes)
+</li><li><a href="topics/independence.html">Independence</a> (63 notes)
+</li><li><a href="topics/energy.html">Energy</a> (63 notes)
+</li><li><a href="topics/dsp.html">Digital signal processing (DSP)</a> (60 notes)
+</li><li><a href="topics/manufacturing.html">Manufacturing</a> (50 notes)
+</li><li><a href="topics/thermodynamics.html">Thermodynamics</a> (49 notes)
+</li><li><a href="topics/sa.html">Systems architecture</a> (48 notes)
+</li><li><a href="topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="topics/mechanical.html">Mechanical things</a> (45 notes)
+</li><li><a href="topics/household.html">Household management and home economics</a> (44 notes)
+</li><li><a href="topics/digital-fabrication.html">Digital fabrication</a> (42 notes)
+</li><li><a href="topics/small-is-beautiful.html">Small is beautiful</a> (40 notes)
+</li><li><a href="topics/instruction-sets.html">Instruction sets</a> (40 notes)
+</li><li><a href="topics/audio.html">Audio</a> (40 notes)
+</li><li><a href="topics/politics.html">Politics</a> (39 notes)
+</li><li><a href="topics/optics.html">Optics</a> (34 notes)
+</li><li><a href="topics/archival.html">Archival</a> (34 notes)
+</li><li><a href="topics/economics.html">Economics</a> (33 notes)
+</li><li><a href="topics/solar.html">Solar</a> (30 notes)
+</li><li><a href="topics/optimization.html">Mathematical optimization</a> (29 notes)
+</li><li><a href="topics/microcontrollers.html">Microcontrollers</a> (29 notes)
+</li><li><a href="topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="topics/compression.html">Compression</a> (28 notes)
+</li><li><a href="topics/c.html">C</a> (28 notes)
+</li><li><a href="topics/python.html">Python</a> (27 notes)
+</li><li><a href="topics/physical-computation.html">Physical computation</a> (26 notes)
+</li><li><a href="topics/caching.html">Caching</a> (25 notes)
+</li><li><a href="topics/asm.html">Assembly language</a> (25 notes)
+</li><li><a href="topics/self-replication.html">Self-replication</a> (24 notes)
+</li><li><a href="topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li><li><a href="topics/incremental-computation.html">Incremental computation</a> (24 notes)
+</li><li><a href="topics/facepalm.html">Facepalm</a> (24 notes)
+</li><li><a href="topics/guis.html">Graphical user interfaces</a> (23 notes)
+</li><li><a href="topics/3d-printing.html">3-D printing</a> (23 notes)
+</li><li><a href="topics/stacks.html">Stacks</a> (21 notes)
+</li><li><a href="topics/protocols.html">Protocols</a> (21 notes)
+</li><li><a href="topics/the-future.html">The future</a> (20 notes)
+</li><li><a href="topics/databases.html">Databases</a> (20 notes)
+</li><li><a href="topics/chemistry.html">Chemistry</a> (20 notes)
+</li><li><a href="topics/avr.html">AVR microcontrollers</a> (20 notes)
+</li><li><a href="topics/utopias.html">Utopias: proposals unlikely to be realized for improving things</a> (19 notes)
+</li><li><a href="topics/latency.html">Latency</a> (19 notes)
+</li><li><a href="topics/forth.html">Forth</a> (19 notes)
+</li><li><a href="topics/communication.html">Communication</a> (19 notes)
+</li><li><a href="topics/psychology.html">Psychology</a> (18 notes)
+</li><li><a href="topics/prefix-sums.html">Prefix sums</a> (18 notes)
+</li><li><a href="topics/operating-systems.html">Operating systems</a> (18 notes)
+</li><li><a href="topics/music.html">Music</a> (18 notes)
+</li><li><a href="topics/metrology.html">Metrology</a> (18 notes)
+</li><li><a href="topics/ghettobotics.html">Ghettobotics</a> (18 notes)
+</li><li><a href="topics/dercuano.html">Dercuano</a> (17 notes)
+</li><li><a href="topics/ceramic.html">Ceramic</a> (17 notes)
+</li><li><a href="topics/bubbleos.html">BubbleOS</a> (17 notes)
+</li><li><a href="topics/arrays.html">Arrays</a> (17 notes)
+</li><li><a href="topics/compilers.html">Compilers</a> (16 notes)
+</li><li><a href="topics/parsing.html">Parsing</a> (15 notes)
+</li><li><a href="topics/cooling.html">Cooling</a> (15 notes)
+</li><li><a href="topics/convolution.html">Convolution</a> (15 notes)
+</li><li><a href="topics/transactions.html">Transactions</a> (14 notes)
+</li><li><a href="topics/water.html">Water</a> (13 notes)
+</li><li><a href="topics/retrocomputing.html">Retrocomputing</a> (13 notes)
+</li><li><a href="topics/memory-models.html">Memory models</a> (13 notes)
+</li><li><a href="topics/hypertext.html">Hypertext</a> (13 notes)
+</li><li><a href="topics/editors.html">Editors</a> (13 notes)
+</li><li><a href="topics/displays.html">Displays</a> (13 notes)
+</li><li><a href="topics/decentralization.html">Decentralization</a> (13 notes)
+</li><li><a href="topics/ubicomp.html">Ubicomp</a> (12 notes)
+</li><li><a href="topics/smalltalk.html">Smalltalk</a> (12 notes)
+</li><li><a href="topics/sensors.html">Sensors</a> (12 notes)
+</li><li><a href="topics/oscilloscopes.html">Oscilloscopes</a> (12 notes)
+</li><li><a href="topics/multitouch.html">Multitouch</a> (12 notes)
+</li><li><a href="topics/js.html">JS</a> (12 notes)
+</li><li><a href="topics/bootstrapping.html">Bootstrapping</a> (12 notes)
+</li><li><a href="topics/argentina.html">Argentina</a> (12 notes)
+</li><li><a href="topics/uhmwpe.html">UHMWPE</a> (11 notes)
+</li><li><a href="topics/sparse-filters.html">Sparse filters</a> (11 notes)
+</li><li><a href="topics/program-design.html">Program design</a> (11 notes)
+</li><li><a href="topics/journal.html">Journal</a> (11 notes)
+</li><li><a href="topics/energy-harvesting.html">Energy harvesting</a> (11 notes)
+</li><li><a href="topics/calculators.html">Calculators</a> (11 notes)
+</li><li><a href="topics/automata-theory.html">Automata theory</a> (11 notes)
+</li><li><a href="topics/algebra.html">Algebra</a> (11 notes)
+</li><li><a href="topics/strategy.html">Strategy</a> (10 notes)
+</li><li><a href="topics/simd.html">SIMD instructions</a> (10 notes)
+</li><li><a href="topics/sheet-cutting.html">Sheet cutting</a> (10 notes)
+</li><li><a href="topics/oo.html">Object-oriented programming</a> (10 notes)
+</li><li><a href="topics/laser-cutters.html">Laser cutters</a> (10 notes)
+</li><li><a href="topics/hand-computers.html">Hand computers</a> (10 notes)
+</li><li><a href="topics/garbage.html">Garbage</a> (10 notes)
+</li><li><a href="topics/failure-free.html">Failure-free computing</a> (10 notes)
+</li><li><a href="topics/cooking.html">Cooking</a> (10 notes)
+</li><li><a href="topics/alternate-history.html">Alternate history</a> (10 notes)
+</li><li><a href="topics/security.html">Security</a> (9 notes)
+</li><li><a href="topics/safety.html">Safety</a> (9 notes)
+</li><li><a href="topics/robots.html">Robots</a> (9 notes)
+</li><li><a href="topics/lisp.html">Lisp</a> (9 notes)
+</li><li><a href="topics/information-theory.html">Information theory</a> (9 notes)
+</li><li><a href="topics/humor.html">Humor</a> (9 notes)
+</li><li><a href="topics/heating.html">Heating</a> (9 notes)
+</li><li><a href="topics/fonts.html">Fonts</a> (9 notes)
+</li><li><a href="topics/cryptography.html">Cryptography</a> (9 notes)
+</li><li><a href="topics/control.html">Control</a> (9 notes)
+</li><li><a href="topics/constraints.html">Constraint satisfaction</a> (9 notes)
+</li><li><a href="topics/concurrency.html">Concurrency</a> (9 notes)
+</li><li><a href="topics/apl.html">APL</a> (9 notes)
+</li><li><a href="topics/3d-modeling.html">3-D modeling</a> (9 notes)
+</li><li><a href="topics/sorting.html">Sorting</a> (8 notes)
+</li><li><a href="topics/self-sustaining-systems.html">Self-sustaining systems</a> (8 notes)
+</li><li><a href="topics/scheme.html">Scheme</a> (8 notes)
+</li><li><a href="topics/rest.html">REpresentational State Transfer</a> (8 notes)
+</li><li><a href="topics/radio.html">Radio</a> (8 notes)
+</li><li><a href="topics/prolog.html">Prolog and logic programming</a> (8 notes)
+</li><li><a href="topics/phase-change-materials.html">Phase change materials</a> (8 notes)
+</li><li><a href="topics/parallelism.html">Parallelism</a> (8 notes)
+</li><li><a href="topics/ocaml.html">OCaml</a> (8 notes)
+</li><li><a href="topics/microprint.html">Microprint</a> (8 notes)
+</li><li><a href="topics/kilns.html">Kilns</a> (8 notes)
+</li><li><a href="topics/imgui.html">Immediate-mode GUIs</a> (8 notes)
+</li><li><a href="topics/gradients.html">Gradients</a> (8 notes)
+</li><li><a href="topics/filesystems.html">Filesystems</a> (8 notes)
+</li><li><a href="topics/education.html">Education</a> (8 notes)
+</li><li><a href="topics/content-addressable.html">Content addressable</a> (8 notes)
+</li><li><a href="topics/cameras.html">Cameras</a> (8 notes)
+</li><li><a href="topics/ai.html">Artificial intelligence</a> (8 notes)
+</li><li><a href="topics/video.html">Video</a> (7 notes)
+</li><li><a href="topics/unix.html">Unix</a> (7 notes)
+</li><li><a href="topics/stm32.html">STM32 microcontrollers</a> (7 notes)
+</li><li><a href="topics/search.html">Search</a> (7 notes)
+</li><li><a href="topics/pubsub.html">Pubsub</a> (7 notes)
+</li><li><a href="topics/printing.html">Printing</a> (7 notes)
+</li><li><a href="topics/networking.html">Networking</a> (7 notes)
+</li><li><a href="topics/mill.html">Mill</a> (7 notes)
+</li><li><a href="topics/mechanical-computation.html">Mechanical computation</a> (7 notes)
+</li><li><a href="topics/golang.html">Golang</a> (7 notes)
+</li><li><a href="topics/formal-methods.html">Formal methods</a> (7 notes)
+</li><li><a href="topics/fiction.html">Fiction</a> (7 notes)
+</li><li><a href="topics/electrolysis.html">Electrolysis</a> (7 notes)
+</li><li><a href="topics/drying.html">Drying</a> (7 notes)
+</li><li><a href="topics/dependencies.html">Dependencies</a> (7 notes)
+</li><li><a href="topics/bottles.html">Bottles</a> (7 notes)
+</li><li><a href="topics/batteries.html">Batteries</a> (7 notes)
+</li><li><a href="topics/anytime-algorithms.html">Anytime algorithms</a> (7 notes)
+</li><li><a href="topics/agriculture.html">Agriculture</a> (7 notes)
+</li><li><a href="topics/time-series.html">Time series</a> (6 notes)
+</li><li><a href="topics/terminals.html">Terminals</a> (6 notes)
+</li><li><a href="topics/sql.html">SQL</a> (6 notes)
+</li><li><a href="topics/splines.html">Splines</a> (6 notes)
+</li><li><a href="topics/serialization.html">Serialization</a> (6 notes)
+</li><li><a href="topics/self-adjusting-computation.html">Umut Acar’s “self-adjusting computation”</a> (6 notes)
+</li><li><a href="topics/process-intensification.html">Process intensification</a> (6 notes)
+</li><li><a href="topics/predicate-logic.html">Predicate logic</a> (6 notes)
+</li><li><a href="topics/post-scarcity.html">Post-scarcity things</a> (6 notes)
+</li><li><a href="topics/pompous.html">Pompous</a> (6 notes)
+</li><li><a href="topics/numpy.html">Numpy</a> (6 notes)
+</li><li><a href="topics/nlp.html">Natural-language processing</a> (6 notes)
+</li><li><a href="topics/newton-raphson.html">Newton–Raphson iteration (“Newton’s method”)</a> (6 notes)
+</li><li><a href="topics/minikanren.html">miniKANREN</a> (6 notes)
+</li><li><a href="topics/lighting.html">Lighting</a> (6 notes)
+</li><li><a href="topics/human-rights.html">Human rights</a> (6 notes)
+</li><li><a href="topics/html.html">HTML</a> (6 notes)
+</li><li><a href="topics/gossip.html">Gossip</a> (6 notes)
+</li><li><a href="topics/games.html">Games</a> (6 notes)
+</li><li><a href="topics/espa%25C3%25B1ol.html">Español</a> (6 notes)
+</li><li><a href="topics/caustics.html">Caustics</a> (6 notes)
+</li><li><a href="topics/bytecode.html">Bytecode</a> (6 notes)
+</li><li><a href="topics/browsers.html">Browsers</a> (6 notes)
+</li><li><a href="topics/binary-relations.html">Binary relations</a> (6 notes)
+</li><li><a href="topics/automatic-differentiation.html">Automatic differentiation</a> (6 notes)
+</li><li><a href="topics/arduino.html">Arduino</a> (6 notes)
+</li><li><a href="topics/air-quality.html">Air quality</a> (6 notes)
+</li><li><a href="topics/8080.html">The Intel 8080 CPU</a> (6 notes)
+</li><li><a href="topics/window-systems.html">Window systems</a> (5 notes)
+</li><li><a href="topics/typography.html">Typography</a> (5 notes)
+</li><li><a href="topics/types.html">Types</a> (5 notes)
+</li><li><a href="topics/secure-scuttlebutt.html">The Secure Scuttlebutt protocol</a> (5 notes)
+</li><li><a href="topics/scrubbers.html">Scrubbers</a> (5 notes)
+</li><li><a href="topics/rmq.html">The range minimum query problem</a> (5 notes)
+</li><li><a href="topics/research.html">Research</a> (5 notes)
+</li><li><a href="topics/probability.html">Probability</a> (5 notes)
+</li><li><a href="topics/opacity-holograms.html">Opacity holograms</a> (5 notes)
+</li><li><a href="topics/morphology.html">Morphology</a> (5 notes)
+</li><li><a href="topics/lua.html">Lua</a> (5 notes)
+</li><li><a href="topics/logging.html">Logging</a> (5 notes)
+</li><li><a href="topics/keyboards.html">Keyboards</a> (5 notes)
+</li><li><a href="topics/java.html">Java</a> (5 notes)
+</li><li><a href="topics/input-devices.html">Input devices</a> (5 notes)
+</li><li><a href="topics/incentive-design.html">Incentive design</a> (5 notes)
+</li><li><a href="topics/image-approximation.html">Image approximation</a> (5 notes)
+</li><li><a href="topics/housing.html">Housing</a> (5 notes)
+</li><li><a href="topics/heat-exchangers.html">Heat exchangers</a> (5 notes)
+</li><li><a href="topics/graphs.html">Graphs</a> (5 notes)
+</li><li><a href="topics/git.html">Git</a> (5 notes)
+</li><li><a href="topics/email.html">Email</a> (5 notes)
+</li><li><a href="topics/e-ink.html">E-ink</a> (5 notes)
+</li><li><a href="topics/deterministic-computation.html">Deterministic computation</a> (5 notes)
+</li><li><a href="topics/datasets.html">Datasets</a> (5 notes)
+</li><li><a href="topics/dataflow.html">Dataflow</a> (5 notes)
+</li><li><a href="topics/construction.html">Construction</a> (5 notes)
+</li><li><a href="topics/cic-filters.html">CIC or Hogenauer filters</a> (5 notes)
+</li><li><a href="topics/brainf.html">The Brainfuck esolang</a> (5 notes)
+</li><li><a href="topics/book-reviews.html">Book reviews</a> (5 notes)
+</li><li><a href="topics/bitcoin.html">Bitcoin</a> (5 notes)
+</li><li><a href="topics/augmentation.html">Augmentation</a> (5 notes)
+</li><li><a href="topics/zui.html">Zooming user interfaces (ZUIs)</a> (4 notes)
+</li><li><a href="topics/vocoder.html">Vocoder</a> (4 notes)
+</li><li><a href="topics/ultrasound.html">Ultrasound</a> (4 notes)
+</li><li><a href="topics/trading.html">Trading</a> (4 notes)
+</li><li><a href="topics/textiles.html">Textiles</a> (4 notes)
+</li><li><a href="topics/sync.html">Sync</a> (4 notes)
+</li><li><a href="topics/state-machines.html">State machines</a> (4 notes)
+</li><li><a href="topics/sparks.html">Sparks</a> (4 notes)
+</li><li><a href="topics/simulation.html">Physical system simulation</a> (4 notes)
+</li><li><a href="topics/sewage.html">Sewage</a> (4 notes)
+</li><li><a href="topics/robotics.html">Robotics</a> (4 notes)
+</li><li><a href="topics/regenerators.html">Regenerators</a> (4 notes)
+</li><li><a href="topics/programming-by-example.html">Programming by example</a> (4 notes)
+</li><li><a href="topics/plating.html">Plating</a> (4 notes)
+</li><li><a href="topics/pegs.html">Parsing Expression Grammars (PEGs)</a> (4 notes)
+</li><li><a href="topics/method-of-secants.html">Method of secants</a> (4 notes)
+</li><li><a href="topics/metallurgy.html">Metallurgy</a> (4 notes)
+</li><li><a href="topics/lsm-trees.html">Log-structured merge trees (LSM-trees)</a> (4 notes)
+</li><li><a href="topics/linear-algebra.html">Linear algebra</a> (4 notes)
+</li><li><a href="topics/leveldb.html">LevelDB</a> (4 notes)
+</li><li><a href="topics/layout.html">Layout</a> (4 notes)
+</li><li><a href="topics/incremental-search.html">Incremental search</a> (4 notes)
+</li><li><a href="topics/http.html">HTTP</a> (4 notes)
+</li><li><a href="topics/goertzel.html">Goertzel</a> (4 notes)
+</li><li><a href="topics/food-storage.html">Food storage</a> (4 notes)
+</li><li><a href="topics/flux-deposition.html">Flux deposition</a> (4 notes)
+</li><li><a href="topics/environment.html">Environment</a> (4 notes)
+</li><li><a href="topics/emacs.html">Emacs</a> (4 notes)
+</li><li><a href="topics/ecc.html">Error-correcting codes</a> (4 notes)
+</li><li><a href="topics/dsls.html">Domain-specific languages</a> (4 notes)
+</li><li><a href="topics/desalination.html">Desalination</a> (4 notes)
+</li><li><a href="topics/copper-plating.html">Copper plating</a> (4 notes)
+</li><li><a href="topics/copper.html">Copper</a> (4 notes)
+</li><li><a href="topics/coap.html">CoAP</a> (4 notes)
+</li><li><a href="topics/clay.html">Clay</a> (4 notes)
+</li><li><a href="topics/chifir.html">Chifir</a> (4 notes)
+</li><li><a href="topics/cement.html">Cement</a> (4 notes)
+</li><li><a href="topics/bicicleta.html">Bicicleta</a> (4 notes)
+</li><li><a href="topics/aliasing.html">Aliasing</a> (4 notes)
+</li><li><a href="topics/z-machine.html">Z machine</a> (3 notes)
+</li><li><a href="topics/wrong.html">Wrong</a> (3 notes)
+</li><li><a href="topics/worm.html">Write-once read-many (WORM) memory</a> (3 notes)
+</li><li><a href="topics/wang-tiles.html">Wang tiles</a> (3 notes)
+</li><li><a href="topics/ur-scheme.html">Ur-Scheme</a> (3 notes)
+</li><li><a href="topics/typing.html">Typing</a> (3 notes)
+</li><li><a href="topics/subterranean-living.html">Subterranean living</a> (3 notes)
+</li><li><a href="topics/steps.html">VPRI STEPS</a> (3 notes)
+</li><li><a href="topics/spreadsheets.html">Spreadsheets</a> (3 notes)
+</li><li><a href="topics/speech-synthesis.html">Speech synthesis</a> (3 notes)
+</li><li><a href="topics/sparkling.html">Sparkling</a> (3 notes)
+</li><li><a href="topics/spark.html">Spark</a> (3 notes)
+</li><li><a href="topics/sonar.html">Sonar</a> (3 notes)
+</li><li><a href="topics/sketchpad.html">Sketchpad</a> (3 notes)
+</li><li><a href="topics/reproducibility.html">Reproducibility</a> (3 notes)
+</li><li><a href="topics/relays.html">Relays</a> (3 notes)
+</li><li><a href="topics/refractories.html">Refractories</a> (3 notes)
+</li><li><a href="topics/power-supplies.html">Power supplies</a> (3 notes)
+</li><li><a href="topics/plls.html">Phase-locked loops</a> (3 notes)
+</li><li><a href="topics/phonetics.html">Phonetics</a> (3 notes)
+</li><li><a href="topics/parselov.html">Parselov</a> (3 notes)
+</li><li><a href="topics/ometa.html">OMeta</a> (3 notes)
+</li><li><a href="topics/oberon.html">Oberon</a> (3 notes)
+</li><li><a href="topics/nuclear.html">Nuclear</a> (3 notes)
+</li><li><a href="topics/multiplication.html">Multiplication</a> (3 notes)
+</li><li><a href="topics/misc.html">Minimal Instruction Set Computing</a> (3 notes)
+</li><li><a href="topics/minsky-algorithm.html">Minsky algorithm</a> (3 notes)
+</li><li><a href="topics/microscopy.html">Microscopy</a> (3 notes)
+</li><li><a href="topics/metamaterials.html">Metamaterials</a> (3 notes)
+</li><li><a href="topics/magic-kazoo.html">Magic kazoo</a> (3 notes)
+</li><li><a href="topics/li-ion.html">Li ion</a> (3 notes)
+</li><li><a href="topics/lgp-30.html">The LGP-30 computer</a> (3 notes)
+</li><li><a href="topics/laziness.html">Laziness</a> (3 notes)
+</li><li><a href="topics/lasers.html">Lasers</a> (3 notes)
+</li><li><a href="topics/kanthal.html">Kanthal</a> (3 notes)
+</li><li><a href="topics/jupyter.html">Jupyter</a> (3 notes)
+</li><li><a href="topics/jaquet-droz-automata.html">The Jaquet-Droz automata</a> (3 notes)
+</li><li><a href="topics/induction.html">Induction</a> (3 notes)
+</li><li><a href="topics/ice-vests.html">Ice vests</a> (3 notes)
+</li><li><a href="topics/holograms.html">Holograms</a> (3 notes)
+</li><li><a href="topics/health.html">Health</a> (3 notes)
+</li><li><a href="topics/hammers.html">Hammers</a> (3 notes)
+</li><li><a href="topics/greenarrays.html">Greenarrays</a> (3 notes)
+</li><li><a href="topics/grains.html">Granular hypertext</a> (3 notes)
+</li><li><a href="topics/gradient-descent.html">Gradient descent</a> (3 notes)
+</li><li><a href="topics/gis.html">Geographical information systems (GIS)</a> (3 notes)
+</li><li><a href="topics/free-software.html">Free software</a> (3 notes)
+</li><li><a href="topics/fractals.html">Fractals</a> (3 notes)
+</li><li><a href="topics/flexures.html">Flexures</a> (3 notes)
+</li><li><a href="topics/etymology.html">Etymology</a> (3 notes)
+</li><li><a href="topics/electrochemical-machining.html">Electrochemical machining</a> (3 notes)
+</li><li><a href="topics/css.html">CSS</a> (3 notes)
+</li><li><a href="topics/chat.html">Chat</a> (3 notes)
+</li><li><a href="topics/cardboard.html">Cardboard</a> (3 notes)
+</li><li><a href="topics/c%2B%2B.html">C  </a> (3 notes)
+</li><li><a href="topics/bytestrings.html">Bytestrings</a> (3 notes)
+</li><li><a href="topics/building-blocks.html">Building blocks</a> (3 notes)
+</li><li><a href="topics/bokeh.html">Bokeh</a> (3 notes)
+</li><li><a href="topics/binate.html">Binate</a> (3 notes)
+</li><li><a href="topics/backtracking.html">Backtracking</a> (3 notes)
+</li><li><a href="topics/0mq.html">0mq</a> (3 notes)
+</li><li><a href="topics/win32.html">Win32</a> (2 notes)
+</li><li><a href="topics/wikipedia.html">Wikipedia</a> (2 notes)
+</li><li><a href="topics/wikileaks.html">Wikileaks</a> (2 notes)
+</li><li><a href="topics/wercam.html">The Wercam windowing system</a> (2 notes)
+</li><li><a href="topics/virtualization.html">Virtualization</a> (2 notes)
+</li><li><a href="topics/vim.html">Vim</a> (2 notes)
+</li><li><a href="topics/uncorp.html">Uncorp</a> (2 notes)
+</li><li><a href="topics/tree-rewriting.html">Tree rewriting</a> (2 notes)
+</li><li><a href="topics/transport.html">Transport</a> (2 notes)
+</li><li><a href="topics/toxicology.html">Toxicology</a> (2 notes)
+</li><li><a href="topics/toledo-family.html">Toledo family</a> (2 notes)
+</li><li><a href="topics/tinkerers-tricorder.html">The Tinkerer’s Tricorder</a> (2 notes)
+</li><li><a href="topics/time-domain.html">Time domain</a> (2 notes)
+</li><li><a href="topics/testing.html">Testing</a> (2 notes)
+</li><li><a href="topics/telescopes.html">Telescopes</a> (2 notes)
+</li><li><a href="topics/tcp%252Fip.html">TCP/IP</a> (2 notes)
+</li><li><a href="topics/tcl%252Ftk.html">Tcl/Tk</a> (2 notes)
+</li><li><a href="topics/synthesis.html">Synthesis</a> (2 notes)
+</li><li><a href="topics/surveys.html">Surveys</a> (2 notes)
+</li><li><a href="topics/spaced-practice.html">Spaced practice</a> (2 notes)
+</li><li><a href="topics/sfs.html">Structure from shading</a> (2 notes)
+</li><li><a href="topics/self.html">Self</a> (2 notes)
+</li><li><a href="topics/sdr.html">Sdr</a> (2 notes)
+</li><li><a href="topics/sdfs.html">Signed distance functions (SDFs)</a> (2 notes)
+</li><li><a href="topics/scholarship.html">Scholarship</a> (2 notes)
+</li><li><a href="topics/rust.html">Rust</a> (2 notes)
+</li><li><a href="topics/rosetta-project.html">Rosetta project</a> (2 notes)
+</li><li><a href="topics/regexps.html">Regexps</a> (2 notes)
+</li><li><a href="topics/raytracing.html">Raytracing</a> (2 notes)
+</li><li><a href="topics/quasimodes.html">Quasimodes</a> (2 notes)
+</li><li><a href="topics/quasimodal.html">Quasimodal</a> (2 notes)
+</li><li><a href="topics/qemu.html">Qemu</a> (2 notes)
+</li><li><a href="topics/probabilistic-programming.html">Probabilistic programming</a> (2 notes)
+</li><li><a href="topics/privacy.html">Privacy</a> (2 notes)
+</li><li><a href="topics/plaster.html">Plaster</a> (2 notes)
+</li><li><a href="topics/photosynthesis.html">Photosynthesis</a> (2 notes)
+</li><li><a href="topics/philosophy.html">Philosophy</a> (2 notes)
+</li><li><a href="topics/particle-filters.html">Particle filters</a> (2 notes)
+</li><li><a href="topics/osm.html">OpenStreetMap</a> (2 notes)
+</li><li><a href="topics/optimum-trits.html">Optimum trits</a> (2 notes)
+</li><li><a href="topics/olap.html">OLAP</a> (2 notes)
+</li><li><a href="topics/odes.html">ODEs</a> (2 notes)
+</li><li><a href="topics/noise.html">Noise</a> (2 notes)
+</li><li><a href="topics/nio.html">Non-imaging optics</a> (2 notes)
+</li><li><a href="topics/mup21.html">The MuP21 MISC microcontroller</a> (2 notes)
+</li><li><a href="topics/moon.html">Moon</a> (2 notes)
+</li><li><a href="topics/metaballs.html">Metaballs</a> (2 notes)
+</li><li><a href="topics/messaging.html">Messaging</a> (2 notes)
+</li><li><a href="topics/merkle-dags.html">Merkle DAGs</a> (2 notes)
+</li><li><a href="topics/memex.html">Memex</a> (2 notes)
+</li><li><a href="topics/mathjax.html">MathJax</a> (2 notes)
+</li><li><a href="topics/lithium.html">Lithium</a> (2 notes)
+</li><li><a href="topics/light-deflection.html">Light deflection</a> (2 notes)
+</li><li><a href="topics/law.html">Law</a> (2 notes)
+</li><li><a href="topics/kogluktualuk.html">Kogluktualuk</a> (2 notes)
+</li><li><a href="topics/json.html">JSON</a> (2 notes)
+</li><li><a href="topics/io.html">Io</a> (2 notes)
+</li><li><a href="topics/hp-9100.html">Hp 9100</a> (2 notes)
+</li><li><a href="topics/heckballs.html">Heckballs</a> (2 notes)
+</li><li><a href="topics/hadamard-matrices.html">Hadamard matrices</a> (2 notes)
+</li><li><a href="topics/grt.html">Grt</a> (2 notes)
+</li><li><a href="topics/gpgpu.html">GPGPU</a> (2 notes)
+</li><li><a href="topics/glass.html">Glass</a> (2 notes)
+</li><li><a href="topics/gestures.html">Gestures</a> (2 notes)
+</li><li><a href="topics/gelbart.html">Gelbart</a> (2 notes)
+</li><li><a href="topics/gardening.html">Gardening</a> (2 notes)
+</li><li><a href="topics/garbage-collection.html">Garbage collection</a> (2 notes)
+</li><li><a href="topics/furniture.html">Furniture</a> (2 notes)
+</li><li><a href="topics/frustration.html">Frustration</a> (2 notes)
+</li><li><a href="topics/feedback.html">Feedback</a> (2 notes)
+</li><li><a href="topics/factionalism.html">Factionalism</a> (2 notes)
+</li><li><a href="topics/f-83.html">F-83</a> (2 notes)
+</li><li><a href="topics/euler-method.html">Euler method</a> (2 notes)
+</li><li><a href="topics/espeak.html">Espeak</a> (2 notes)
+</li><li><a href="topics/erlang.html">Erlang</a> (2 notes)
+</li><li><a href="topics/epistemology.html">Epistemology</a> (2 notes)
+</li><li><a href="topics/eotf.html">Egg of the Phoenix</a> (2 notes)
+</li><li><a href="topics/drawing.html">Drawing</a> (2 notes)
+</li><li><a href="topics/dontmove.html">Dontmove</a> (2 notes)
+</li><li><a href="topics/dijkstra.html">Dijkstra</a> (2 notes)
+</li><li><a href="topics/dhts.html">Distributed hash tables</a> (2 notes)
+</li><li><a href="topics/deterministic-builds.html">Deterministic builds</a> (2 notes)
+</li><li><a href="topics/death.html">Death</a> (2 notes)
+</li><li><a href="topics/csv.html">Comma-separated values (CSV)</a> (2 notes)
+</li><li><a href="topics/cross-compiling.html">Cross compiling</a> (2 notes)
+</li><li><a href="topics/code-generation.html">Code generation</a> (2 notes)
+</li><li><a href="topics/cmcs.html">Computer-mediated communication systems</a> (2 notes)
+</li><li><a href="topics/circle-midpoint-algorithm.html">Circle midpoint algorithm</a> (2 notes)
+</li><li><a href="topics/china.html">China</a> (2 notes)
+</li><li><a href="topics/censorship.html">Censorship</a> (2 notes)
+</li><li><a href="topics/cas.html">Cellular automata</a> (2 notes)
+</li><li><a href="topics/carbon-capture.html">Carbon capture</a> (2 notes)
+</li><li><a href="topics/calculus-vaporis.html">Calculus vaporis</a> (2 notes)
+</li><li><a href="topics/business-cards.html">Business cards</a> (2 notes)
+</li><li><a href="topics/buddhism.html">Buddhism</a> (2 notes)
+</li><li><a href="topics/bittorrent.html">BitTorrent</a> (2 notes)
+</li><li><a href="topics/barcode.html">Barcode</a> (2 notes)
+</li><li><a href="topics/autism.html">Autism</a> (2 notes)
+</li><li><a href="topics/astronomy.html">Astronomy</a> (2 notes)
+</li><li><a href="topics/asciibetical-homomorphism.html">Asciibetical homomorphism</a> (2 notes)
+</li><li><a href="topics/approximation.html">Approximation</a> (2 notes)
+</li><li><a href="topics/android.html">Android</a> (2 notes)
+</li><li><a href="topics/anatomy.html">Anatomy</a> (2 notes)
+</li><li><a href="topics/actors.html">Actors</a> (2 notes)
+</li><li><a href="topics/acoustics.html">Acoustics</a> (2 notes)
+</li><li><a href="topics/aardappel.html">Aardappel</a> (2 notes)
+</li></ul></div><script src="liabilities/addtoc.js"></script></html>

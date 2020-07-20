@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html><title>Filling hollow FDM things with other materials ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Filling hollow FDM things with other materials</h1><div class="metadata">Kragen Javier Sitaker, 2016-09-07
+(5 minutes)</div><p>You can improve some characteristics of 3-D printed FDM things by
+filling them with other stuff.</p>
+<p>“Filling” with plastics usually means mixing the plastic with
+“filler”, originally just some random solid material that was cheaper
+than the plastic (thus the name), but often these days something that
+imparts other superior properties to the plastic: higher strength and
+lower gas permeability in the case of bentonite clay; higher strength
+and density, plus reflectiveness in the case of steel or aluminum
+(aluminum-filled nylon is what Shapeways calls “alumide”); color;
+conductivity, when graphite, silver, or gold is the filler; thermal
+conductivity, using e.g. iron oxide; surface texture, as when sawdust
+is used as a 30% filler in PLA filament for 3-D printing to produce
+“printable wood”; and so on.</p>
+<p>That’s not what I’m talking about.  I’m talking about using FDM to
+print a hollow shape, and then filling the hollow spaces with some
+other material, in order to provide different properties to the
+resulting object.  In some cases, you might want to actually remove
+the FDM plastic entirely afterwards, sort of like lost-wax casting,
+but without the intermediate step of making the negative mold around
+your wax positive.</p>
+<p>What kinds of properties might you want to get?</p>
+<h2>Mass</h2>
+<p>Mass is a big one.  FDM is capable of producing impressively light and
+thin objects, but it’s a very slow process for massive objects.  And
+for many applications, “light and thin” equals “cheap-feeling and
+fragile”.  So simply filling a cavity with a cheap, heavy material can
+make a big difference.</p>
+<p>Here are some materials you could reasonably use for adding mass:</p>
+<pre><code>|                          |  g/cc | max temp                |                                                                                                                                            |
+| paraffin wax             |    .9 | 46°–68°                 | &lt;https://en.wikipedia.org/wiki/Paraffin_wax&gt;                                                                                               |
+| water                    |     1 | 0°                      |                                                                                                                                            |
+| sugar syrup              | 1–1.6 | 0°–186°                 | &lt;https://en.wikipedia.org/wiki/Sugar&gt;                                                                                                      |
+| silicone caulk           |  1.04 | &gt;260°                   | &lt;http://catalogue.airtech.lu/product.php?product_id=30&amp;lang=EN&gt; &lt;https://en.wikipedia.org/wiki/Silicone_rubber&gt;                            |
+| ABS                      |  1.07 | 210°                    | &lt;https://en.wikipedia.org/wiki/Acrylonitrile_butadiene_styrene&gt;                                                                            |
+| epoxy resin              |   1.1 | 78°–162°                | &lt;http://msdssearch.dow.com/PublishedLiteratureDOWCOM/dh_004e/0901b8038004e7b6.pdf?filepath=epoxy/pdfs/noreg/296-00312.pdf&amp;fromPage=GetDoc&gt; |
+| PLA                      |   1.3 | 60°-140°                | &lt;https://en.wikipedia.org/wiki/Polylactic_acid&gt;                                                                                            |
+| salt                     |   2.2 | 801°                    | &lt;https://en.wikipedia.org/wiki/Salt#Chemistry&gt;                                                                                             |
+| portland concrete        |   2.2 | 573° (quartz)           |                                                                                                                                            |
+| gypsum (plaster)         |   2.3 |                         | &lt;https://en.wikipedia.org/wiki/Gypsum&gt;                                                                                                     |
+| quartz                   |   2.6 | 573° (phase transition) | &lt;http://www.mindat.org/min-3337.html&gt;                                                                                                      |
+| whitewash/chalk/calcite  |   2.7 | 600°                    | &lt;https://en.wikipedia.org/wiki/Calcium_carbonate&gt;                                                                                          |
+| aluminum                 |   2.7 | 660°                    | &lt;https://en.wikipedia.org/wiki/Aluminum#Physical&gt; &lt;https://en.wikipedia.org/wiki/Solder&gt;                                                   |
+| magnetite                |   5.2 |                         | &lt;https://en.wikipedia.org/wiki/Magnetite&gt;                                                                                                  |
+| steel                    |     8 |                         | &lt;https://en.wikipedia.org/wiki/Steel#Material_properties&gt;                                                                                  |
+| 37% tin, 63% lead solder |   9.8 | 183°                    | &lt;https://en.wikipedia.org/wiki/Solder&gt; &lt;http://www.metallurgy.nist.gov/solder/NIST_LeadfreeSolder_v4.pdf&gt;                                  |
+| lead                     |  11.3 | 327°                    | &lt;https://en.wikipedia.org/wiki/Solder&gt; &lt;http://www.metallurgy.nist.gov/solder/NIST_LeadfreeSolder_v4.pdf&gt;                                  |
+| glass powder             |   1.7 | 850° (Ts)               | &lt;http://www.expertsystemsolutions.com/biblio/HSM/sintering%20behavior%20of%20glassceramic%20frits.pdf&gt;                                     |
+</code></pre>
+<p>The cheapest filler material is water, but it also has the lowest
+density of any solid here.  All the others listed here are currently
+pretty easy to buy in kilogram quantities, a criterion which excludes
+otherwise interesting materials like cyanoacrylate, gallium, Wood’s
+metal, gelatin, and albumen.</p>
+<p>Salt, gypsum, concrete, and whitewash have the property that you can
+convert a powder into a solid mass at room temperature by adding water
+and, in the case of whitewash, carbon dioxide.  Paraffin is similar in
+this, in that you can divide it into grains and then sinter them, but
+it also melts at a low enough temperature that you may be able to pour
+it into an FDM-printed mold, possibly carrying other filler materials
+with it.  (Sugar can also be extruded directly, as Jordan Miller has
+done: <a href="http://www.thingiverse.com/thing:26343/#instructions">http://www.thingiverse.com/thing:26343/#instructions</a>.)</p>
+<p>Epoxy resins and silicone caulks, similarly, will harden at more or
+less room temperature, starting in a liquid state.</p>
+<h2>Flexibility</h2>
+<p>Silicone is flexible and high-temperature tolerant.</p>
+<h2>Removing FDM plastic</h2>
+<p>You should be able to melt PLA or ABS off of silicone once it’s
+hardened; also of concrete, salt, plaster, chalk, or metals.  You can
+also dissolve ABS with acetone or PLA with a mixture of alcohol
+(ideally propanol, although I’ve heard ethanol or even water works
+too) and sodium hydroxide.  Weld-On #5 solvent also works to dissolve
+PLA, but it's nasty, nasty shit, made of methylene chloride, glacial
+acetic acid, and methyl methacrylate monomer.  Miller-Stephenson
+MS-111 stripping agent can also dissolve PLA, and also epoxy (!!)
+<a href="https://groups.google.com/forum/#!topic/ultimaker/8s1bq_9LsRM">https://groups.google.com/forum/#!topic/ultimaker/8s1bq_9LsRM</a>.
+<a href="http://www.vinland.com/blog/?p=68">http://www.vinland.com/blog/?p=68</a>.  MS-111 is 50% methylene
+chloride, 20% phenol, 15% formic acid and will blister your skin.</p>
+<p>Dichloroethane can supposedly also dissolve PLA.  </p>
+<p>Acetone, MEK, tetrahydrofuran, and TCE will plasticize PLA but not
+dissolve it.  I think all three of them will dissolve ABS, and MEK and
+TCE may be more available here in Argentina than acetone.</p>
+<p>Ethyl acetate can vapor-polish PLA, which suggests it can dissolve it:
+<a href="http://www.printedsolid.com/smoothpla/">http://www.printedsolid.com/smoothpla/</a></p>
+<p>My attempts to polish PLA with ethyl acetate, or dissolve it in a test
+tube, were unsuccessful.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/materials.html">Materials</a> (112 notes)
+</li><li><a href="../topics/manufacturing.html">Manufacturing</a> (50 notes)
+</li><li><a href="../topics/digital-fabrication.html">Digital fabrication</a> (42 notes)
+</li><li><a href="../topics/3d-printing.html">3-D printing</a> (23 notes)
+</li></ul></div></html>

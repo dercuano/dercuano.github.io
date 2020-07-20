@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html><title>How to make Dercuano work on hand computers? ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>How to make Dercuano work on hand computers?</h1><div class="metadata">Kragen Javier Sitaker, 2019-05-18 (updated 2019-12-30)
+(61 minutes)</div>
+<p>Foreseeably, most personal computers now are hand computers, commonly
+called “cell phones” or “mobile phones”, for archaic reasons (with a
+few exceptions called by names like “e-readers”).  Less foreseeably,
+they mostly run user interfaces that limit the user’s power over them
+considerably; in particular, although they generally have WWW browsers
+and most of them can download files and save them locally, they cannot
+extract a .tar.gz file full of HTML and browse it.</p>
+<p>This poses a problem for Dercuano, because right now I am publishing
+it as a .tar.gz file full of HTML.  But its objective is to remain
+readable even if my server or domain name fails, as they inevitably
+will someday.  It’s really important (to me, anyway) that people be
+able to continue reading Dercuano in that case.  There are a variety
+of possible alternative formats that could work well on hand
+computers.</p>
+<h2>The problem: gratuitous handicaps and tiny screens</h2>
+<p>Hand computers have an additional problem, aside from being
+gratuitously crippled in a way that requires compatibility hacks:
+<strong>their screens are tiny</strong>.  For example, until I broke the screen, I
+was using a discount hand computer with a 45×63 mm screen; a more
+modern one I looked at last night has a 64×115 mm screen.  Also, the
+screens used to be low resolution: the PalmPilot was 160×160
+(monochrome!), and the original iPhone was 320×480.  (At 163 pixels
+per inch, that was 50×74 mm, bigger than the one I broke.)  Modern
+cellphones have much higher-resolution screens, and e-readers
+generally have much larger screens, though with fewer pixels.</p>
+<p>Making text readable at all on such small screen sizes requires
+serious compromises in typographic design.  For example, the
+typography I’m using at the moment (see <a href="../notes/dercuano-stylesheet-notes.html">Dercuano stylesheet notes</a>) is “22px”, with max-width of 45em and
+line-height of 1.5 (em), and 1 em of padding around the body; on my
+158 dpi laptop screen, that’s a font size of 3.5 mm or 10 (PostScript)
+points, with 5.3 mm from one baseline to the next.  I use a ragged
+right margin extra vertical whitespace between paragraphs, as is
+normal on the WWW, and a somewhat smaller font size for <code>&lt;pre&gt;</code>
+blocks.</p>
+<p>At this font size, on my 45×63 mm screen in portrait mode (my
+observations on the subway and bus suggest that people strongly prefer
+using their hand computers in portrait mode, only switching to
+landscape mode to watch landscape-mode videos, play landscape-mode
+video games, or occasionally read PDF files whose lines are too long),
+the 7 mm of padding on the left and right would leave room for almost
+13 ems of text, about four or five words’ worth.  Using the greedy
+paragraph-filling algorithm web standards short-sightedly require (at
+least in the case where there are floats, according to pcwalton), and
+especially without hyphenation, this would frequently have lines with
+only one or two words on them.  Less than 12 of these tiny lines would
+fit on the screen, one of which will frequently be consumed by a
+paragraph break, so you might have 40 words of actual text on the
+screen.</p>
+<p>Worse, Chromium’s Blink HTML engine, like the WebKit and KHTML engines
+it derives from, doesn’t support hyphenation at all; Firefox’s Gecko
+engine is the only significant WWW browser engine that does, and on
+hand computers, almost nobody uses Firefox.</p>
+<p>Once you add any extra block indentation, like that in a blockquote or
+indented list, the situation quickly deteriorates to one or two words
+per line.</p>
+<p>Reducing the text size to a less-comfortable size is a necessary
+compromise to avoid such uncomfortably short line lengths.
+(Generally, when I read things on it, I also used portrait mode.)
+Also, though, using less padding around the text is very helpful (in
+this example, using 0.5em instead of 1em padding would increase the
+text column width from 13em to 14em).  The line length will still
+necessarily be shorter, which reduces the need for leading between
+lines to avoid disorientation when moving from one line to the next.</p>
+<p>It’s possible to do far worse than my default style on hand computers,
+though.  The worst reading experiences on hand computers are when you
+have very long lines in PDFs or ASCII text files with hard line
+breaks, such that even in landscape mode, you can’t fit an entire line
+on the screen at a readable font size.  This requires you to scroll
+left and right on every single line to read the text.</p>
+<p>Somewhat less annoying are academic papers which preserve the
+traditional book layout of two columns of text per page, rather than
+the single-column layout that has become popular recently, since about
+1850.  The columns are generally narrow enough to be readable on the
+tiny hand computer screen, which is a great blessing, but once you
+reach the end of one, you have to spend several seconds panning
+diagonally across the page to find the top of the next one — and, half
+the time, that’s the wrong thing to do, because the next column is on
+the next page.</p>
+<p>(I lied, though.  The worst reading experiences on hand computers are
+file formats you don’t have an app for.)</p>
+<p>Some kind of adaptation to widely varying screen sizes is necessary,
+since hand computers in common use range from the kind of tiny 45×63
+screen I mentioned up to Amazon Swindles with 600×800 screens at
+167 dpi grayscale, which works out to 91×122 mm, almost 4× as big, and
+51% bigger than the 64×115 mm “cellphone” I mentioned above.  (For
+comparison, a page of <a href="dercuano-stylesheet-notes.html#ticktock">a paperback
+book</a> is 105×175 mm and about
+600 dpi, but without grayscale.)</p>
+<h2>Possible formats</h2>
+<h3>DHTML with offline reading via cache-manifest or service workers</h3>
+<p>The first thing that occurred to me was that I could just add a
+cache-manifest to the HTML generated for Dercuano so that when a
+browser loads one page, it loads them all into the appcache, and (at
+least if you bookmark the thing) the whole thing remains accessible
+even if you’re offline or the server goes down.</p>
+<p>This has the advantage that anything that works in the current HTML
+tarball incarnation of Dercuano would keep working the same way.  In
+fact, more things would work — the difficulties with full-text
+indexing I mentioned in <a href="../notes/dercuano-search.html">Dercuano search</a> wouldn’t exist.</p>
+<p>This is the lowest-effort approach, but it wouldn’t work very well.
+Although the cache-manifest mechanism is widely supported, including
+on pretty much all hand computers, it’s considered obsolescent (the
+documentation for it has been removed from the current version of the
+WHATWG standard), to be replaced with the new and shiny
+service-workers mechanism.  Since Firefox 60 and Chrome 69, it’s also
+unavailable if you aren’t using HTTPS.  It enjoys invisible resource
+limits — the amount a browser is willing to cache is not exposed to
+the user, but typically it’s 5MB or 10MB, and if the download fails
+because not enough space is available, no error message is given; it
+just fails when you’re offline or the server is down.</p>
+<p>There’s a sort of polyfill to support the cache-manifest API on top of
+ServiceWorker, but ServiceWorker also requires HTTPS.</p>
+<p>The bigger problem, though, is that both service workers and the
+appcache are totally dependent on, and vulnerable to, the origin
+server.  This violates my intent with Dercuano in three ways:</p>
+<ol>
+<li>
+<p>If my server is down, one person with a copy of Dercuano would not
+   be able to give it to another person, except by giving them their
+   entire browser state.  This means that once my server is gone,
+   copies of Dercuano would gradually diminish one by one until they
+   are all gone, rather than being shared with new people who want
+   them.</p>
+</li>
+<li>
+<p>If malicious actors gain access to my server or my domain, they
+   could use that access to delete all the copies of Dercuano, if it
+   were using service workers or appcache.  Malicious actors have
+   gained access to the vast majority of domains that were on the web
+   20 years ago, usually to put generic linkspam pages on formerly
+   high-PageRank domains, so it’s a good bet that this will happen
+   sooner or later to canonical.org.</p>
+</li>
+<li>
+<p>If a patent examiner reads some idea in their copy of Dercuano, and
+   Dercuano uses service workers or appcache, they can’t tell if that
+   idea was inserted into their copy of Dercuano the last time they
+   connected to the internet, or ten years earlier.  This means that
+   ideas in Dercuano would not be able to serve as prior art to
+   invalidate patent claims, as “rapid genetic evolution of regular
+   expressions” did.</p>
+</li>
+</ol>
+<h3>MobiPocket .mobi format</h3>
+<p>A more reasonable alternative approach, for which I am indebted to
+cajg, is to convert Dercuano into some kind of ebook format.  Ebook
+formats in general solve the three problems I mentioned above.</p>
+<p>The popular Amazon Swindle hand computer uses a variant of this
+format.  I don’t know much about it, but it’s not fully documented in
+public.  Its text is formatted with (X)HTML and CSS.  Mobipocket
+themselves did a bunch of work on hyphenation, but their work is no
+longer available (except on the Swindle), and other .mobi readers may
+not have such good hyphenation support.</p>
+<p>Support for .mobi files is not available on most e-readers (except the
+Swindle), and on cellphones it is available but not installed by
+default.  You can install, for example, Okular or FBReader to be able
+to read them.</p>
+<p>.mobi doesn’t seem to have very good graphics support — in particular,
+nothing like SVG or EPS, <em>but</em> it does support embedded JS which
+could, in theory, implement that kind of thing, maybe.  It supports
+embedded GIFs and JPEGs, but with a size limit of 63 KiB.</p>
+<p>I’m not sure if one part of a .mobi file can contain a hyperlink to
+another arbitrary part of it, although it does of course support
+tables of contents.  This is important for Dercuano.</p>
+<h3>.ePub format, the modern replacement for .mobi</h3>
+<p>EPUB, as it’s sometimes written, continued to evolve after .mobi
+forked from it around 2005, and the current version <em>does</em> support SVG
+images.  It’s fully documented, not suffering from the
+reverse-engineering problem .mobi does.  Otherwise (in terms of
+supported features, preservability, file size, and so on) it seems to
+be pretty similar.</p>
+<h3>One giant HTML file</h3>
+<p>At first I didn’t think of this as an option, since my experience with
+hand computers is that they typically can’t read HTML offline
+reliably.</p>
+<p>Recent versions of (Chrome on) Android are capable of saving HTML
+pages for offline reading, including the CSS and JS and whatnot, so
+combining the entire contents of Dercuano into a single
+fifteen-megabyte, six-thousand-page HTML file might be a possible
+alternative.  This would probably require fiddling with the CSS and JS
+a bit to get it to scale and not clash, but perhaps more importantly,
+I think Blink may choke on such large HTML documents; it’s designed
+for HTML files two or three orders of magnitude smaller.  Even Dillo
+might balk.</p>
+<p>It appears Chrome is saving a multipart/related MIME document with a
+filename ending in ".mhtml", which is a totally reasonable way to do
+this, and provides a reasonably readable file adhering to well-known
+standards, in a single file.  It does, however, have a couple of
+significant drawbacks:</p>
+<ol>
+<li>Basically any useful access to it requires reading the whole thing,
+   though that’s really probably the least of your troubles if 90% of
+   it is a 15-megabyte HTML document.</li>
+<li>If you open the file in Chrome from a file manager, Chrome renders
+   it as plain text.  It’s only when you load it from the “downloads”
+   app that Chrome opens it as expected.</li>
+</ol>
+<p>I’m not clear on how easy it is to transfer these from one hand
+computer to another, which, as I was saying earlier, is a sine qua
+non.  I was hoping it would be a matter of just copying the .mhtml
+file across, but it doesn’t seem to be.</p>
+<p>However, the one-giant-HTML-file approach might be useful as a first
+step in other workflows, like creating PDFs or ePubs.</p>
+<h3>PDF</h3>
+<p>That brings us to PDF, which is usually in last place in anyone’s list
+of candidate document formats, due to decades of painful experiences;
+PDF doesn’t support text reflow†, so using it for hand computers whose
+screens vary by a factor of about 4 would seem, at best, perverse.
+However, for better or worse, PDF is supported by almost all hand
+computers (Android, iOS, and Swindle all ship with PDF support out of
+the box), and it always looks the same, within the limits of the
+screen or printer, while maintaining a file size similar to that of
+gzipped HTML.  It supports hyperlinks, including hyperlinks within the
+document, and it supports vector graphics, including transparency
+(though not, as far as I know, SVG-like convolution filters).  PDF is
+designed for random access, so a few thousand pages in a document is
+not a problem on modern computers, including hand computers.</p>
+<p>PDF also has the advantage that there are a lot of people out there
+who take seriously the problems of archiving PDFs and making them
+searchable.  The ISO has a PDF standard and also a standard for a
+“PDF/A” subset designed for archival.  (Well, several
+non-backwards-compatible versions of the standard, actually, which
+likely defeats the purpose, but possibly they’ll pull their heads out
+of their asses at some point.)</p>
+<p>The worst problems with reading PDF on hand computers, as I said
+above, result from formatting with long lines.  Wide margins are a
+secondary offense, since in many readers they mean you have to zoom to
+a readable size every time you switch pages, and when panning on
+touchscreens, you’re always at risk of panning a little bit diagonally
+and losing the last few letters of the column you’re trying to read.</p>
+<p>Typically, though, PDF viewers only let you pan diagonally when you’re
+zoomed in in two dimensions.  If you have the entire page width
+visible, you can only pan vertically, and if you’re looking at the
+entire page, you can’t pan at all.</p>
+<p>† Recent versions of acroread do claim PDF reflow support, but I
+haven’t tried it.</p>
+<h3>.chm</h3>
+<p>Microsoft distributes help files in CHM format, which, like ePub, is
+an archive (in “.cab” “cabinet” format, IIRC) full of HTML files.
+This used to be popular as a way to distribute technical books, and
+maybe it still is, but support on hand computers is limited.  Play
+Store app reviews suggest that nowadays it’s found a niche for
+distributing medical reference books to doctors.</p>
+<h2>My proposed solution: PDF with pages of 24 ems × 60 ems with ½ em of margin all around</h2>
+<p>Maybe PDF’s vices can be turned into virtues.</p>
+<p>Consider a page that measures 24 ems by 60 ems, with 1.2-em line
+spacing and ½ em of margin, so eight to twelve words per line, much
+like a paperback book, but with much taller pages: 49 lines.  On my
+tiny 45×63 mm hand computer, these numbers give a barely bearable
+5.3-point font in portrait mode and a tolerable 7.4-point font in
+landscape mode, when the page is zoomed to fit the width of the
+display rather than its height.  On the larger 64×115 one I mentioned
+earlier, these numbers are a tolerable 7.6-point font in portrait mode
+and an eminently readable 13.6-point font in landscape mode.  Indeed,
+even fitting the height of the page to the display gives a bearable
+5.4-point font on that machine.</p>
+<p>These four possibilities — landscape zoom-to-width, landscape
+zoom-to-height, portrait zoom-to-width, and portrait
+zoom-to-height — provide four roughly evenly spaced magnification
+levels covering a linear zoom range of about three to four times, or
+an areal zoom of about 12 to 20 times.  None of them suffer the janky
+diagonal panning problems that plague PDF reading on hand computers,
+since none of them require zooming in so far that diagonal zooming is
+possible.  The number of words per line is suboptimal but readable.</p>
+<p>Some screen real estate to the left and right of the page is left
+unused.  On a 91×122 mm Swindle, zooming to fit the whole 60-em-tall
+page in portrait mode gives you a 5.8-point font, but only the middle
+49 mm of the display is used.  Many PDF readers (I don’t remember
+about the Swindle’s) offer an option to view pairs of facing pages
+next to each other, rather than single pages; doing this on a
+Swindle-sized screen would give you a 5.4-point font, which is still
+bearable, and two pages of text at a time.</p>
+<p>If we think of an em as nominally representing 12 PostScript points,
+the 24×60 em page size is 102 mm (4 inches in archaic units) by 254 mm
+(10 inches in archaic units).  So this column size actually closely
+approximates the size of a column in a traditional two-column folio
+page, or a two-column A4 or US letter-sized page.</p>
+<p>Given how precious hand-computer screen real estate is, we’d probably
+want to use indentation, rather than extra vertical space, to
+demarcate paragraphs, in the way that has been standard for several
+centuries.  The addition of PDF’s unavoidable page breaks with ragged
+right margins adds an additional rationale for this: if a sentence
+starts at the beginning of a line at the top of a page, how can we
+tell if it starts a new paragraph or not?  It will have extra
+whitespace above it simply because of the page break.</p>
+<p>A hypothetical PDF reader that supported zooming to fit the page
+height, with more than two pages next to each other, would allow
+reading any number of such columns with horizontal scrolling.</p>
+<p>To some extent, small font sizes can be compensated by holding the
+computer closer to your face, wearing reading glasses, and squinting,
+but a more absolute limit — without resorting to temporal
+antialiasing, anyway — is the actual number of pixels.  I’ve done a
+3½×6 pixel font that is marginally readable, and I think you can do
+better than that with antialiasing and especially subpixel rendering,
+but usually a minimum for reasonable letterforms is 5×8 pixels, and
+standard VGA fonts were 8×16.  But at these line widths, that’s not
+going to be a problem.  If we divide the original iPhone’s 320-pixel
+width by 24 ems, we get a line height of 13 pixels, so an average
+glyph of around 6×13 pixels.  And modern hand computers have
+considerably more pixels than that.</p>
+<p>Given that all these point sizes are a little on the small side, and
+the actual paperback book I was looking at has lines of only about 20
+ems wide and is eminently readable, you’d think I could get by with a
+font size about 10% or 20% larger than what’s implied above (and thus
+21% or 44% less areally dense).  45 mm / 21 em would be 2.1 mm per em,
+which is a 6-point font; in landscape mode, the same tiny screen would
+have 63 mm / 21 em = 8.5 points, which is easily readable.  But the
+other force pushing for smaller fonts and wider lines is the
+occasional <code>&lt;pre&gt;</code> block, which needs to be able to accommodate 80
+columns, nominally 40 ems.  That’s a text size of 0.6 em for the
+<code>&lt;pre&gt;</code>.  Using an even larger font size for the normal body text
+would cause an even larger disharmony between the two text sizes.</p>
+<h3>Hyperlinks in PDF</h3>
+<p>PDF supports tables of contents and hyperlinks, but at least the
+default PDF viewer on Android 7.0 (which is the Google Drive PDF viewer)
+doesn’t seem to have any way to see
+them.  It has a fairly effective scrollbar, though, so page numbers
+may be a reasonable replacement — but they need to count monotonically
+from 1 at the beginning, since the page numbers displayed in the
+Android viewer do that; even though PDF supports page numbers that do
+things like “i, ii, iii, iv, 1, 2”, they are not displayed.</p>
+<h3>ZUI in PDF for navigating illustrations?</h3>
+<p>Illustrations (see <a href="../notes/dercuano-drawings.html">Dercuano drawings</a>) are a really hard problem
+in HTML-based formats for small screens: your lines are already too
+short to flow text around large pictures, and small pictures are
+unreadable unless they contain only a little bit of information, like
+sparklines.  But if we assume that the reader is using a hand computer
+with pinch-to-zoom, and our image format is vector, perhaps we can
+rely on zooming to provide more information about illustrations on
+demand, and even some degree of hierarchical navigation.</p>
+<p>Hyperlink navigation within the illustration is probably not
+supported, though, and the maximum zoom is probably quite limited; the
+popular AndroidPdfViewer open-source component defaults to 3× as its
+default maximum zoom, but the Android 7.0 default PDF viewer defaults
+to 10×.  It also permits zooming <em>out</em> until several pages are on the
+screen, though, sadly, stacked vertically.</p>
+<h3>Hyphenation and equations in PDF</h3>
+<p>The major advantage of PDF over the HTML-based formats is that things
+will look exactly as I formatted them.  This means that I don’t have
+to rely on hyphenation support on the reader’s computer; I can use a
+decent hyphenation algorithm, and if necessary I can tweak the text to
+deal with rotten formatting (although, honestly, I’m trying to import
+a couple of million words of unfinished notes into this thing; I can’t
+stop to futz with per-paragraph formatting on more than a tiny part of
+it).</p>
+<p>Also, an enormous advantage accrues to math formatting (see <a href="../notes/dercuano-formula-display.html">Dercuano formula display</a>).  In theory, EPUB supports some part of
+MathML, but MathML rendering is generally kind of shitty (where it’s
+not done through MathJax), and writing MathML is worse.  With PDF, I
+can render equations at build time using T<sub>E</sub>X, subsetting
+Computer Modern fonts as necessary to include just the glyphs I’m
+using, and get well-formatted formulas.</p>
+<h2>Further progress</h2>
+<h3>2019-12-28</h3>
+<p>I've hacked together a janky PDF by parsing the Dercuano output HTML
+as XML, and now most of the content of Dercuano is readable in this
+format.</p>
+<h4>Page sizes and typewriter font woes</h4>
+<p>Initially I tried the "24 ems × 60 ems with ½ em of margin"
+configuration described above, but I found it to be uncomfortably
+narrow.  For regular running text it was reasonably okay, and for
+low-resolution cellphones that probably means "ideal", but for
+80-column-wide <code>&lt;pre&gt;</code> blocks, it was terrible --- that's 0.3 ems per
+character, and Courier really wants more like 0.63 ems per character,
+which would be over 50 ems, making non-<code>&lt;pre&gt;</code> text of the same size
+uncomfortably wide and also requiring a high-resolution screen for
+readability without constant diagonal scrolling.</p>
+<p>(I haven't actually implemented <code>&lt;pre&gt;</code> proper yet.)</p>
+<p>Another pressure is that 24 ems is too narrow for a large number of
+URLs.  At some point I guess I'll have to implement some kind of line
+continuation for long strings like that, but having less broken lines
+like that will always be better.</p>
+<p>However, to some extent text dimensions are fungible.  Making text
+taller makes it more legible, as does making it wider.  The much
+harder constraint on <code>&lt;pre&gt;</code> text is its width; scrolling more because
+it is taller than would be ideal is far preferable.  So, a reasonable
+alternative is to use a compressed font.  I found Bogusław Jackowski
+and Janusz M. Nowacki's font <a href="https://tug.org/FontCatalogue/latinmodernmonolightcondensed/">Latin Modern Mono Light
+Condensed</a>, which
+comes in regular and oblique versions (but no bold), which is derived
+originally from Knuth's Computer Modern Teletype, which is in the
+public domain; but Latin Modern has much broader coverage of some 760
+Unicode characters than <code>cmtt</code> does.</p>
+<p><code>lmtlc</code>, as this font is called in the T<sub>E</sub>X Live
+distribution, demands only about 0.36 ems of horizontal space per
+character, and is still quite readable, although visibly compressed.
+I had to use FontForge to convert it from <a href="https://www.ctan.org/tex-archive/fonts/lm/fonts/opentype/public/lm">the OTF on
+CTAN</a>
+because Reportlab said, "TTF file "lmmonoltcond10-oblique.otf":
+postscript outlines are not supported."</p>
+<p>So I've widened the page width to some 29 ems (and extended it
+vertically to 66 ems, purely for reasons of silly nostalgic printer
+traditions --- US letter paper is, in medieval units, 11 inches long,
+and a standard 12-point line height thus gives you 66 lines).  This
+reduces the page count from some 4700 to 3700.  Even 3700 seems large
+for a book of only 1.3 million words or less, but 500 of those pages
+are the topic listings at the end.</p>
+<p>As I said before, a key consideration is for the PDF version of
+Dercuano to be readable on hand computers without diagonal scrolling
+or reflowing, because reflowing a PDF is pretty hard.  This has two
+aspects: pixel readability and absolute size.</p>
+<p>As for pixel readability, reviewing dimensions from above, the
+PalmPilot was 160x160, and the iPhone 1 was 320x480.  At 24 ems wide
+in landscape mode, 480 pixels is 20 pixels per em, like a 10x20 xterm
+font; this is quite comfortable.  160 pixels across 24 ems is only 6.7
+pixels per em, which is at the very edge of readability.  So, by going
+to 29 ems, I'm sacrificing PalmPilot readability, which would be 5.5
+PalmPilot pixels per em, but 16.6 original-iPhone pixels per em ---
+still quite readable in landscape mode.</p>
+<p>In addition to avoiding pixelation to prevent unreadability in an
+absolute sense, I'd also like to keep the letters reasonably large in
+millimeters to avoid sacrificing
+readability-without-a-magnifying-glass.  The original iPhone was 50x74
+mm; 50 mm across 29 ems is 1.72 pixels per em, which is 4.9 printer's
+points.  That's a pretty small font!  That's why I was trying to make
+do with 24 ems.  But in landscape mode on an iPhone-1-sized device
+that would be a 7.2-point font, suboptimal but not outside the realm
+of readability.  On the discount hand computer I was using earlier
+this year, the screen was 45x63 mm.  29 ems across 63 mm makes it a
+6.1-point font: painful to read, but, again, not infeasible.</p>
+<p>If that hadn't worked, maybe
+/usr/share/texlive/texmf-dist/fonts/opentype/public/cm-unicode/cmuntt.otf
+would have been another possibility, maybe with some kind of
+coordinate transformation.</p>
+<h4>Remaining major bugs</h4>
+<p>I have a number of showstopper bugs left in the PDF generation; among
+them:</p>
+<ul>
+<li>The vertical positioning is wrong, so PDF links are displaced vertically
+  relative to their target text, and I have to leave a bunch of extra bottom
+  margin to minimize the number of pages that get truncated.</li>
+<li>I haven't implemented <code>&lt;pre&gt;</code> yet.</li>
+<li>The 3% or so of notes that aren't well-formed XML are getting
+  totally mangled, with mojibake and total loss of formatting.  For
+  many of these, getting the formatting totally right would require
+  implementing tables and SVG, which may not be in the cards this
+  weekend, but surely I can do better than this.</li>
+<li>I haven't implemented font cascade fallbacks yet for missing characters.</li>
+<li>The ET Book license needs to be included.</li>
+<li><code>&lt;li&gt;&lt;p&gt;foo&lt;/p&gt;&lt;/li&gt;</code> puts the paragraph on a separate line from the
+  <code>&lt;li&gt;</code> bullet.</li>
+</ul>
+<p>There are also a lot of other bugs that aren't showstoppers but might
+be easy to fix:</p>
+<ul>
+<li>Headers aren't red.</li>
+<li>Headers aren't underlined.</li>
+<li>Line spacing is too tight.</li>
+<li>Blockquotes aren't visibly distinct at all.</li>
+<li><code>&lt;script&gt;</code> and <code>&lt;style&gt;</code> contents are treated as text.</li>
+<li>I don't have page numbers on links yet.</li>
+<li>An extra space gets added after the ends of every HTML element.</li>
+<li>Notes aren't in any order in the PDF file.</li>
+<li>I think it's splitting on no-break spaces as well as normal spaces,
+  so they aren't no-break.</li>
+<li>The link to lua-%23-operator may be broken.</li>
+</ul>
+<p>And other bugs that are serious but maybe aren't in either category:</p>
+<ul>
+<li>There are no per-note tables of contents.</li>
+<li>There are no superscripts or subscripts.</li>
+<li><code>&lt;ol&gt;</code> isn't bulleted.</li>
+<li>The PDF is huge, like 12 megs.</li>
+</ul>
+<h4>Font cascade fallback fonts</h4>
+<p>As a fallback for monospaced text,
+/usr/share/fonts/truetype/droid/DroidSansMono.ttf might work, although
+it's going to be much wider than lmtlc and only covers 874 codepoints
+(though some of those are things I use that aren't in lmtlc!).
+/usr/share/fonts/truetype/ttf-liberation/LiberationMono-Regular.ttf
+covers only 663.
+/usr/share/fonts/truetype/ubuntu-font-family/UbuntuMono-R.ttf has
+1225, comparable to the 1259 in
+/usr/share/fonts/truetype/msttcorefonts/cour.ttf.
+/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf has 3197, and
+/usr/share/fonts/truetype/freefont/FreeMono.ttf has 4126.  Moreover,
+FreeMono has 3511 codepoints that lmtlc doesn't, and DejaVu Sans Mono
+has 2645, of which 515 are also not in FreeMono.</p>
+<p>So, for monospace coverage, if you had to choose a single fallback
+font with no worries about licensing, it would be FreeMono, expanding
+lmtlc's 760 codepoints to 4271, but if you could choose a second one,
+DejaVu Sans Mono would expand that to 4786.</p>
+<p>For serif body text, ET Book (a copy of Bembo) covers only 233
+codepoints.  The corresponding brand-name fallback fonts would be
+/usr/share/fonts/truetype/freefont/FreeSerif.ttf with 6450 codepoints
+and /usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf (my browser's
+standard fallback) with 3331 codepoints.  From the size, it is clear
+that neither of these covers Chinese; the built-in PDF font that seems
+to work best for Chinese (in Reportlab, the PDF-generation library I'm
+using) is <code>reportlab.pdfbase.cidfonts.UnicodeCIDFont('STSong-Light')</code>,
+which is sadly a gothic monoline (I would say "sans-serif" but of
+course what's missing isn't really serifs) font.  Also, I've figured
+out how to tell which codepoints a TrueType font covers using
+Reportlab: <code>reportlab.pdfbase.ttfonts.TTFontFile(
+'/usr/share/fonts/truetype/ubuntu-font-family/UbuntuMono-R.ttf').charToGlyph</code>
+is a dict.  I don't know how to do this for STSong-Light, so I don't
+know how to fall back from it.</p>
+<p><a href="http://savannah.gnu.org/projects/freefont/">Freefont</a> is a GNU
+project, although it seems to have largely gone idle in 2012.  The
+licensing is GPLv3+, which is <a href="https://lists.gnu.org/archive/html/freefont-bugs/2019-09/msg00009.html">somewhat aggressive as fonts
+go</a>,
+and it's not clear that there's a legal way to embed it, or a subset
+of it, into a PDF file and then convey that PDF file to others.</p>
+<p>Oh, actually there's a special exception for document embedding in its
+README, which Debian left out of
+/usr/share/doc/fonts-freefont-ttf/copyright:</p>
+<blockquote>
+<p>Free UCS scalable fonts is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published
+by the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.</p>
+<p>The fonts are distributed in the hope that they will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.</p>
+<p>You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</p>
+<p>As a special exception, if you create a document which uses this font, and
+embed this font or unaltered portions of this font into the document, this
+font does not by itself cause the resulting document to be covered by the
+GNU General Public License. This exception does not however invalidate any
+other reasons why the document might be covered by the GNU General Public
+License. If you modify this font, you may extend this exception to your
+version of the font, but you are not obligated to do so.  If you do not
+wish to do so, delete this exception statement from your version.</p>
+</blockquote>
+<p>DejaVu is an extended version of Bitstream Vera, which was distributed
+under a BSD-like license that requires changing the name of extended
+versions; the DejaVu changes are in the public domain.  They are far
+from complete Unicode coverage, lacking even some Greek and Cyrillic
+and most Arabic, as well as all the Indic scripts.  Still, I think it
+might cover most of the characters I actually use.</p>
+<p>DejaVu Serif isn't very harmonious with ET Book; it's a slab-serif
+font with little emphasis and a tall x-height --- roughly as far as it
+could be from ET Book while still being technically a serif font.  It
+does have ℤ and ² and ³ and ⁶⁴ and μ and × and ∞ and ÷ and Ω and ≈ and
+⇒ ∃ ε ∈ ₀₁ †, though many of them copy and paste wrong.  Combining
+arrow above v⃗ is missing (renders as an empty box), but maybe I'm
+outputting it wrong.  And it's missing ℓ.  But those are the only
+things I've seen missing so far.</p>
+<p>The elusive 'ℓ' is found in FreeMono, Liberation Mono, (Microsoft's)
+Courier New, and Droid Sans Mono, and likely their non-monospaced
+equivalents as well.  Liberation is a Red Hat font set licensed under
+the GPLv2 with a document-embedding exception plus some other weird
+anti-Tivoization exception.</p>
+<p>Liberation Serif covers ≈, †, ∞, ←↓↑→, ² and ³, and Greek, but not ⁻⁶
+or ɑ or ₂ or ⁴⁸ or ℤ.  It's somewhat more harmonious with ET Book.</p>
+<p>Freefont's FreeSerif is considerably more harmonious with ET Book than
+the others, and it does contain ℓ.</p>
+<h4>Misparsed data</h4>
+<p>I've been trying to use ElementTidy to read in the things ElementTree
+can't handle directly, about 30 of the 997 notes in Dercuano,
+but this has been failing completely.  One
+reason is that the tag names it gives me are bullshit like
+'{http://www.w3.org/1999/xhtml}html'.  Another is that it seems to be
+parsing things as some incorrect encoding.</p>
+<p><a href="https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=576343">elementtidy is apparently
+dead</a> having
+just been removed from Debian a few months ago, so it may not have
+been the best choice...</p>
+<p>This seems to work to solve the mojibake problem:</p>
+<pre><code>&gt;&gt;&gt; b = TidyHTMLTreeBuilder.TidyHTMLTreeBuilder(encoding='utf-8')
+&gt;&gt;&gt; b.feed(open('dercuano-20191226/notes/nova-rdos.html').read())
+&gt;&gt;&gt; t = b.close()
+</code></pre>
+<p>Although honestly, looking at the source, I think this does the same
+thing without TidyHTMLTreeBuilder:</p>
+<pre><code>import _elementtidy
+t = ET.XML(_elementtidy.fixup(open(
+       'dercuano-20191226/notes/nova-rdos.html').read(), 'utf8')[0])
+</code></pre>
+<p>...although that's not without ElementTidy, just without its Python.
+It still has the namespace problem, though.</p>
+<p>But the fixup() function there seems to just give us the stdout and
+stderr we would get from invoking HTML Tidy.  Which, as it turns out,
+has options <code>-ashtml</code> and <code>-utf8</code> that would probably do the right
+thing here without saddling us with an <code>xmlns</code>.  I wonder if Python
+tidylib has a way to get that?</p>
+<p>This looks promising:</p>
+<pre><code>&gt;&gt;&gt; xs = tidylib.tidy_document(
+        open('dercuano-20191226/notes/nova-rdos.html').read(),
+        {'input-encoding': 'utf8',
+         'output-encoding': 'utf8',
+         'output-html': True})
+&gt;&gt;&gt; print xs[0][:1024].decode('utf-8')
+</code></pre>
+<p>That <em>almost</em> works:</p>
+<pre><code>&gt;&gt;&gt; t = ET.XML(xs[0])
+Traceback (most recent call last):
+  File "&lt;stdin&gt;", line 1, in &lt;module&gt;
+  File "&lt;string&gt;", line 124, in XML
+cElementTree.ParseError: undefined entity: line 16, column 43
+</code></pre>
+<p>It's complaining about <code>&amp;nbsp;</code>.</p>
+<p>Well, can I use ElementTidy (or for that matter tidylib) in XML mode,
+but just strip off the namespace tags?</p>
+<pre><code>&gt;&gt;&gt; t = ET.fromstring(_elementtidy.fixup(
+    open('dercuano-20191226/notes/nova-rdos.html').read(), 'utf8')[0])
+&gt;&gt;&gt; def deprefix(tree):
+...  for kid in tree:
+...   deprefix(kid)
+...  tree.tag = re.compile('{.*}').sub('', tree.tag)
+... 
+&gt;&gt;&gt; deprefix(t)
+</code></pre>
+<p>That seems to have worked!  And tweaking the tidylib recipe above (no
+output-html, yes numeric-entities) allowed me to excise the
+ElementTidy dependency.  So that's one out of six showstopper bugs
+fixed.</p>
+<h4><code>&lt;pre&gt;</code></h4>
+<p>As MDN says about CSS "white-space: pre":</p>
+<blockquote>
+<p>Sequences of white space are preserved. Lines are only broken at
+  newline characters in the source and at <code>&lt;br&gt;</code> elements.</p>
+</blockquote>
+<p>Right now I have a "font stack" which is separate from the element
+stack and also a "current link" which is restored from the element
+stack.  But now I'd need to have a "white-space" stack so that I
+restore white-space to its <code>normal</code> value at the proper place.</p>
+<p>I think a better alternative is to use the element stack to restore
+elements of the current style, which can include link destination,
+font-family, font-size, and white-space.  Then I can just pass the
+current style to <code>render_text</code>.</p>
+<p><code>white-space: pre</code> is simple to implement:</p>
+<pre><code>#words = re.split('[ \n\r\t]+', text)
+words = re.split('\n', text)
+
+    if True or t[0].getX() + width &gt; max_x:
+        newline(c, t, font)
+
+    t[0].textOut(word)# + ' ')
+</code></pre>
+<p>Okay, I have that working.  Four showstopper bugs left: newlines after
+bullets, the ET Book license, vertical positioning, and font cascade
+fallbacks.</p>
+<p>In the process, though, the PDF seems to have grown by about 700K and
+become slower to display in some PDF viewers.  I suspect resetting the
+font on every word may be causing this, so I'm going to try adding
+another level of indirection so I can make an apples-to-apples test.</p>
+<p>Indeed, without redundant font setting, it takes 4m37s of user time
+and produces a 12.4 MB PDF, while with redundant font setting, it
+takes 5m45s and produces a 12.9 MB PDF.  So the extra complexity to
+avoid redundant font setting is worthwhile.</p>
+<h3>2019-12-29</h3>
+<p>Well, so, I revisited the code that emits textobjects, and I made it
+emit a new textobject for every line, which can be positioned with
+some appropriate Y-offset, and now I have the links actually over the
+text they're supposed to be (except when a link splits across pages,
+which is still a bug) although at the cost of an extra megabyte.  This
+also enables me to eliminate the fudge-factor margin at page bottoms,
+which cuts the book down to 3718 pages.</p>
+<p>So, that's one more showstopper bug down, and so now it's down to
+three remaining showstopper bugs: the missing ET Book license, the
+newlines following bullets, and tofu.  I think FreeSerif and FreeMono
+are reasonable fallback fonts, but I have to figure out how to do the
+fallbacking in practice.</p>
+<h4>Font cascades</h4>
+<p>So, I've added FreeFont FreeSerif as a fallback font and added a bunch
+of logic for font fallback.  I probably should add some kind of
+regexp-based fast path for when all the characters in a word are in ET
+Book, because it's noticeably slower, but it does seem to cover nearly
+all the characters I use.  FreeSerif-Italic seems to be missing a
+bunch of subscript letters I use, though, unless I'm screwing
+something up.</p>
+<p>It takes about 9 minutes instead of about 5 minutes to generate the
+PDF now.</p>
+<p>It turns out that subscript index letters like ₖ or <em>ₖ</em> (bold: <strong>ₖ</strong>,
+bold italic: <em><strong>ₖ</strong></em>) are not in (this version of) FreeFont, but they
+<em>are</em> in DejaVuSerif and DejaVuSerif-Italic.  They're used in <a href="../notes/isotropic-texture-effects.html">Isotropic nonlinear texture effects for letterforms from a scale-space representation</a> and <a href="../notes/observable-transaction-possibilities.html">Observable transaction possibilities</a>.
+So I'm going to go ahead and add the relevant DejaVu fonts, including
+for typewriter text (<code>ₖ</code>, <em><code>ₖ</code></em>, <em><strong><code>ₖ</code></strong></em>, <strong><code>ₖ</code></strong>), to the font
+cascade.</p>
+<p>That seems to solve the problem.  So maybe I can declare the Dercuano
+PDF pipeline tofu-free, at the cost of dozens of megabytes of fonts
+added to the source repository.</p>
+<p>So, the remaining showstopper problems are the ET Book license and
+newlines following bullets.  Then I can work on some problems that are
+annoying but less critical, like subscripts and superscripts, page
+numbers, blockquote formatting, ligatures, per-note tables of
+contents, extra spaces, extra newlines in <code>&lt;pre&gt;</code>, header colors, and
+header padding.</p>
+<p>(Although, as it turns out, I spent some time adding caches to the
+font cascade code to see if I could make it a little less slow.  This
+cut the PDF build time from 9.5 minutes to 8 minutes.)</p>
+<h4>Newlines following bullets</h4>
+<p>This happens with the construct <code>&lt;li&gt;&lt;p&gt;fulano&lt;/p&gt;&lt;/li&gt;</code>.  Entering
+the <code>&lt;li&gt;</code> causes one newline (followed by a bullet), and entering the
+<code>&lt;p&gt;</code> causes another.  The correct solution is to make the <code>&lt;p&gt;</code> a box
+vertically nested inside the <code>&lt;li&gt;</code> box without any extra padding, so
+that, unless there's something above it to push it down, their tops
+are at the same position.  But the janky PDF generation script doesn't
+have a box model; it just has newlines.  How could we avoid generating
+a newline?</p>
+<p>Well, the problem is specifically when a block element is the first
+thing inside another block element.  So maybe I can just have a
+boolean about whether we're at the top of a block.</p>
+<p>Okay, I was able to hack that in, and as a bonus I can use it to
+eliminate paragraph indents when paragraphs are the first thing inside
+a block element.  That avoids list items having an indent on the first
+line next to the bullet.  It will probably also help with blockquotes.
+Gah, blockquotes.</p>
+<p>That just leaves the ET Book license as a showstopper.</p>
+<h3>2019-12-30</h3>
+<p>No, wait, another one just popped up: in between the two 6's in
+"m0oTzNujJpx 66\n" in the middle of powerful-primitives.html, the font
+switches to italic, which it doesn't in the browser, and stays that
+way for the rest of the note.  The culprit seems to be <code>m0oTzNujJpx
+6&lt;I=EInw&gt;6\n</code>.  I tweaked this to use <code>``</code> in the Markdown,
+which hopefully will make the problem go away, but even if it
+interpreted that as an <code>&lt;i&gt;</code> tag, it should have at some point found
+an end to it --- maybe Tidy worked too hard here...</p>
+<p>Oh also I implemented <strong>bold</strong> as <code>typewriter</code> due to what looks like
+a copy-and-paste error.  Fixed!</p>
+<p>I've fixed another couple of problems mentioned earlier in a drive-by
+fashion: <code>&lt;script&gt;</code> and <code>&lt;style&gt;</code> contents and no-break spaces.</p>
+<p>So, the biggest remaining problems with the PDF, in more or less
+priority order (a sort of mix of estimated effort with estimated
+benefit):</p>
+<ul>
+<li>The link to the ET Book license is broken.</li>
+<li>Headers don't have enough padding above them.</li>
+<li>Links are not indicated in any printable way, so they're invisible in,
+  for example, MuPDF.  Also, they don't have page numbers, even when they
+  are internal links, so PDF viewers without link support (such as printers
+  and Google Drive's PDF viewer, the default on Android) can't use them.</li>
+<li>Overlong lines are cut off rather than wrapped.</li>
+<li>Individual notes have no tables of contents.</li>
+<li><code>&lt;sub&gt;</code> and <code>&lt;sup&gt;</code> are not implemented.</li>
+<li>Character-level markup like <code>&lt;em&gt;</code> produces spurious spaces.</li>
+<li>Character-level markup inside <code>&lt;pre&gt;</code> produces spurious newlines.</li>
+<li>The notes are not in any particular order, but they should be in the
+  roughly chronological order they are in the table of contents.</li>
+<li>URL-encoded links are broken.</li>
+<li>I haven't imported file <code>ceramics-notes</code>.</li>
+<li>The PDF is humongous, 13.5 megabytes.</li>
+<li>Tables aren't implemented.</li>
+<li>Ordered lists <code>&lt;ol&gt;</code> are bulleted rather than numbered.</li>
+<li>Headers aren't red or underlined.</li>
+<li>Line spacing is too tight.</li>
+<li>Blockquotes aren't visibly distinct at all.</li>
+<li>Text isn't hyphenated, justified, or ligated (even things like "fi"
+  and "fl".)</li>
+<li>SVG isn't implemented.</li>
+<li>Sometimes there are spurious blank lines between paragraphs and list
+  items.</li>
+<li>Superscript 0 and 456789 are larger than superscript 123.</li>
+<li>Fallback characters in <code>&lt;pre&gt;</code> have the wrong width.</li>
+</ul>
+<p>This is a lot to fix in the next 22 hours and I'm definitely not going
+to finish all of it, but I ought to be able to make a significant dent.</p>
+<p>Okay, adding the ET Book license was a little harder than expected,
+but done.</p>
+<p>I sort of have the padding thing working.  It's not working for the
+"Topics" section at the end because that's the first thing in a
+<code>&lt;div&gt;</code> and my check for paragraphs in list items means that they
+don't get a newline.  I guess I could make that specific to list
+items.</p>
+<p>Now I have the page numbers thing sort of working, although as with
+LaTeX, page number references will only work the <em>second</em> time you
+generate a document, which in some sense doubles the generation time
+from 8 minutes to 16.  This is sort of alarming given that I have 20.5
+hours left, which is 82 times 16 minutes.  I can only do 82 more full
+rebuilds at that pace.  This code will only ever be run 82 more times,
+ever.</p>
+<p>How about overlong lines?  I could use a regular "\" to indicate the
+wrapping of the line, although I think an outdented "-" would be nice.
+But then I need to chop the overlong word up into lines somehow.  If I
+were just positioning it at an (x, y), I feel like I could easily
+enough position it a full column width to the left, but the textobject
+seems to be taking care of positioning for me, unfortunately.  So
+maybe a better option is to binary search on word widths.</p>
+<p>Damn it, I just scalded my hand with this teakettle.  Not sure being
+awake at 4 AM is such a good idea.  But I still have almost 20 hours
+left.</p>
+<p>All right, I have overlong lines chopped and marked with little
+circles, sort of like flowchart connector circles.  And it's almost
+sunrise, and damn is it hot, despite the air conditioner going full
+blast.</p>
+<p>Adding tables of contents with ElementTree shouldn't be rocket
+science, but those tables of contents will be sort of lame without
+bookmarks to jump to.  So I'd need to add a bookmark for each header,
+which I might as well try to add to the document's outline as well;
+actually with some PDF viewers that would be a sufficient navigational
+interface.</p>
+<p>However, the 1300 or so outline items are already a bit of a problem
+for many PDF viewers; I'm not sure how well they'll handle another
+order of magnitude.  I may put this off for a few hours and work on
+other problems.</p>
+<p>Superscript and subscript are supposedly implemented by
+reportlab.pdfgen.textobject.setRise.  That can be made to
+work... although line breaking between a base and the exponent is
+possible and pretty undesirable.  Also it seems like the line spacing
+below increases for a superscript and decreases for a subscript, which
+is pretty bogus; this very note has some trouble with that with the
+word "T<sub>E</sub>X".  This is maybe enough of an implementation for
+the moment --- now it's a formatting problem instead of a semantic
+problem --- but it sucks pretty bad.</p>
+<p>Sunrise is well underway, though the streetlights have not yet gone
+out.</p>
+<p>The character-level markup problem is because the way words get
+separated in the document is that every word gets a space appended to
+it, regardless of whether what followed it was a space, the element
+end, or an element beginning.  Originally I was using <code>words =
+text.split()</code> but now that I'm using <code>re.split</code> this problem should
+actually be easy to fix:</p>
+<pre><code>&gt;&gt;&gt; re.split(r'[ \t]+', 'a b')
+['a', 'b']
+&gt;&gt;&gt; re.split(r'[ \t]+', 'a b ')
+['a', 'b', '']
+&gt;&gt;&gt; re.split(r'[ \t]+', ' a b ')
+['', 'a', 'b', '']
+</code></pre>
+<p>So, I only want to append a space if the word is not the last word in
+the string.</p>
+<p>This small change yields an enormous improvement in formatting.  I was
+whispering, "Holy fuck, holy fuck, holy fuck," as I looked at the
+results.  Exponents are better (in, <em>e.g.</em>, <a href="../notes/adaptive-hill-climbing.html">Robust local search in vector spaces using adaptive step sizes, and thoughts on extending quasi-Newton methods</a>); formulas with italic letters are better
+(for example, <a href="../notes/adaptive-hill-climbing.html">Robust local search in vector spaces using adaptive step sizes, and thoughts on extending quasi-Newton methods</a>'s presentation of the law
+of cosines); inline typewriter text is better (in, <em>e.g.</em>, <a href="../notes/escheme.html">Eur-Scheme: a simplified Ur-Scheme</a>, though it still has major problems with <code>&lt;pre&gt;</code>); italic
+words in paragraphs are better; links are better.</p>
+<p>A similar but somewhat larger change fixed the <code>&lt;pre&gt;</code> problem in
+<a href="../notes/escheme.html">Eur-Scheme: a simplified Ur-Scheme</a>, although now I am getting to the point where I am surprised
+when some code works, which is probably a danger sign that I'm
+introducing bugs.  It's now light enough outside that the streetlights
+have gone out, though there is still no direct sunlight.  Maybe I
+should sleep for a while if I can manage it; I have almost 18 hours
+left in the day.</p>
+<p>I also just tweaked the link boxes to go 0.1 ems to the right as well
+as 0.1 ems to the left of the link text, and tried URL-decoding URLs
+to fix the problems with links to <a href="../notes/lua-%2523-operator.html">Improving Lua #L with incremental prefix sum in the ∧ monoid</a> and <a href="../notes/%25241-recognizer-diagrams.html">$1 recognizer diagrams</a>, which seems to have worked.</p>
+<p>So, now that I've solved the above eight problems, that leaves the
+following problems:</p>
+<ul>
+<li>Individual notes have no tables of contents.</li>
+<li>The notes are not in any particular order, but they should be in the
+  roughly chronological order they are in the table of contents.</li>
+<li>Blockquotes aren't visibly distinct at all.</li>
+<li>Superscript and subscript screw up the line spacing.  One of the worst
+  examples is on the second page of <a href="../notes/sdf-notes.html">Some thoughts on SDF raymarching</a>, which is totally
+  unreadable.  The beginning of <a href="../notes/diesel-electrolysis.html">Why you can't run a diesel engine on water and diesel fuel with electrolysis</a> also has a somewhat
+  less egregious example.</li>
+<li>I haven't imported file <code>ceramics-notes</code>.</li>
+<li>The PDF is humongous, 16 megabytes.</li>
+<li>Tables aren't implemented.</li>
+<li>Ordered lists <code>&lt;ol&gt;</code> are bulleted rather than numbered.</li>
+<li>Headers aren't red or underlined.</li>
+<li>Line spacing is too tight.</li>
+<li>Text isn't hyphenated, justified, or ligated (even things like "fi"
+  and "fl".)</li>
+<li>SVG isn't implemented.  (It's only used in <a href="../notes/dercuano-drawings.html">Dercuano drawings</a>
+  and <a href="../notes/mechano-optical-vector-display.html">A mechano-optical vector display for animation archival</a>, so translating the seven
+  or so diagrams manually into PDF paths and operations might be a
+  reasonable option.)</li>
+<li>Sometimes there are spurious blank lines between paragraphs and list
+  items.</li>
+<li>Unicode superscript 0 and 456789 are larger than superscript 123.</li>
+<li>Fallback characters in <code>&lt;pre&gt;</code> have the wrong width.</li>
+<li>Superscripts and subscripts don't nest; see <a href="../notes/dercuano-stylesheet-notes.html">Dercuano stylesheet notes</a>
+  in the first example of superscripts to see an egregious error.</li>
+</ul>
+<p>I'm pretty pleased with how the result looks now, actually, although
+there are still clearly places where it does the wrong thing.</p>
+<h4>After sleeping</h4>
+<p>I slept 6 hours and now have 10 hours left.</p>
+<p>I tried an optimization that turned out to slow things down by 10%,
+that of handling word spaces separately from the words.  I hacked in a
+reasonable approximation of <a href="https://en.wikipedia.org/wiki/History_of_sentence_spacing#French_and_English_spacing">English spacing, in the sense of larger
+spaces after
+sentences</a>:
+colons, periods, exclamation marks, and question marks get a
+double-sized space after them, except when it's a period at the end of
+an abbreviation.  (In particular, an extra space is added after
+ordinals in sequences like "1. Ready. 2. Set. 3. Go!")</p>
+<p>This is a small change, but I think it improves nearly every
+paragraph, even though there are still much worse problems than the
+use of French equal sentence spacing throughout the book.</p>
+<p>It would probably work better to use the indication of double spaces
+(or newlines) after periods in the original Markdown, since I'm pretty
+consistent about doing that, but, bleh.</p>
+<p>So, what next?  I think I should see if any of the next three items
+turn out to be relatively yielding: individual-note tables of
+contents, ordering of notes, and blockquote formatting.</p>
+<p>I was thinking as I went to sleep that hanging indents (as are
+conventional for bulleted lists) should be relatively easy to handle:
+add a property to the style that has a string to place before each new
+line, and set it to a few spaces.  This is a crude approximation of
+proper indentation for bulleted lists, but it might be adequate, and
+in particular for blockquotes.  This does not exist as a CSS
+stylesheet property, except in the sense that <code>margin-left</code>, or
+<code>padding-left</code> can be used to indent the contents of a block with
+whitespace, and <code>text-indent</code> can be used to give the first line of
+each paragraph an extra indent.</p>
+<p>An absolute minimum thing to do for blockquote formatting is to reduce
+the font size, and that's easy, so I'll do that.</p>
+<p>Hmm, not quite so easy, because I haven't implemented font inheritance
+for block elements, so paragraphs inside a blockquote don't inherit
+the font.  So I implemented font inheritance for block elements.</p>
+<p>Also I added <code>&lt;ol&gt;</code> and <code>&lt;ul&gt;</code> back as block elements, causing them to
+have space at the top, so that the quoted lists in <a href="../notes/flexures.html">Flexures</a>
+don't collide with the headers right above them.</p>
+<p>Oh!  I think I know how to fix the subscript/superscript problem.  I
+just need to do the opposite setRise before setRise(0), because
+the implementation of setRise in Reportlab adds an increment to
+<code>self._y</code>:</p>
+<pre><code>def setRise(self, rise):
+    "Move text baseline up or down to allow superscrip/subscripts"
+    self._rise = rise
+    self._y = self._y - rise    # + ?  _textLineMatrix?
+    self._code.append('%s Ts' % fp_str(rise))
+</code></pre>
+<p>So, when we restore the rise back to zero, we need to also restore
+<code>_y</code>.  So if we previously did setRise(6) we should do setRise(-6)
+before setRise(0).  Well, that will work for the simple case of 0;
+what if the rise was previously 2?  We don't want setRise(2) to result
+in an additional 2 points of displacement for <code>_y</code>.  So we should do
+setRise(-8) before setRise(2).  So, I got that fixed, although
+sometimes the fix does the wrong thing when it restores the rise on a
+different line.</p>
+<p>Hmm, "<em>Pₒᵤₜ</em>" looks like shit maybe because of inconsistent font
+fallbacks; it's the same problem as the superscript digits.</p>
+<p>Okay, so with those fixes, I have 6 hours left.  But my network on
+this netbook has failed, so I'm going to reboot.</p>
+<p>Now I've pushed out that update and am asking for other people to look
+at it.</p>
+<p>Sean B. Palmer suggested tweaking the link box locations so they don't
+cut through character descenders, so I've done that.</p>
+<p>So, back to the list of known problems:</p>
+<ul>
+<li>Individual notes have no tables of contents.</li>
+<li>The notes are not in any particular order, but they should be in the
+  roughly chronological order they are in the table of contents.</li>
+<li>I haven't imported file <code>ceramics-notes</code>.</li>
+<li>The PDF is humongous, 16.8 megabytes.</li>
+<li>Tables aren't implemented.</li>
+<li>Blockquotes and list items aren't indented.</li>
+<li>Ordered lists <code>&lt;ol&gt;</code> are bulleted rather than numbered.</li>
+<li>Headers aren't red or underlined.</li>
+<li>Headers have no bottom margins.</li>
+<li>Line spacing is too tight, especially at the tops of blockquoted
+  paragraphs.</li>
+<li>Superscript and subscript screw up the line spacing when they are
+  broken across lines.</li>
+<li>Text isn't hyphenated, justified, or ligated (even things like "fi"
+  and "fl".)</li>
+<li>SVG isn't implemented.  (It's only used in <a href="../notes/dercuano-drawings.html">Dercuano drawings</a>
+  and <a href="../notes/mechano-optical-vector-display.html">A mechano-optical vector display for animation archival</a>, so translating the seven
+  or so diagrams manually into PDF paths and operations might be a
+  reasonable option.)</li>
+<li>Sometimes there are spurious blank lines between paragraphs and list
+  items.</li>
+<li>Unicode superscript 0 and 456789 are larger than superscript 123.</li>
+<li>Fallback characters in <code>&lt;pre&gt;</code> have the wrong width.</li>
+<li>Superscripts and subscripts don't nest correctly; see <a href="../notes/dercuano-stylesheet-notes.html">Dercuano stylesheet notes</a> in the first example of superscripts to
+  see an egregious error.</li>
+</ul>
+<p>The simplest thing for the chronological order would be to get the
+note links themselves from the table of contents.  That might not be
+too hard.</p>
+<p>That doesn't seem to be too hard, but I think I need to discriminate
+local, relative links from absolute links.  A quick and dirty approach
+there is just <code>urlparse(relative_url).path.startswith('/')</code>, although
+there's probably like an <code>is_relative</code> property or something
+somewhere, I dunno.  And now the PDF is in the proper order.</p>
+<p>Although it seems like I have an URL-encoding problem still; my links
+to the topic "español" are broken, but I'd never noticed until the PDF
+generation croaked on it.  Gotta regenerate the HTML!</p>
+<p>Okay, adding colors to headers wasn't that hard either, although
+there's some kind of problem with the color's alpha --- it's not
+applied to the first line of the header, just the second and
+subsequent lines.</p>
+<p>While I was at it, I spent five minutes hacking in a font-size hack
+for <a href="../notes/big-if-true.html">Things in Dercuano that would be big if true</a>, and then added a little top margin to
+paragraphs and made <code>&lt;th&gt;</code> elements bold.  And I started writing a
+postscriptum for Dercuano.</p>
+<p>All right, I have two hours left, so I guess I need to accept most of
+the above problems now, and only fix things if I find something
+egregious.</p>
+<p>I see <a href="../notes/iterative-string-formatting.html">Iterative string formatting</a> has some Devanagari tofu in
+it.  Apparently my font cascades lack Devanagari in the
+typewriter-font cascade.  That's too bad.  (Maybe it's actually
+mojibake, because the Devanagari is showing up as Chinese!)  <a href="../notes/magnetoresistive-relay.html">Steampunk spintronics: magnetoresistive relay logic?</a> has an extra space in "F.B. Morse".  Too bad.
+It also has an extra space in "(i.e. 250ps", which I think I'll fix;
+even though the "i.e." should be followed by a comma, I've made that
+error in many notes.  APL <code>⍴</code> in <a href="../notes/typed-apl.html">APL with typed indices</a> produces tofu, but
+only in the serif font (I guess it's missing from the cascade); too
+bad.</p>
+<p>The title of <a href="../notes/byte-stream-gui-applications.html">Byte-stream GUI applications</a> was wrong; fixed.</p>
+<p>In <a href="../notes/nova-rdos.html">Nova RDOS</a> there is tofu; I think this is because it's mostly
+encoded with CRLFs but occasionally has a lone LF.  I'm not sure how
+this ends up producing tofu in the PDF but it does.  Oh, yes I do.  My
+<code>&lt;pre&gt;</code> pattern didn't handle blank lines correctly; fixed.  Linking
+it in the intro text is making it appear out of sequence, which is too
+bad I guess.</p>
+<p><a href="../notes/cheap-frequency-detection.html">Cheap frequency detection</a> has some array indices that are
+incorrectly formatted as links; fixed, I hope.</p>
+<p>I've switched to just using the normal line-wrapping code for
+formatting text files (in particular, the font licenses).</p>
+<p>I guess that's about it!</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/politics.html">Politics</a> (39 notes)
+</li><li><a href="../topics/archival.html">Archival</a> (34 notes)
+</li><li><a href="../topics/compression.html">Compression</a> (28 notes)
+</li><li><a href="../topics/dercuano.html">Dercuano</a> (17 notes)
+</li><li><a href="../topics/hand-computers.html">Hand computers</a> (10 notes)
+</li><li><a href="../topics/fonts.html">Fonts</a> (9 notes)
+</li><li><a href="../topics/html.html">HTML</a> (6 notes)
+</li><li><a href="../topics/browsers.html">Browsers</a> (6 notes)
+</li><li><a href="../topics/typography.html">Typography</a> (5 notes)
+</li><li><a href="../topics/zui.html">Zooming user interfaces (ZUIs)</a> (4 notes)
+</li><li><a href="../topics/css.html">CSS</a> (3 notes)
+</li><li><a href="../topics/mathjax.html">MathJax</a> (2 notes)
+</li><li>The PDF file format</li></ul></div></html>

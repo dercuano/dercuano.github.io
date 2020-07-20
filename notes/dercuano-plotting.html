@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html><title>Dercuano plotting ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Dercuano plotting</h1><div class="metadata">Kragen Javier Sitaker, 2019-09-03 (updated 2019-09-05)
+(34 minutes)</div><p>Related to <a href="../notes/dercuano-rendering.html">Dercuano rendering</a>, <a href="../notes/dercuano-formula-display.html">Dercuano formula display</a>,
+<a href="../notes/dercuano-calculation.html">Dercuano calculation</a>,
+and <a href="../notes/dercuano-drawings.html">Dercuano drawings</a>, but not the same — I want some kind of
+equation-and-data-plotting thing in Dercuano, with some kind of
+Jupyter-like rapid feedback.  I think I can make it simpler and less
+fiddly than Numpy or Pandas, using the ideas in <a href="../notes/typed-apl.html">APL with typed indices</a>, <a href="../notes/principled-apl.html">A principled rethinking of array languages like APL</a>, <a href="../notes/relational-modeling-and-apl.html">Relational modeling and APL</a>, and <a href="../notes/micro-math-plus.html">First impressions on using the μMath+ calculator program for Android</a>, plus some I got from Darius Bacon, and get some
+formula display out of it into the bargain.</p>
+<p>As discussed in those notes, prerendering images to PNG or JPEG files
+like the humans normally do is not really an option for Dercuano
+because of its 5MB total download size budget.</p>
+<h2>A concrete example</h2>
+<p>In <a href="../notes/sparse-kernel-cascade-gabor-approximation.html">Image filtering with an approximate Gabor wavelet or Morlet wavelet using a cascade of sparse convolution kernels</a> I wrote 4800 words
+about an algorithm; the resulting HTML compresses to 11kB.  I tried it
+in <a href="https://nbviewer.jupyter.org/url/canonical.org/%7Ekragen/sw/dev3/sparse-gabor.ipynb">an IPython
+notebook</a>
+which contains 511kB of text, mostly compressed images, so I'm not
+including it as part of Dercuano (that, and because it's in a file
+format that browsers don't recognize).  The actual Python code in the
+notebook is 2.3kB and compresses to 0.7kB.  With reasonable JS signal
+processing and plotting libraries, this implementation could be part
+of the text, also costing only about 0.7kB, the plots would be
+viewable alongside the text, and they could be an "explorable
+explanation" in the sense that you could interactively vary the
+parameters and observe how this affects the plots.</p>
+<h2>Rapid feedback HCI</h2>
+<p>In 2015 I wrote <a href="http://canonical.org/~kragen/sw/dev3/rpn-edit">an RPN
+editor</a> with numbers
+and 1-D arrays that generates simple plots and formula renderings as you
+calculate, a followon to an <a href="http://canonical.org/~kragen/sw/dev3/js-calc">older JS calculator I wrote in
+2005</a>; in 2016 I did <a href="http://canonical.org/~kragen/81hacks/autodiffgraph">a
+similar hack</a>
+where instead of calculating on <em>arrays</em> the elements you calculate
+on are <em>functions</em>, starting from the identity function <em>f</em>(<em>x</em>) = <em>x</em>
+and constant functions <em>f<sub>k</sub></em>(<em>x</em>) = <em>k</em>, then combining them
+pointwise.  These are all fairly keyboard-driven (<a href="../notes/interactive-calculator.html">Interactive calculator</a> explores how to do a multitouch UI) and
+prototype-quality.</p>
+<p>One of the interesting things about the 2015 RPN editor above is that
+it uses the URL #fragment identifier to store the entire application
+state, much like erlehmann’s <code>glitch:</code> URLs for bytebeat, so that you
+can bookmark the calculation state or pass it to someone else in a
+link.  In some sense, it’s an interactive <em>viewer and editor</em> for a
+calculation <em>text</em>, with some linguistic representation — in this
+case, RPN, since nothing more complex is needed.</p>
+<p>The 2015 RPN editor also allows you to highlight subexpressions (with
+the ←→ keys) to see their values, and to structure-edit it (with
+^←/^→), although that is confusing.</p>
+<p>Another thing about all three of these prototypes is that you don’t
+have to request for a result to be plotted — as soon as it exists, it
+gets plotted.  But they need more flexibility in <em>how</em> to plot things.
+(The 2005 one gives you the option of resizing a plot with the mouse,
+while the others don’t even do that much.)  Every value has an
+infinity of possible visible presentations; peremptorily displaying
+two of them is not enough.</p>
+<p>These all feel much more immediate than the experience with
+IPython/Jupyter, where you are constantly faced with the alternative
+between <em>using</em> a value you have calculated:</p>
+<pre><code>t = dt * arange(20e-3 / dt)
+</code></pre>
+<p>and <em>seeing</em> it:</p>
+<pre><code>dt * arange(20e-3 / dt)
+</code></pre>
+<p>and plotting a function so you can see <em>both its domain and range</em> and
+have it <em>labeled</em> and have <em>more than one plot</em> requires bending over
+backwards:</p>
+<pre><code>subplot(211)
+plot(t, VR, label='$V_R$')
+plot(t, VL, label='$V_L$')
+plot(t, VC, label='$V_C$')
+legend()
+subplot(212)
+plot(t, I, label='$I$')
+legend();
+</code></pre>
+<p>Consider, instead, being able to say:</p>
+<pre><code>(VR over VL over VC) atop I
+</code></pre>
+<p>or the equivalent with keystroke or touch commands?  I mean <code>VR</code> isn’t
+dependent <em>just</em> on <code>t</code> — <a href="https://nbviewer.jupyter.org/url/canonical.org/%7Ekragen/sw/dev3/curve-tracer.ipynb">in this notebook it also depends on <code>C</code>,
+<code>L</code>, <code>R</code>, and
+<code>dt</code></a> — but
+<code>t</code> is the axis I’ve been thinking of it as varying with here, while
+I’ve been treating those other variables as constants.  So is it too
+much to ask that my calculating and plotting system would be able to
+infer that, at least unless I override it?  Especially when I’m
+plotting <code>VL</code> <em>on the same axis where I already plotted <code>VR</code> against
+<code>t</code></em>?  Sheesh!</p>
+<p>Another thing is that, if you’re evaluating a function of more than
+one variable at many points so you can plot it, Numpy (like APL,
+Octave, and R) can’t keep straight which variations belong to the
+X-axis and which belong to the Y-axis.  It chokes on this:</p>
+<pre><code>R = array([1000, 2200, 4700, 10e3, 22e3, 47e3])
+C = array([100e-9, 220e-9, 470e-9])
+matshow(R * C)
+</code></pre>
+<p>It complains, “ValueError: operands could not be broadcast together
+with shapes (6,) (3,)”, which is to say that it was trying to multiply
+corresponding elements of <code>R</code> and <code>C</code> to get time constants.  If we
+want the two to vary independently, <code>R.T * C</code> doesn’t work as you
+might expect, but we can say</p>
+<pre><code>matshow(multiply.outer(R, C))
+</code></pre>
+<p>or</p>
+<pre><code>matshow(R.reshape((6, 1)) * C)
+</code></pre>
+<p>But then the next time you do a calculation involving both <code>R</code> and
+<code>C</code>, you have to tell Numpy <em>again</em> that you want them to vary
+independently.  And this is what <a href="../notes/principled-apl.html">A principled rethinking of array languages like APL</a> is about.
+(Also, don’t forget <code>colorbar()</code>, which is not the same as
+<code>legend()</code>.)  This is actually the same problem as getting the X-axis
+labels right by default: for Numpy, <code>R</code> is just a vector of six
+numbers, just as earlier <code>VR</code> was an array of 100’000 numbers.  It
+doesn’t have any idea why there are six.</p>
+<p>The only software I’ve seen that does get this right is μMath+; see
+<a href="../notes/micro-math-plus.html">First impressions on using the μMath+ calculator program for Android</a> for details.</p>
+<p>Of course, I keep using Jupyter, despite the above, and even though I
+can’t incorporate the plots into Dercuano.  That’s because in my 2015
+prototype calculator I haven’t even implemented typing in negative
+numbers or decimals, much less multidimensional arrays, the Fast
+Fourier Transform, or singular value decomposition; moreover, I can
+probably expect a 10× slowdown just from switching the inner loops of
+these numerical algorithms to JS from Fortran in LAPACK.</p>
+<h2>Integration with my current workflow</h2>
+<p>This AJAXy thing I described above has a difficulty: I’m mostly
+writing Dercuano in Emacs, not in some kind of browser-based IDE.  I
+could reasonably pop out of writing to the browser to do some graphing
+(I could even add a keybinding in Emacs), but ultimately whatever I
+put together in the browser needs to be something I can paste into a
+text editor, and ideally something that will diff reasonably well.</p>
+<p>Probably the best I can hope for there is to pop open a textarea that
+says something like</p>
+<pre><code>&lt;script&gt;
+calc(`jasiodj jiaji aoj ioaj iojgosjo
+jaiogjaoj
+aijgwj jaiojgioawj owj oiajio jaweoj jaiojo
+jaiogjwojao ioj ioaj oij ioawj oaj aj iawjiawejisjga0 auj
+ajigwaj jawjiawjipwuj0aweuj890ejgp aji
+ajiajijwijapgjawpj`)
+&lt;/script&gt;
+</code></pre>
+<p>where the text inside the <code>``</code> encodes the calculations and
+plotting options.  Then I can copy and paste this into the text
+editor, hopefully remembering to delete the previous version.  A
+hassle, but manageable.  (Maybe a keybinding can find the surrounding
+<code>&lt;script&gt;</code> tag, paste in whatever is on the clipboard, and if it looks
+like a new <code>&lt;script&gt;</code> tag, delete the old one.)</p>
+<p>The <code>``</code> syntax is new in recent versions of JS.</p>
+<p>Even the hairiest plots I’ve been doing so far should be encodable in
+a kilobyte or two of text, and maybe different plots in the same
+document could talk to each other.</p>
+<h2>Why I don’t want to try an embedded DSL in JS</h2>
+<p>Numpy is an embedded DSL in Python, rather than a separate language
+implemented in Python, much less a funky keystroke-driven RPN UI.  So
+why not do the same thing in JS?</p>
+<p>First, JS doesn’t support operator overloading, which is a bigger deal
+for readability than it sounds like.  (a + b + c + d)/e.sum() becomes
+a.plus(b.plus(c.plus(d))).divide(e.sum()).  It’s already hard enough
+to tell if the computation you specified was really the computation
+you wanted; this makes it much harder still.</p>
+<p>Second, I prefer the RPN UI because it’s a lot more fluid than typing
+in strings of Python or JS.  See the above complaints about Numpy for
+some of the reasons.</p>
+<p>Third, I want to be able to define functions in a somewhat abstract,
+static way so that replotting them over different regions is a
+reasonable thing to do.  I even want to be able to do this for
+Runge–Kutta integration and things like that, although I don’t know
+how successful I’ll be.  Embedding your DSL means that the
+host-language facilities are always ready-to-hand, but they would
+frustrate this ambition.</p>
+<h2>Rendering improvement</h2>
+<p>As explained in <a href="../notes/antialiased-line-drawing.html">Antialiased line drawing</a>, we could go a long
+way to improve the readability of graphs by using LCD subpixel
+antialiasing and a bit of signal-processing theory, instead of drawing
+PostScript-style convolutions of the graph line with a one-dimensional
+boxcar kernel at right angles to it.</p>
+<p>Ideally, the line plotted on a plot is infinitely thin, a line-shaped
+Dirac delta, but rendering it that way requires not only infinite
+resolution but also infinite dynamic range.
+(The infinite dynamic range is particularly a problem for dark lines,
+since it would require either emitting negative amounts of light (at
+infinite concentration) from the line itself, or drawing on an
+infinitely bright background.)
+Bandlimiting the Dirac
+delta to a sinc that won’t alias at the screen resolution and maybe
+inverse-filtering a bit to compensate for the rectangularity of LCD
+pixels (which amounts to a low-pass filter through convolution with a
+rectangle) should give a high-quality rendering; windowing the sinc
+should make it more computationally tractable, but of course requires
+a little more frequency headroom.  Reducing the height of the peak in
+the center of the filter kernel should help at reducing the demands on
+the dynamic range of screen pixels, but maintaining the sharpness of
+the peak there should help with visibility.  High-pass filtering the
+filter kernel a bit, maybe without terribly strong stopband
+attenuation, should also improve the
+precision/visibility/dynamic-range tradeoff.</p>
+<p>Attenuating the lowest- and highest-frequency components this way has
+the effect of spreading the line’s brightness over more pixels, which
+means that it can vary more within the same dynamic range; this is
+important when lines cross or pass very nearby.  However, I don’t know
+whether the dynamic range increases proportional to the number of
+pixels or to their square root.</p>
+<p>Any opacity, even if it merely results from saturation, is nonlinear
+and tends to generate alias frequencies.  (It might be possible to
+avoid the generation of alias frequencies through some kind of very
+careful balancing, but if you don’t manage to do that, they will be
+present, and for the right pattern of lines they will be
+overwhelmingly strong.)</p>
+<p><a href="http://www.windytan.com/2013/03/rendering-pcm-with-simulated-phosphor.html">Windytan’s oscilloscope-emulation
+algorithms</a>
+demonstrate what can be achieved with closer-to-ideal plot
+rendering — aside from the issues of correct interpolation close to
+the Nyquist frequency, there’s lots of detail that is lost to the
+nonlinearities of the standard approach to waveform plotting but
+visible on an analog oscilloscope.</p>
+<p>It might be possible to get such effects purely in SVG — <a href="https://www.w3.org/TR/2003/REC-SVG11-20030114/filters.html">SVG 1.1 in
+2003</a> already defined the <code>filter</code> element and the <code>filter</code>
+property, which supports an <code>feConvolveMatrix</code> filtering primitive
+that I think could in theory handle this.  I’ve rarely or never seen
+this element in the wild, making me think its implementation is
+probably not well tested, and so might have performance or even
+correctness issues.  The spec page is well worth reading as an
+overview of what 2-D graphical primitives the experts at Adobe thought
+were important in 2003; they go well beyond what PostScript can do.</p>
+<p>To get deep-subpixel line positioning, a brute-force approach is to
+render with minimal antialiasing at a much higher resolution, then
+convolve with an antialiasing filter kernel at the high resolution
+before decimating to screen resolution.  This is probably not very
+computationally efficient.  More efficient approaches might include
+precomputed fractional-delay filters to shift patterns by fractions of
+a pixel and texture-mapping with a 1-D texture representing the
+pattern produced by the integrated filter kernel along a line
+perpendicular to the line being drawn, plus some kind of linear or
+quadratic adjustment to account for sharp angles or sudden ends.</p>
+<p>It’s often observed that bright lines on a dark screen background are
+more visible to the humans than dark lines on a bright screen
+background; this is particularly a problem for things like visualizing
+two-dimensional scalar fields such as the signed response of a filter
+kernel.  I don’t have a good understanding of why this is; I wonder if
+it has something to do with the humans’ logarithmic brightness
+perception, where a bit of blurriness diminishes the white around a
+black line by an imperceptibly tiny amount, while the same blurriness
+will convert the black around a white line into a slightly dimmer
+white.</p>
+<p>If this is the reason, it means there’s an unavoidable compromise
+between correct in-focus appearance (where the logarithmic perception
+law means we should do our convolutions in logarithmic color space)
+and correct out-of-focus appearance (where the defocus inside the
+human’s eye mixes the light linearly, so we should do our convolutions
+in linear color space).  Using strong contrast sparingly should reduce
+the costs of this compromise.</p>
+<p>With these tricks, it should be feasible to get lines that are an
+order of magnitude more visible than the traditional 250-micron-wide
+125-micron-quantization-noise Bresenham lines that Gnuplot will give
+you by default, while at the same time being more than an order of
+magnitude more precisely positioned in the X dimension (say, 10 μm),
+on a traditional 100-dpi, 250-micron-resolution LCD screen with
+vertical RGB subpixels, and nearly a factor of magnitude more
+precisely positioned in the Y dimension (say, 30 μm).</p>
+<p>On the high-dpi screens now common on hand computers — 200 dpi, or
+127-micron pitch with 42-micron pitch if it has RGB subpixels, is a
+typical resolution nowadays — it should be possible to get positioning
+errors on the order of 5 μm in X and 15 μm in Y.</p>
+<p>Still, none of this is needed for an “MVP”, which can be done
+straightforwardly with <code>&lt;canvas&gt;</code> or SVG (possibly using d3).</p>
+<h2>What I use most in Numpy, SciPy, and matplotlib</h2>
+<p>Maybe if my calculating/plotting thing can do most of the things I can
+do in IPython/Jupyter, it’ll be comfortable to use for a variety of
+things.</p>
+<p>I looked through 16 of my recent IPython notebooks and came up with
+this top-64 list by frequency of use (in source code, not execution):</p>
+<pre><code>    105 plot
+     68 subplot
+     55 *
+     41 **
+     40 len
+     40 []
+     39 [:]
+     35 -
+     27 xlim
+     27 abs
+     26 copy
+     19 @
+     18 matshow
+     17 contour
+     17 [:,:]
+     16 sum
+     16 '.'
+     15 set_*scale('log')
+     15 resize
+     15 print
+     15 arange
+     15 /
+     14 linspace
+     14 legend
+     14 -=
+     13 max
+     13 fft.fft
+     13 +=
+     13 [:,]
+     12 stem
+     12 colorbar
+     12 array([])
+     11 zeros
+     11 ylim
+     10 pi
+     10 [,:]=
+      9 exp
+      9 +
+      9 [,:]
+      9 &gt;
+      8 inv
+      8 concatenate
+      8 [:]=
+      7 []=
+      7 [:,:]=
+      6 .T
+      6 cumsum(axis=)
+      6 '.-'
+      5 sin
+      5 shape
+      5 reshape
+      5 min
+      5 max(axis=)
+      5 gca().set_aspect('equal')
+      5 cumsum
+      5 cond
+      5 [:,]=
+      4 xticks
+      4 where
+      4 svd
+      4 plot(linewidth=)
+      4 [,]
+      3 sum(axis=)
+      3 round
+</code></pre>
+<p>This is from a bit over 1000 invocations of Numpy array operations and
+matplotlib operations.  <code>plot</code> is super popular, and so is damned
+<code>subplot</code>, but <code>stem</code>, <code>matshow</code>, and <code>contour</code> also appear a lot.
+Arithmetic <code>*</code>, <code>**</code>, <code>-</code>, <code>@</code> (matrix multiply), <code>/</code>, <code>-=</code>, and <code>+=</code>
+are very popular; <code>+</code> is less so.  Popular aggregate operations are
+<code>len</code>, <code>sum</code>, <code>max</code>, and to a lesser extent <code>min</code>.  And <code>abs</code>, <code>exp</code>,
+and <code>sin</code> are surprisingly popular.</p>
+<p>Then there are indexing and slicing operations.  A <em>lot</em> of indexing
+and slicing operations.  Like, just scalar index reads are #6, more
+popular than <em>subtraction</em>.  It might have been worthwhile to break
+down the kinds of slicing a bit more: sometimes it’s between two
+constant indices like <code>x[200:400]</code>, sometimes it’s dropping some
+elements from the beginning <code>x[3:]</code> or the end <code>x[:-3]</code>, and sometimes
+it’s some other calculated index like <code>x[pos:pos+size]</code>.  Sometimes
+it’s a coordinate shift, sometimes I intended to select a subset
+(often for plotting), etc.</p>
+<p>Popular plotting options include <code>xlim</code>, <code>'.'</code>, <code>'.-'</code>,
+<code>yscale('log')</code> (and occasionally <code>xscale</code> too), <code>legend</code>, <code>colorbar</code>,
+<code>ylim</code>, <code>gca().set_aspect('equal')</code> (which doesn’t have a convenient
+function in pyplot the way <code>set_yscale('log')</code> does), and <code>xticks</code>.</p>
+<p>Popular heavy-duty algorithms are <code>fft.fft</code>, <code>inv</code>, <code>cond</code>, and <code>svd</code>.
+Maybe matrix multiply <code>@</code>/<code>dot</code> should be included there too.</p>
+<p>Popular ways of generating arrays, other than arithmetic, include
+<code>copy</code>, <code>resize</code> (which in Numpy repeats an array, like <code>tile</code>),
+<code>arange</code>, <code>linspace</code>, <code>array([])</code> (converting a literal list to an
+array), <code>zeros</code> (typically followed by assignments), and
+<code>concatenate</code>, which puts the elements of one after the elements of
+the other.</p>
+<p>Other miscellaneous facilities I apparently use a lot include <code>pi</code>,
+<code>cumsum</code>, <code>.T</code>, <code>reshape</code> (a generalization of <code>.T</code>), and <code>where</code>
+(conditional: <code>where(a, b, c)</code> is <code>b</code> where <code>a</code> is true, <code>c</code> where <code>a</code>
+is false).</p>
+<p>Not all of these operations would map over to other environments in
+exactly the same way.  In particular, a lot of the plotting options
+are maybe things to set with the mouse.</p>
+<h2>Attaching aesthetics to data</h2>
+<p><em>The Grammar of Graphics</em> refers to the visual appearances we attach
+to data to make it visible as “aesthetics” — as in:</p>
+<blockquote>
+<p>Aesthetic attribute functions are used in two ways.  Most commonly,
+we specify a variable or blend of variables that constitutes a
+dimension, such as <em>size</em>(<strong>population</strong>) or
+<em>color</em>(<strong>trial1+trial2</strong>).  Or we may assign a constant, such as
+<em>size</em>(3) or <em>color</em>(“red”).</p>
+</blockquote>
+<p>They specifically disclaim “the derivative modern meanings [of
+“aesthetics”] of beauty, taste, and artistic criteria”.</p>
+<p>In GG, as in most graphics systems, data do not have aesthetics.
+Instead, aesthetics have data.  This is also how matplotlib, d3, and
+Gnuplot do things.  The data are floating around in vectors or
+whatever, and at some point they collide with a plotting command or a
+plot-update command, and at that point they get used, perhaps
+ephemerally, to generate a graphic; but subsequently they lose their
+connection to the graphic.</p>
+<p>I think this is probably not the best approach for an interactive
+calculator with instant feedback.  Instead, aesthetics and indeed a
+whole presentation should be attached to the data, so that the data
+can always be plotted in a sensible way at any point in the
+calculation.  (Bret Victor has demonstrated some visualizations of Dan
+Amelang’s Nile which probably inspired this thought.)</p>
+<p>I don’t know how exactly this should work.  Probably if you plot two
+different voltages in different colors or different linewidths, they
+should retain those aesthetics whether you’re plotting them against
+time or against their common current — but what if you are plotting
+them against each other, with one on X and the other on Y?  What if
+the current has its own color?  What color should the sum of the
+voltages be, or the square of one of them?  I probably need to try
+stuff to see what feels least frustrating.</p>
+<p>For short discrete signals, <code>stem</code> is probably the correct
+presentation under most circumstances, and plenty of operations on
+discrete signals are closed; so probably if you add two stem-displayed
+signals, or multiply one by a constant, you should get another one.
+But <code>stem</code> becomes unwieldy for sufficiently many samples.  Do I need
+conditional formatting?</p>
+<p>(One potential benefit of the more symbolic way I’m thinking about
+doing things is that discrete and continuous signals are not the
+same.)</p>
+<p>Square aspect ratios — a common tweak — are nearly always appropriate
+when the axes are in the same dimension.  But tagging every variable
+with units of measurement might be unwieldy.  (On the other hand, it
+might help to associate some aesthetics with units of measurement
+rather than values.  And <code>units.dat</code>, now <code>definitions.units</code>, gzips
+to 78 kilobytes.)</p>
+<p>The implicit, conditional associations in <a href="../notes/principled-apl.html">A principled rethinking of array languages like APL</a> should
+help somewhat with the problem of associating varying quantities with
+an aesthetic — it should be just as easy to set the voltage’s
+linewidth to be the current as to set it to 3.  (You might need some
+kind of scale mapping from amperes to pixels, though.)</p>
+<p>A possible alternative is, as in the 2016 prototype, to do computation
+by <em>changing</em> a <em>variable</em> — for example, adding a constant to it, or
+multiplying it by a time-lagged version of itself — and update a
+pre-existing display accordingly.</p>
+<p>Another approach, explored in <a href="../notes/relational-modeling-and-apl.html">Relational modeling and APL</a>, is
+for these quantities to exist as named attributes of a model, which
+then has one or more visual presentations.  A cylinder, for example,
+has a volume, a cross-sectional area, a lateral area, a total surface
+area, a radius, a diameter, and a length.  But I’m not sure how this
+would work with plotting a series of different cylinder volumes
+against some independent variable.</p>
+<h2>Abstract model/language semantics</h2>
+<p>There are two pieces here: one is the semantic model of the
+<em>plotting</em>, and the other is the semantic model of the <em>calculation</em>.</p>
+<p>I anticipate that the model of the calculation is going to be a
+longish document, so I'm preemptively splitting it out into <a href="../notes/implicit-language.html">A formal language for defining implicitly parameterized functions</a>.</p>
+<h2>Performance</h2>
+<p>JS is not going to be as fast as Fortran, as evidenced by things like
+PDF.js, modern JS interpreters can be coaxed to be fast enough to do
+some substantial computation.</p>
+<p>Firefox takes about 3.6 seconds to run this JS on my laptop:</p>
+<pre><code>function tri(n) {
+  let t = 0
+  for (let i = 0; i &lt; n; i++) t += i;
+  return t;
+}
+
+tri(1000000000)
+</code></pre>
+<p>It also gets the wrong answer, because of 64-bit floating-point
+roundoff error, but that’s not the point.  The point is that it was
+able to chew through 280 million loop iterations per second.  Given a
+32-millisecond budget to render a graphic, it can do 9 million simple
+arithmetic operations like the above.</p>
+<p>I tried it in C:</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+long long tri(long long n)
+{
+  long long t = 0;
+  for (long long i = 0; i &lt; n; i++) t += i;
+  return t;
+}
+
+int main(int argc, char **argv)
+{
+  printf("%lld\n", tri(strtoll(argv[1], 0, 10)));
+  return 0;
+}
+</code></pre>
+<p>Without optimization, it was the same speed as Firefox; with
+optimization, I had to make the number
+a command-line parameter to keep GCC from
+evaluating the loop at compile time, and it takes 900 ms, four times
+as fast.  (Also, it gets the right answer, unlike JS.)</p>
+<p>So the cost of JS for this simple integer numerical code is about a
+factor of 4.  So JS on my laptop or my phone is faster than C on my
+netbook.  And my rule of thumb is that code in Numpy takes 5× longer
+to run than reasonably written C, so JS might actually be faster than
+Numpy.  We just need to compile the dataflow graph into nested loops
+in JS before evaluating it in order to get that delicious JITty
+goodness!</p>
+<h3>I tried to test array indexing speed but all I found out was that integer division is super slow and now I need to redo everything below</h3>
+<p>But JS array indexing is bounds-checked, so it might be a lot slower
+than C.  So I wrote these quick functions in Firefox’s inspector
+console to see:</p>
+<pre><code>function leap(a, n) { let m = a.length, j = 0; for (let i = 0; i &lt; n; i++) { a[j] += i; j = (a[j] + j) % m; } }
+function time(t) { let a = new Date(); let b = t(); let c = new Date(); return [c-a, b]; }
+function repeat(x, n) { return new Array(n).fill(x); }
+</code></pre>
+<p>Thus <code>time(() =&gt; leap(repeat(0, 8), 5000000))</code> gives 1.49–1.51 seconds
+(in another run, mentioned below, after a reboot, 1.23–1.28 seconds
+instead); at 10 million it gives 3.09–3.11 seconds.  <em>Enlarging</em> the
+array to 8192 <em>speeds up</em> both of these, 5 million to 1.09–1.12
+seconds; enlarging it further to 65536 speeds up 5 million to
+9.91–1.02 seconds; at 16777216, 2.3–2.6 seconds; at 1048576, 1.46–1.52
+seconds; at 2097152, 1.32–1.37 seconds; at 33554432, 3.9–4.6 seconds.
+Moreover, at 33554432, doubling the loop count to 10 million only
+extends the time to 5.5–6.9 seconds.  It doesn’t start to get linear
+again until 20 million, at 8.5–9.6 seconds.</p>
+<p>(I did three trials of each one to get some idea of the variability,
+but probably the JIT is too unpredictable for just three trials to be
+decent.)</p>
+<p>I don’t know what to make of this precisely, but it seems like for
+small arrays, it can do 3 to 5 million of those Array inner loops per
+second, which is enormously less than the 280 million it was getting
+for just adding the loop counter, and then starts to get slower
+presumably due to cache effects for indexing arrays over 32
+mebi-items.</p>
+<p>To see if the optimizer is replacing the % with a &amp;, I tried reducing
+the array size to 33554431, which didn’t make any difference.  This
+suggests that maybe I should try explicitly using &amp; to see if the 97%
+of the work this program is doing has a lot of division in it.</p>
+<blockquote>
+<p>At 10 seconds, Firefox shows its warning that “a web page is slowing
+down your computer”, offering the option to kill the computation; this
+is a thing to beware of.</p>
+</blockquote>
+<h3>Typed arrays</h3>
+<p>To compare, I tried <code>time(() =&gt; leap(new Float32Array(8192),
+5000000))</code> and got 0.964–0.969 seconds; Int32Array gave 0.924–0.935
+seconds; Uint8Array gave 0.50–0.53 seconds; Uint16Array gave 0.74–0.76
+seconds; Uint32Array gave 1.170–1.172 seconds; and Float64Array gave
+1.21–1.23 seconds.  Both of these last two are slower than just using
+<code>Array</code>.  This is well below the size where cache effects came into
+play, and the <code>leap()</code> loop is specifically designed to not be
+vectorizable, so I don’t know why the smaller data types give a
+performance boost (up to 10 million iterations per second!).</p>
+<p>To see if we get big caching effects, I tried <code>time(() =&gt; leap(new
+Float64Array(33554432), 20000000))</code> and got 8.35–8.41 seconds; with
+Float32Array I got 5.9–6.2 seconds; and, astonishingly, with
+Int16Array — which I expected to be <em>faster</em> — I got 14.6–15.3
+seconds.</p>
+<p>I don’t think these results are predictable enough to draw very
+precise conclusions about whether, or even when, typed arrays help or
+hurt performance.  They seem to help performance by a factor of 2 in
+some cases and hurt it by a factor of 1.5 in others.  Maybe a better
+benchmark function would help.</p>
+<h3>Adding methods to arrays makes no difference</h3>
+<p>After the reboot mentioned below, I thought I would try <code>time(() =&gt; {
+let a = repeat(0, 8); a.method = function(x) { return "hi, " + x; };
+leap(a, 5000000)})</code> to see if the extra method on the array frustrated
+Firefox’s optimizer.  (This is a thing I’d done in
+<a href="http://canonical.org/~kragen/sw/81hacks">81hacks</a> and always wondered
+if it was the reason for what seemed to me to be relatively poor
+performance.)  It didn’t make any difference: it took 1.262–1.265
+seconds, within the 1.23–1.28 range observed immediately previously.</p>
+<p>However, it’s certainly possible that the bottleneck in <code>leap()</code> isn't
+actually the array indexing!  (It turns out to be true, so I need to
+redo this test.)</p>
+<h3>Memory use</h3>
+<p>I tried running <code>x = repeat(0, 1024*1024*64)</code> and had to reboot after
+Firefox allocated a few gigabytes of virtual memory.</p>
+<p>After rebooting, it was hard to tell which of the many Firefox
+processes to watch in htop.  <code>x = repeat(0, 16777216)</code> did not make it
+apparent.  It turned out to be pid 4172, as revealed by <code>f = n =&gt; (n &lt;
+2 ? 1 : f(n-1) + f(n-2)); f(36)</code>, using 1839MB VSZ, 336MB RSS.
+Rerunning the <code>repeat</code> boosted that to 2366MB VSZ, 858MB RSS, a
+difference of 527 and 522 megabytes respectively.  That suggests that
+each array item is occupying a bit over 32 bytes, which is four times
+what I expected.  <code>delete x</code> returned the process to 1976MB/465MB.</p>
+<p>Presumably typed arrays should reduce this substantially, and indeed,
+after <code>x = new Uint8Array(16777216)</code>, we see 1972MB/479MB, a 14MB jump
+in RSS, close to the expected 16MB.  <code>delete x</code> has no effect (481MB
+remained constant before and after) but <code>x = new
+Float64Array(16777216)</code> boosts memory use to 2257MB/606MB, 285MB and
+127MB respectively; the latter is very close to the 128MB you’d expect
+at 64 bits (8 bytes) per array item.</p>
+<p>So native JS arrays are four times more expensive on memory use than
+you’d naively expect, while typed arrays have exactly the memory price
+they say on the tag, which can be more than an order of magnitude
+better.  Given that there’s no consistent runtime cost for using typed
+arrays, though also no consistent benefit, it is probably better to
+use typed arrays by default for numeric data arrays.  (Presumably
+using typed arrays will make <em>other</em> code run faster by reducing the
+load on the garbage collector.)</p>
+<h3>How I found out the speed tests above were totally wrong</h3>
+<p>This took 1.0–1.4 seconds: <code>time(() =&gt; { const a = repeat(3,
+16777216); let t = 0; for (let i = 0; i &lt; a.length; i++) t += a[i];
+return t })</code>.  That’s, like, 10 or 20 million array indexing
+operations per second.  However, this still took 0.9 seconds: <code>time(()
+=&gt; { const a = repeat(3, 16777216); let t = 0; for (let i = 0; i &lt;
+a.length; i++) t += i; return t })</code>.  So it wasn’t really the array
+indexing in the loop; it was the <code>repeat</code> function above.  Changing to
+<code>time(() =&gt; { const a = new Array(16777216); let t = 0; for (let i =
+0; i &lt; a.length; i++) t += i; return t })</code> gives 61 milliseconds
+instead, 15 times faster — so it was the <code>.fill()</code> call.</p>
+<p>It only takes 73–75 ms to run <code>time(() =&gt; { const a = new
+Float64Array(16777216); let t = 0; for (let i = 0; i &lt; a.length; i++)
+t += a[i]; return t })</code>, which just totals up all the zeros.  But I’m
+not sure how far I can trust Firefox’s optimizer here.</p>
+<p>This version takes wildly varying times from 168 ms to 639 ms:
+<code>time(() =&gt; { const a = new Float64Array(16777216); for (let i = 0; i
+&lt; a.length; i++) a[i] = 3; let t = 0; for (let i = 0; i &lt; a.length;
+i++) t += a[i]; return t })</code>.  Using <code>Array</code> instead slows it to
+0.9–1.5 seconds, which is probably slower than calling <code>.fill()</code>
+inside <code>repeat</code>.</p>
+<p>So, I don’t know.  Loop analysis and bounds-checking hoisting is
+easier with loop counters, and maybe that’s what accounts for the
+difference.  Certainly my earlier typed-array tests weren’t calling
+<code>.fill()</code>; they just relied on the implicit zero-filling provided by
+these constructors (even the float ones), which, as we see above, is
+much faster than what I was doing.  So maybe it really was the
+inner-loop division.</p>
+<p>Here’s a division-free version specialized for power-of-two arrays:</p>
+<pre><code>function laap(a, n) { let m = a.length-1, j = 0; for (let i = 0; i &lt; n; i++) { a[j] += i; j = (a[j] + j) &amp; m; } }
+</code></pre>
+<p>And, with that, <code>time(() =&gt; laap(repeat(0, 8), 5000000))</code> takes
+50–80 ms.  On my netbook, it takes 270-310 ms, or 370-420 ms
+on the netbook in Chromium. I totally fucked up by using division!  <code>time(() =&gt;
+laap(repeat(0, 8), 500000000))</code> takes 5.36–5.37 seconds, so 93 million
+loop iterations per second.</p>
+<p>I was going to say, “This explains why there was no difference
+(usually) between JS arrays and typed arrays,” but it turns out
+<code>time(() =&gt; laap(new Float64Array(8), 500000000))</code> is still three
+times as slow as the plain-Array version above.  Still, the better
+benchmark function probably will make it easier to understand what
+differences do exist.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/math.html">Math</a> (78 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/dsp.html">Digital signal processing (DSP)</a> (60 notes)
+</li><li><a href="../topics/compression.html">Compression</a> (28 notes)
+</li><li><a href="../topics/dercuano.html">Dercuano</a> (16 notes)
+</li></ul></div></html>

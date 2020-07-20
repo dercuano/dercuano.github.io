@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><title>Binary translation register maps ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Binary translation register maps</h1><div class="metadata">Kragen Javier Sitaker, 2017-07-19
+(1 minute)</div><p>Reading Sorav Bansal’s dissertation, I was struck by the fact
+that in the middle of the binary-translation section, he tackles the
+register allocation problem using the Viterbi algorithm, although he
+seems not to have realized that he was solving register allocation
+(conventionally considered NP-hard) or that his solution was the
+Viterbi algorithm.</p>
+<p>The context is not conventional compiler code generation but rather
+binary translation from PowerPC code to 386 code, so both the input
+and output of his system are sequences of instructions.  He is faced
+with the question of how to assign registers for the output
+instructions.</p>
+<p>His solution is to compute the cost of all possible register maps, one
+input instruction at a time, as he walks through the input code,
+adding an extra “switching cost” when the predecessor state used a
+different register map; but he retains only the lowest-cost few maps
+at any given point in order to keep the cost reasonable, up to about 8
+maps, though he only gets a significant performance advantage up to
+about 3 maps.  (I wonder if this is due to having several maps that
+are essentially equivalent.)</p>
+<p>This seems like a remarkably simple approach to a remarkably difficult
+problem, so simple that I am led to wonder whether it actually works.
+Some other aspects of the scholarship in the dissertation are shaky.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/compilers.html">Compilers</a> (16 notes)
+</li><li>Viterbi</li></ul></div></html>

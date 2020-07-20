@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html><title>Notes on Raph Levien's "Io" Programming Language ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Notes on Raph Levien's "Io" Programming Language</h1><div class="metadata">Kragen Javier Sitaker, 2007 to 2009
+(10 minutes)</div>
+<p>(This is distinct and unrelated to Steve Dekorte's "Io" programming
+language.)</p>
+<p>The original paper, which I don't have a copy of, is:</p>
+<blockquote>
+<p>Raphael Levien, 1989, "Io: a new programming notation", SIGPLAN
+Notices 24(12) December 1989</p>
+</blockquote>
+<p>There is a little material about Io online, including quotes from the
+paper.  From
+<a href="http://hopl.murdoch.edu.au/showlanguage.prx?exp=4671&amp;language=IO">http://hopl.murdoch.edu.au/showlanguage.prx?exp=4671&amp;language=IO</a>:</p>
+<blockquote>
+<h2>Coroutines</h2>
+<p>Coroutines are an important concept of computing science, but few
+programming notations properly support them. It is surprising how easy
+they are to implement in Io.</p>
+<p>The idea of coroutines is to have two (or more) routines. When one of
+the routines gets to a point where it can no longer proceed (such as,
+when it needs more input), it is suspended, and another routine
+continues until it, in turn, can no longer continue (such as, when it
+has a value to output). Then, it is suspended and another routine is
+resumed.</p>
+<p>This is used, for example, in creating a stream. A stream carries a
+sequence of numbers, without consuming storage. Therefore, it can be
+infinite. Even in the case of a finite stream, though, it has an
+advantage over a linked list, because computation can begin
+immediately after the first number is known.</p>
+<p>The Io implementation of streams is analogous to linked lists. A
+stream takes two arguments. If there is no more data in the stream, it
+performs its first argument. Otherwise, it performs the second
+argument, with a data value and the continuation of the stream.</p>
+<p>Here we define the operator <code>count-stream</code>, and bind an infinite
+counting stream to the variable <code>s</code>.</p>
+<pre><code>count-streamO: ~ x out;
+out x ~ null out;
++xl~x;
+count-streamO x out.
+count-stream: -..) ret;
+ret .-9 null full;
+count-streamO 0 full.
+count-stream ~ s
+</code></pre>
+<p>S has exactly the same structure as a linked list. In fact,
+<code>writelist s</code> will write <code>0 1 2 3 4 5...</code> on the screen.</p>
+</blockquote>
+<p>There seem to be some OCR errors here.  I think <code>+x1~x</code> is supposed to
+be <code>+ x 1 ~ x</code>, and I suspect (from Raphael Finkel's book, see below)
+that <code>~</code> is actually supposed to be <code>-&gt;</code>.  So the definition of
+count-stream0 should be as follows:</p>
+<pre><code>count-stream0: -&gt; x out;
+        out x -&gt; null out;
+        + x 1 -&gt; x;
+        count-stream0 x out.
+</code></pre>
+<p>In Scheme:</p>
+<pre><code>(define count-stream0
+  (lambda (x out)
+    (out x (lambda (null out)
+             (%+ x 1 (lambda (x) (count-stream0 x out)))))))
+</code></pre>
+<p>with the following definition of %+:</p>
+<pre><code>(define (%+ a b cont) (cont (+ a b)))
+</code></pre>
+<p>I'm more mystified about the <code>count-stream</code> definition.  From the
+text, perhaps the definition is as follows:</p>
+<pre><code>count-stream: -&gt; ret;
+        ret -&gt; null full;
+        count-stream0 0 full.
+</code></pre>
+<p>Because then <code>s</code> gets <code>-&gt; null full; count-stream0 0 full</code>, which
+takes two arguments (as the text explains) and hands the second one
+off to <code>count-stream0</code>, which performs it with a data value and the
+continuation of the stream.</p>
+<p>Raphael Finkel's 1995/1996 book <a href="http://www.nondot.org/sabre/Mirrored/AdvProgLangDesign/">"Advanced Programming Language
+Design"</a>,
+chapter 2, section 3, contains some more examples.</p>
+<pre><code>write 5; write 6; terminate
+</code></pre>
+<p>which means, in Scheme:</p>
+<pre><code>(write 5 (lambda () (write 6 (lambda () (terminate)))))
+</code></pre>
+<p>Then</p>
+<pre><code>write-twice: -&gt; number; write number; write number; terminate.
+</code></pre>
+<p>which means</p>
+<pre><code>(define write-twice
+  (lambda (number) 
+    (write number 
+           (lambda () (write number (lambda () (terminate)))))))
+</code></pre>
+<p>Then</p>
+<pre><code>write-twice: -&gt; number return;
+        write number; write number; return.
+write-twice 7; write 9; terminate
+</code></pre>
+<p>Which means</p>
+<pre><code>(define write-twice
+  (lambda (number return)
+    (write number (lambda () (write number 
+                                    (lambda () (return)))))))
+(write-twice 7 (lambda () (write 9 (lambda () (terminate)))))
+</code></pre>
+<p>Then</p>
+<pre><code>+ 2 3 -&gt; number; write number; terminate
+</code></pre>
+<p>which means</p>
+<pre><code>(%+ 2 3 (lambda (number) (write number (lambda () (terminate)))))
+</code></pre>
+<p>Then</p>
+<pre><code>count: -&gt; start end return;
+        write start;
+        = start end (return);
+        + start 1 -&gt; new-start;
+        count new-start end return.
+count 1 10; terminate
+</code></pre>
+<p>which means</p>
+<pre><code>(define count 
+  (lambda (start end return)
+    (write start 
+           (lambda ()
+             (%= start end return
+                 (lambda () 
+                   (%+ start 1 
+                       (lambda (new-start)
+                         (count new-start end return)))))))))
+</code></pre>
+<p>with the new definition of %=:</p>
+<pre><code>(define (%= a b consequent alternate)
+  (if (= a b) (consequent) (alternate)))
+</code></pre>
+<p>This is the CPS expansion of this:</p>
+<pre><code>(define (count start end)
+  (write start)
+  (if (not (= start end)) (count (+ start 1) end)))
+</code></pre>
+<p>I don't know why there are parentheses in "= start end (return)"
+in the Io example.  Perhaps it's an error introduced by Finkel.</p>
+<p>One final example, showing the use of parentheses:</p>
+<pre><code>make-pair: -&gt; x y return; 
+        user (-&gt; client; client x y); return.
+</code></pre>
+<p>which means</p>
+<pre><code>(define make-pair
+  (lambda (x y return)
+    (user (lambda (client) (client x y)) (lambda () (return)))))
+</code></pre>
+<p>Here's the definition of writelist mentioned above:</p>
+<pre><code>writelist: -&gt; list return;
+        list return -&gt; first rest;
+        write first;
+        writelist rest;
+        return.
+emptylist: -&gt; null notnull; null.
+cons: -&gt; number list econtinuation;
+        econtinuation -&gt; null notnull;
+        notnull number list.
+</code></pre>
+<h2>Usefulness</h2>
+<p>I wouldn't want to program in Io in the raw way described above; it's
+pretty verbose and confusing.  But it's <em>much</em> clearer than Scheme for
+expressing code in explicit CPS, for three simple reasons.</p>
+<p>First, a series of nested lambdas is a flat structure rather than a
+nested structure as in Scheme.</p>
+<p>Second, the syntactic overhead of the lambda is a single punctuation
+character, or possibly three, rather than ten characters including
+some letters: <code>(lambda())</code>.</p>
+<p>Third, as a result, in the usual case, the distance between the names
+of arguments and the place they come from (that is, the procedure that
+will eventually invoke the lambda that the arguments belong to) is
+much less, and they appear as a unit rather than as things far apart.
+<code>+ x 1 -&gt; x;</code> is quite clear.  (Unfortunately, this closeness of
+association is misleading sometimes; consider <code>out x -&gt; null out;</code> in
+the definition of <code>count-stream0</code>, where the <code>-&gt; null out; ...</code> part
+of the routine is suspended for some arbitrary period of time while
+the rest of the program runs, and may in fact never resume.)</p>
+<h2>More Syntactic Sugar</h2>
+<p>If you actually wanted to write programs in the language, you could
+benefit from changing it to have a little bit more syntactic sugar.</p>
+<h3>Nested expressions</h3>
+<p>For example, you could define</p>
+<pre><code>count [+ start 1] end return
+</code></pre>
+<p>as an abbreviation for</p>
+<pre><code>+ start 1 -&gt; new-start;
+count new-start end return
+</code></pre>
+<p>and for procedures that have only a single exit point, you could
+imagine writing</p>
+<pre><code>{-&gt; number; write number; write number}
+</code></pre>
+<p>as an abbreviation for</p>
+<pre><code>-&gt; number return; write number; write number return
+</code></pre>
+<p>In cases where a "statement" contains more than a single set of square
+brackets, the order of evaluation could be undefined, so that e.g.</p>
+<pre><code>string-scan src [+ srcidx 1] [- len 1] c
+</code></pre>
+<p>could rewrite either to</p>
+<pre><code>+ srcidx 1 -&gt; v1;
+- len 1 -&gt; v2;
+string-scan src v1 v2 c
+</code></pre>
+<p>or to</p>
+<pre><code>- len 1 -&gt; v1;
++ srcidx 1 -&gt; v2;
+string-scan src v2 v1 c
+</code></pre>
+<p>Or the order of evaluation could be defined; who cares?  However, it's
+important for our sanity that this:</p>
+<pre><code>string-scan src [+ srcidx 1]; foobar [- len 1]
+</code></pre>
+<p>rewrite to this:</p>
+<pre><code>+ srcidx 1 -&gt; v1;
+string-scan src v1;
+- len 1 -&gt; v2;
+foobar v2
+</code></pre>
+<p>and not this:</p>
+<pre><code>+ srcidx 1 -&gt; v1;
+- len 1 -&gt; v2;
+string-scan src v1;
+foobar v2
+</code></pre>
+<p>Note that the above transformation is just the CPS transformation in
+Scheme for normal nested application expressions.  It's just a
+thousand times more readable than usual because of the Io lambda
+notation.</p>
+<h3>One-argument lambda sugar</h3>
+<p>It might also be helpful to be able to write one-argument lambdas more
+concisely, with an automatic name for "the last result".  In Python's
+REPL and in Arc, this variable is called "_".  With this, for example,
+you could write each of the following:</p>
+<pre><code>count-stream: ; _ -&gt; null full; count-stream0 0 full.
+
++ 2 3; write _; terminate
+
+make-pair: -&gt; x y ret; user (; _ x y) ret.
+</code></pre>
+<p>Mostly this is duplicative with the []-nesting idea, though.  I'm not
+sure which is better in the cases where both are applicable.
+Consider this example:</p>
+<pre><code>def render(text):
+    body = str(markdown.Markdown(text))
+    soup = BeautifulSoup.BeautifulSoup(body)
+
+    headers = soup('h1')
+</code></pre>
+<p>In Io, that looks like this:</p>
+<pre><code>render: -&gt; text;
+    markdown.Markdown text -&gt; foo;
+    str foo -&gt; body;
+    BeautifulSoup.BeautifulSoup body -&gt; soup;
+
+    soup "h1" -&gt; headers; ...
+</code></pre>
+<p>With implicit single arguments:</p>
+<pre><code>render: ;
+    markdown.Markdown _;
+    str _;
+    BeautifulSoup.BeautifulSoup _;
+
+    _ "h1" -&gt; headers; ...
+</code></pre>
+<p>With nesting:</p>
+<pre><code>render: -&gt; text;
+    [BeautifulSoup.BeautifulSoup [str [markdown.Markdown text]]] "h1" 
+        -&gt; headers; ...
+</code></pre>
+<p>The nested expressions are more compact, but in this case, I think the
+implicit arguments are clearer.</p>
+<h3>Conditionals</h3>
+<p>It would be nice if there were a way to conveniently rejoin streams of
+control after a conditional.  For example, it would be nice to be able
+to write</p>
+<pre><code>if (= x y) (write "x y equal") (write "x y not equal");
+if (= x z) (write "x z equal") (write "x z not equal");
+if (= y z) (write "y z equal") (write "y z not equal");
+whatever
+</code></pre>
+<p>If the language had automatic currying, you could define this <code>if</code>
+quite easily:</p>
+<pre><code>if: -&gt; cond result alt cont; cond (; result cont) (; alt cont).
+</code></pre>
+<p>You can use the above <code>if</code> definition without automatic currying if
+you write out the arguments explicitly:</p>
+<pre><code>if (-&gt; a b; = x y a b) (-&gt; c; write "x y equal" c) 
+                       (-&gt; c; write "x y not equal" c)
+</code></pre>
+<p>You could, however, imagine syntactic sugar for this as well.  For
+example, this expression could expand into the above call to "if":</p>
+<pre><code>= x y ? write "x y equal" : write "x y not equal"
+</code></pre>
+<p>As with the nested expressions, note that this is just the CPS
+transformation for <code>if</code>.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/history.html">History</a> (71 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/io.html">Io</a> (2 notes)
+</li></ul></div></html>

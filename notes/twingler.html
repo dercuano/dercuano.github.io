@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html><title>Twingler ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Twingler</h1><div class="metadata">Kragen Javier Sitaker, 2014-02-24
+(7 minutes)</div><p>In <a href="http://blog.plover.com/notes/twingler.html">Twingler, a generic data structure munger</a>, Mark-Jason
+Dominus proposes a new broadly-useful DSL.</p>
+<h2>The problem</h2>
+<p>Given</p>
+<pre><code>[
+    [Chi, Ill],
+    [NY, NY],
+    [Alb, NY],
+    [Spr, Ill],
+    [Tr, NJ],
+    [Ev, Ill],
+]
+</code></pre>
+<p>he wants to easily write the transformation to DS1:</p>
+<pre><code>{ Ill =&gt; [Chi, Ev, Spr],
+  NY  =&gt; [Alb, NY],
+  NJ  =&gt; [Tr],
+}
+</code></pre>
+<p>for example, or to any of DS2:</p>
+<pre><code>{
+  Chi =&gt; Ill,
+  NY =&gt; NY, 
+  Alb =&gt; NY,
+  Spr =&gt; Ill,
+  Tr =&gt; NJ,
+  Ev =&gt; Ill,
+}
+</code></pre>
+<p>DS3:</p>
+<pre><code>{ Ill =&gt; [Chi, Spr, Ev],
+  NY  =&gt; [NY, Alb],
+  NJ  =&gt; Tr,
+}
+</code></pre>
+<p>(unnamed):</p>
+<pre><code>{ Ill =&gt; 3,
+  NY  =&gt; 2,
+  NJ  =&gt; 1,
+}
+</code></pre>
+<p>or DS4:</p>
+<pre><code>[ Chi, Ill, NY, NY, Alb, NY, Spr, Ill, Tr, NJ, Ev, Ill]
+</code></pre>
+<p>As a current example of how it is currently unnecessarily
+difficult to write the first transformation, he gives the
+Perl</p>
+<pre><code>my $out;
+for my $pair (@$in) {
+    push @{$out-&gt;{$pair-&gt;[0]}}, $pair-&gt;[1];
+}
+for my $k (keys %$out) {
+    @{$out-&gt;{$k}} = sort @{$out-&gt;{$k}};
+}
+</code></pre>
+<p>and suggests that even the abbreviated syntax</p>
+<pre><code>for pair (in.items) :
+  out[pair[0]].append(pair[1])
+for list (out.values) :
+  list.sort
+</code></pre>
+<p>is unnecessarily complicated.</p>
+<h2>MJD’s Twingler templates</h2>
+<p>he ends up suggesting</p>
+<pre><code>DS1: [ &lt;[X,Y]&gt; ]
+DS2: { &lt;X=&gt;Y&gt;  }
+DS3: { &lt;X =&gt; [&lt;Y&gt;]&gt; }
+DS4: [ &lt;X, Y&gt; ]
+</code></pre>
+<p>where <code>&lt;&gt;</code> is “ITERATE over the thing inside and make a list
+of the results,” like <code>map</code> in Perl or <code>flatMap</code> in Scala,
+and <code>X</code> and <code>Y</code> are the first two dimensions of a sort of
+adjacency matrix computed in an unspecified way from the
+original data:</p>
+<pre><code>        Ill        NY        NJ
+Chi     X
+NY              X
+Alb             X
+Spr     X
+Tr                      X
+Ev      X
+</code></pre>
+<p>...or two columns, I guess, considering the original data as
+an N-ary relation represented simply as a list-of-lists.
+(You could probably use the same or similar notation to
+specify how to reduce the original data to an N-ary
+relation.)</p>
+<p>I don’t understand how his four expressions above give the
+four data structures explained previously; it seems like the
+DS3 expression <code>{ &lt;X =&gt; [&lt;Y&gt;]&gt; }</code> should give DS1 rather than
+DS3, while the DS1 expression should give the original input.
+I’m going to assume this is just an error MJD made.</p>
+<p>MJD points out that you can easily incorporate arbitrary
+functions into the template:</p>
+<pre><code>{ &lt;X =&gt; max(&lt;Y&gt;) }
+</code></pre>
+<p>Later he gives the example, given the table</p>
+<pre><code>|----+------+--------+---------+------|
+| ID | NAME | SHADE  | PALETTE | DESC |
+|----+------+--------+---------+------|
+| A  | AAA  | red    | pink    | Aaa  |
+| B  | BBB  | yellow | tawny   | Bbb  |
+| A  | AAA  | green  | nude    | Aaa  |
+| B  | BBB  | blue   | violet  | Bbb  |
+| C  | CCC  | black  | nude    | Ccc  |
+|----+------+--------+---------+------|
+</code></pre>
+<p>how to compute</p>
+<pre><code>{ A =&gt; [ AAA, [ [red, pink], [green, nude] ], Aaa],
+  B =&gt; [ BBB, [ [yellow, tawny], [blue, violet] ], Bbb],
+  C =&gt; [ CCC, [ [black, nude] ], CCC]
+}
+</code></pre>
+<p>using the expression</p>
+<pre><code>{ &lt; ID =&gt; [
+             name,
+             [ &lt;[shade, palette]&gt; ]
+             desc
+          ]&gt;
+}
+</code></pre>
+<p>His original examples are fairly easily handled with
+mapreduce, which hadn’t been identified yet when he wrote his
+notes, and although this one is too, it points the way to
+examples that are not so easily handled.  For example, the
+classic <a href="https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/Titanic.html">Titanic dataset</a>, included with R and containing
+information on survival by gender, age, and class, could be
+reasonably munged into any of</p>
+<pre><code>{&lt;Class =&gt; {&lt;Sex =&gt; {&lt;Age =&gt; {&lt;Survived =&gt; N&gt;}&gt;}&gt;}&gt;}
+{&lt;Sex =&gt; {&lt;Class =&gt; {&lt;Age =&gt; {&lt;Survived =&gt; N&gt;}&gt;}&gt;}&gt;}
+{&lt;Sex =&gt; {&lt;Age =&gt; {&lt;Class =&gt; {&lt;Survived =&gt; N&gt;}&gt;}&gt;}&gt;}
+{&lt;Sex =&gt; {&lt;Age =&gt; {&lt;Survived =&gt; {&lt;Class =&gt; N&gt;}&gt;}&gt;}&gt;}
+</code></pre>
+<p>as well as many other forms.  This is not a task you can do
+with mapreduce.</p>
+<p>(I’m not referring to the parallel and fault-tolerant
+attributes of mapreduce as implemented by Google or Hadoop,
+but to the higher-order <a href="http://lists.canonical.org/pipermail/kragen-hacks/2012-July/000548.html">mapreduce function</a> that I’ve
+argued should be in Python itertools.)</p>
+<h2>QBE</h2>
+<p>Later in his post, MJD suggests that it might make more sense
+to simply supply a sample input and sample output; e.g.</p>
+<pre><code>[ [ A, B ],
+  [ C, B ],
+  [ D, E ] ]
+--------------
+{ B =&gt; [A, C],
+  E =&gt; [D],
+}
+</code></pre>
+<p>I’m not sure if this kind of QBE will work, but it does seem
+like if it works, it would be simpler to use, despite needing
+more verbose input.  The idea is that, instead of specifying
+iteration with a separate iteration operator, you specify it
+by iteration.  Consider the slightly harder problem</p>
+<pre><code>[ [ A, B ],
+  [ C, B ],
+  [ D, E ] ]
+--------------
+[ [B, [A, C]],
+  [E, [D]],
+]
+</code></pre>
+<p>This is unambiguous, but if we delete the first output item
+to get</p>
+<pre><code>[ [ D, E ] ]
+--------------
+[ [E, [D]] ]
+</code></pre>
+<p>that could mean either the original</p>
+<pre><code>[ [ A, B ],
+  [ C, B ],
+  [ D, E ] ]
+--------------
+[ [B, [A, C]],
+  [E, [D]],
+]
+</code></pre>
+<p>or the alternative</p>
+<pre><code>[ [ A, B ],
+  [ C, B ],
+  [ D, E ] ]
+--------------
+[ [B, [A]],
+  [B, [C]],
+  [E, [D]],
+]
+</code></pre>
+<p>although this is not possible in the hash case.</p>
+<p>I think this might be less wieldy in the case of deep
+nesting, and it doesn’t accommodate functions like <code>count</code> or
+<code>max</code> as easily.  Consider the Titanic example</p>
+<pre><code>{&lt;Sex =&gt; {&lt;Class =&gt; {&lt;Age =&gt; {&lt;Survived =&gt; N&gt;}&gt;}&gt;}&gt;}
+</code></pre>
+<p>which could be written as</p>
+<pre><code>[ [First, Male, Adult, Yes, 24] ]
+----
+{ Male =&gt; { First =&gt; { Adult =&gt; { Yes =&gt; 24 } } } }
+</code></pre>
+<p>and is thus no problem; but if we instead want nested lists
+of pairs, we are in trouble:</p>
+<pre><code>[ [First, Male, Adult, Yes, 24] ]
+----
+[ [Male, [ [First, [ [Adult, [ [Yes, 24] ]] ]] ]] ]
+</code></pre>
+<p>which is hopelessly ambiguous; we need at least one
+repetition at each level to specify it properly:</p>
+<pre><code>[ [First, Male, Adult, Yes, 24],
+  [First, Male, Adult, No, 25],
+  [First, Male, Child, Yes, 26],
+  [Crew, Male, Adult, Yes, 27],
+  [First, Female, Adult, Yes, 28],
+]
+---
+[ [Male, [ [First, [ [Adult, [ [Yes, 24],
+                               [No,  25] ]],
+                     [Child, [ [Yes, 26] ]] ]],
+           [Crew,  [ [Adult, [ [Yes, 27] ]] ]] ]],
+  [Female, [ [First, [ [Adult, [Yes, 28] ]] ]] ]
+]
+</code></pre>
+<p>which is, at least to me, less readable than</p>
+<pre><code>[ &lt;[Sex, [ &lt;[Class, [ &lt;[Age, [ &lt;[Survived, N]&gt; ] 
+                    ]&gt; ] 
+         ]&gt; ]
+]&gt; ]
+</code></pre>
+<p>although I’m not going to try to claim that that’s some kind of
+paragon of readability either.</p>
+<h2>JSON</h2>
+<p>Twingle is a great deal more interesting today than in the
+late 1990s when MJD originally invented it, because now we
+have a great deal of data on the web (and other places!)
+represented as JSON.  The fundamental aggregate data types
+in JSON are the same fundamental data types Twingle handles,
+and simple transformations between different representations
+of such datasets is a ubiquitous task.</p>
+<h2>Binate</h2>
+<p>At first, I was thinking that maybe <a href="http://canonical.org/~kragen/binary-relations">Binate</a> would be
+useful for this kind of transformation, since binary
+relations are awfully similar to the Perl dictionaries being
+represented by <code>{}</code> here; and Binate might well be more
+compact than the Twingle representation.</p>
+<p>However, binary relations sort of erase the distinction
+between dicts and lists. XXX</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/binary-relations.html">Binary relations</a> (6 notes)
+</li><li><a href="../topics/json.html">JSON</a> (2 notes)
+</li></ul></div></html>

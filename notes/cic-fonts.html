@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html><title>CIC-filter fonts ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>CIC-filter fonts</h1><div class="metadata">Kragen Javier Sitaker, 2017-06-28
+(1 minute)</div><p>The traditional way to compose the graphical things that make up
+fonts, whether as outlines or as strokes, is to concatenate sequences
+of lines, arcs, and Bézier curves.</p>
+<p>I’ve thought about alternatives including decomposing those shapes
+into splines and sine waves.  Now it occurs to me that maybe CIC
+filters would also be a reasonable kind of way to decompose those
+shapes.</p>
+<p>The idea is that the path of a paintbrush painting the letter is some
+kind of f(t) = (x, y) parametric curve, and CIC filters are capable of
+producing fairly interesting parametric curves at pretty low
+computational expense.  Maybe stroke width should also be part of it.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/graphics.html">Graphics</a> (91 notes)
+</li><li><a href="../topics/compression.html">Compression</a> (28 notes)
+</li><li><a href="../topics/fonts.html">Fonts</a> (9 notes)
+</li></ul></div></html>

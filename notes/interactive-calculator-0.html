@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html><title>Interactive calculator 0 ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Interactive calculator 0</h1><div class="metadata">Kragen Javier Sitaker, 2015-09-17
+(2 minutes)</div><p>I want a calculator that lets me do instant calculation with low
+precision and then do the same calculation to higher precision, and
+that is instantly responsive.</p>
+<p>I want to be able to mix values that are functions of time with simple
+scalars.</p>
+<p>One aspect of this is using interval arithmetic or some similar kind
+of approximation to ensure that the rendering is responsive and
+doesn’t block user input.</p>
+<p>Another aspect is that I want to see a time-series dangling from each
+non-scalar-valued operator and variable in my expression, although
+maybe not all of equal prominence; maybe mouseovers to focus on the
+active ones.  And in some cases, I'd like to see it updating in real
+time as I'm editing the expression, like if it's a sound signal I'm
+generating.</p>
+<p>I want the time axis to be vertical, rather than the usual horizontal,
+because the expression is traditionally represented horizontally, and
+trying to run the time axis horizontally too would mean that you can’t
+see much of any variable.</p>
+<p>Another is that the RPN aspect of rpn-edit works really well: each
+keystroke has an immediate effect, and there are no
+unbalanced-parentheses errors.  So I want to stick with that.  If I'm
+playing music, I probably want the leftmost top-level value to be the
+one that's played by default, rather than the ones I'm building up to
+the right.</p>
+<p>Another thing, though, is that I want to be able to move back and
+forth between continuous and discrete time-series without changing the
+formula, and I want to be able to apply the same function to different
+input time-series.  This requires some kind of functional abstraction,
+at least giving names to things.</p>
+<p>For trading analysis, I need more powerful time-series manipulation
+than what I’ve implemented so far.  I need to be able to control, and
+in particular subset, time.  I need to be able to conform time-series
+acquired with different (and irregular) time bases.  I need operations
+on selections like “extend ten minutes into the future”.  I need to be
+able to apply smoothing filters.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/hci.html">Human–computer interaction</a> (76 notes)
+</li><li><a href="../topics/intervals.html">Interval and affine arithmetic</a> (24 notes)
+</li><li><a href="../topics/latency.html">Latency</a> (19 notes)
+</li><li><a href="../topics/calculators.html">Calculators</a> (11 notes)
+</li><li><a href="../topics/time-series.html">Time series</a> (6 notes)
+</li></ul></div></html>

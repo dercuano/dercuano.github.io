@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html><title>B-Tree ropes ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>B-Tree ropes</h1><div class="metadata">Kragen Javier Sitaker, 2019-09-24 (updated 2019-09-25)
+(19 minutes)</div><p>I just hacked together <a href="http://canonical.org/~kragen/dev3/macrope.lua">a quick rope-based string system in Lua</a>,
+but it has rather alarming worst-case performance characteristics.
+I was thinking about improving such characteristics with B-trees.</p>
+<h2>The string and rope problem</h2>
+<p>If you build up a long string through successive concatenations, many
+string systems will suffer an O(<em>N</em>²) slowdown; for example, in LuaJIT
+this takes 2.4 seconds, which works out to 42 kilobytes per second;
+PUC Lua 5.2.4 is only slightly faster at 1.9 seconds:</p>
+<pre><code>N = 100000
+s = ''
+for i = 1, N do s = s .. 'x' end
+</code></pre>
+<p>CPython used to be really slow at this, but has a special optimization
+for this case now, so it takes such a small amount of time that it is
+difficult to measure accurately; the following slight variation still
+takes 700 ms, which works out to 140 kilobytes per second:</p>
+<pre><code>N = 100000
+s = ''
+for i in range(N): s = t = s + 'x'
+</code></pre>
+<p>This shows the expected O(<em>N</em>²) curve, taking 2.5 seconds for <em>N</em> =
+200 000 instead of <em>N</em> = 100 000.</p>
+<p>Moreover, in these systems, if the same large string occurs as part of
+<em>M</em> other strings, it uses up <em>M</em> times the space, and many of the
+concatenation operations are redundant.</p>
+<p>It’s common for such string-concatenation operations to consist of
+essentially variable interpolation — filling variable holes in
+otherwise-constant templates.  Ideally we wouldn’t be looping over all
+that unchanging data every time we render a web page or whatever.</p>
+<h2>Ropes</h2>
+<p>Ropes are trees representing immutable trees which originated in
+Cedar; you could describe the essential core of the idea in OCaml as
+follows:</p>
+<pre><code>type rope = Leaf of string | Cat of rope * rope
+</code></pre>
+<p>The idea is that <code>Leaf "foo"</code> represents the constant string <code>"foo"</code>,
+while Cat represents the concatenation of two ropes; <code>Cat (Leaf "foo",
+Leaf "bar")</code> is one possible representation of the immutable string
+<code>"foobar"</code>.  This gives you constant-time string concatenation (if
+garbage collection is okay) and plenty of structure sharing, and you
+can convert the rope to a flat string in linear time when
+necessary — or just a <code>struct iovec</code> to send over the network with
+<code>writev</code>.</p>
+<p>If the leaves are nonempty, this data structure has worst-case linear
+space overhead, although it can be quite large, on the order of 64×
+the plain string.</p>
+<p>If you augment this structure with lengths, you can additionally index
+and slice it in logarithmic time, if it’s well balanced:</p>
+<pre><code>type rope = Leaf of int * string | Cat of int * rope * rope
+</code></pre>
+<p>If we define the function <code>rope_length</code></p>
+<pre><code>let rope_length = function Leaf(a, _) -&gt; a | Cat(a, _, _) -&gt; a
+</code></pre>
+<p>we can state the invariant that <code>rope_length (Cat(a, g, d)) ==
+rope_length g + rope_length d</code> (using “g” and “d” for <em>gauche</em> and
+<em>droit</em>) and maintain this with concatenation and lifting functions:</p>
+<pre><code>let leaf s = Leaf(String.length s, s)
+let cat a b = Cat(rope_length a + rope_length b, a, b)
+</code></pre>
+<p>and define a function to drop the first <em>n</em> bytes:</p>
+<pre><code>let rec rope_drop n = function
+ | Leaf(a, s) -&gt; leaf (String.sub s n (a - n))
+ | Cat(a, g, d) -&gt; if n &lt; rope_length g
+     then cat (rope_drop n g) d
+     else rope_drop (n - rope_length g) d
+</code></pre>
+<p>It is straightforward to define analogous functions to take the first
+<em>n</em> bytes, etc.</p>
+<p>These functions will take logarithmic time and space if the tree is
+well balanced, but they can take linear time and space if the tree is
+imbalanced.  Looking at the structure of <code>rope_drop</code> we can see that
+it’s closely analogous to a binary-tree search where the search key in
+each <code>Cat(a, g, d)</code> node is <code>rope_length g</code>, though augmented by the
+past search keys.  It’s binary-searching the tree for the breakpoint.</p>
+<p>It’s also straightforward to write a function that converts a <code>rope</code>
+as defined above into a flat byte sequence; in OCaml, we invoke
+<code>Bytes.create</code> with the size of the string to be created, use
+<code>Bytes.blit_string</code> to copy each of the leaf nodes into the new
+sequence, and finally invoke <code>Bytes.to_string</code>; alternatively you can
+build up a string list and invoke <code>String.concat ""</code> on it, which does
+the same thing under the covers.  This takes linear time and linear
+space regardless of the balance or imbalance of the tree, but it is
+necessary to be somewhat careful to avoid stack overflows.</p>
+<h2>My Lua implementation <code>macrope</code></h2>
+<p>This implementation has four kinds of nodes rather than two — it
+additionally contains “variable nodes”, representing template
+variables to be replaced, and “environment nodes”, which provide
+values for those variables.  This allows you to instantiate a template
+rope once and then use it repeatedly with different variable bindings
+without having to copy it around to modify it.</p>
+<p>Because the size of the variable nodes can vary depending on their
+environment, the nodes don’t know their size, so these ropes can’t be
+sliced and indexed efficiently as the above OCaml code does.</p>
+<p>The module exports a function <code>var</code> to define variable nodes and a
+function <code>macrope</code> which idempotently coerces strings to macropes.
+Concatenation and parameter passing are done with the Lua <code>..</code>
+concatenation operator and the normal parameter-passing mechanism:</p>
+<pre><code>&gt; macrope = require 'macrope'
+&gt; v = macrope.var 'name'
+&gt; s = v .. ' is the best friend of ' .. v
+&gt; = s { name='Bob' }
+Bob is the best friend of Bob
+</code></pre>
+<p>Macropes can support large strings with linear, though poor,
+efficiency:</p>
+<pre><code>&gt; x = macrope.macrope 'x'
+&gt; for i = 1, 25 do x = x .. x end
+&gt; =#tostring(x)
+33554432
+</code></pre>
+<p>The first two lines execute instantaneously; the third line takes
+about 30–40 seconds on my laptop.  No attempt is made to cache the
+results.</p>
+<p>The O(<em>N</em>²) code above runs faster with <code>macrope</code> as follows, for <em>N</em>
+above about 10,000:</p>
+<pre><code>&gt; s = macrope.macrope ''
+&gt; for i = 1, N do s = s .. 'x' end
+&gt; s = tostring(s)
+</code></pre>
+<p>The source code is organized as follows.  <code>macrope</code> calls a <code>const</code>
+function if necessary, which is forward declared because I’m leery of
+Lua’s scoping.  Each node type has its own metatable:</p>
+<pre><code># (in macrope.lua)
+local catmeta, envmeta, varmeta, constmeta, const, macrope
+</code></pre>
+<p>All these metatables “inherit from” a common prototype metatable, but
+using a function that generates copies from it, rather than delegating
+to it using <code>__index</code>.  They <em>do</em> share an <code>is_macrope</code> property via
+<code>__index</code>, which allows the <code>macrope</code> function to be idempotent.</p>
+<pre><code>local function meta()
+   return {
+      __index = {is_macrope = true},
+</code></pre>
+<p>The string concatenation operation is overridden to construct
+concatenation nodes:</p>
+<pre><code>      __concat = function(car, cdr)
+         return setmetatable({car=macrope(car), cdr=macrope(cdr)}, catmeta)
+      end,
+</code></pre>
+<p>The function-call operation is overridden as follows to create an
+environment node; note that each variable binding is coerced to a
+<code>macrope</code>:</p>
+<pre><code>      __call = function(self, vars)
+         local nvars = {}
+         for k, v in pairs(vars) do nvars[k] = macrope(v) end
+         return setmetatable({vars=nvars, child=self}, envmeta)
+      end,
+</code></pre>
+<p>Finally, coercion to a string as implemented by the standard
+<code>tostring</code> function (invoked implicitly by <code>print</code>) is done by using
+an explicit stack — because the worst cases I was alluding to above
+cause LuaJIT to kill the function if the stack gets more than a few
+tens of thousands of stack frames deep:</p>
+<pre><code>      __tostring = function(self)
+         local items, stack, env = {}, {}, {}
+         local function put(item) table.insert(items, item) end
+
+         self:visit(put, stack, env)
+
+         while #stack &gt; 0 do
+            local item = table.remove(stack)
+            item(put, stack, env)
+         end
+
+         return table.concat(items)
+      end,
+   }
+end
+</code></pre>
+<p>Mostly what remains are the <code>visit()</code> methods, which avoid recursion
+by pushing continuation closures on the explicit stack — which I
+managed to do in the wrong order at one point:</p>
+<pre><code>catmeta = meta()
+function catmeta.__index.visit(self, put, stack, env)
+   table.insert(stack, function(...) self.cdr:visit(...) end)
+   return self.car:visit(put, stack, env)
+end
+</code></pre>
+<p>The environment node needs to modify the environment, then arrange to
+restore it after its descendants finish executing:</p>
+<pre><code>envmeta = meta()
+function envmeta.__index.visit(self, put, stack, env)
+   local saved = {}
+   for k, v in pairs(self.vars) do
+      saved[k] = env[k]
+      env[k] = v
+   end
+
+   table.insert(stack, function(put, stack, env)
+                   for k in pairs(self.vars) do env[k] = saved[k] end
+   end)
+   return self.child:visit(put, stack, env)
+end
+</code></pre>
+<p>Note that it’s not safe to do <code>for k, v in pairs(saved)</code> because the
+saved value may have been a <code>nil</code>, in which case Lua would skip it in
+the iteration!</p>
+<p>Variable nodes just delegate to their value (which, remember, was
+coerced to a <code>macrope</code> when the environment node was created),
+assuming the value exists:</p>
+<pre><code>varmeta = meta()
+function varmeta.__index.visit(self, put, stack, env)
+   local val = env[self.name]
+   if val == nil then error("name not found: " .. self.name) end
+   return val:visit(put, stack, env)
+end
+</code></pre>
+<p>We need a function to export from the module to instantiate variables:</p>
+<pre><code>local function var(name)
+   return setmetatable({name=name}, varmeta)
+end
+</code></pre>
+<p>Constant nodes, the <code>Leaf</code> of the OCaml implementation above, simply
+invoke <code>put</code> to append their contents to the growing output buffer:</p>
+<pre><code>constmeta = meta()
+function constmeta.__index.visit(self, put, stack, env)
+   put(self.value)
+end
+</code></pre>
+<p>There is a <code>const</code> constructor which could perhaps be inlined into the
+<code>macrope</code> coercion function:</p>
+<pre><code>const = function(value)
+   return setmetatable({value=value}, constmeta)
+end
+</code></pre>
+<p>Finally, the main entry point to the module does this type-testing
+DWIM magic:</p>
+<pre><code>macrope = function(thing)
+   if type(thing) == 'number' then thing = tostring(thing) end
+   if type(thing) == 'string' then return const(thing) end
+   if thing.is_macrope then return thing end
+   -- XXX maybe try to invoke tostring on it?
+   error("not a macrope or string: " .. thing)
+end
+</code></pre>
+<p>And the module exports:</p>
+<pre><code>return { macrope = macrope, var = var }
+</code></pre>
+<h2>How worst-case ropes arise</h2>
+<p>One worst case is building up an extremely imbalanced tree of single
+bytes:</p>
+<pre><code>macrope = require 'macrope'
+N = 100000
+s = macrope.macrope ''
+for i = 1, N do s = s .. 'x' end
+s = tostring(s)
+</code></pre>
+<p>As I said above, this takes 250 milliseconds, working out to 400
+kilobytes per second.  Although at this scale this is 12 times faster
+than the O(<em>N</em>²) native-Lua implementation, it’s still ridiculously
+slow, and three times slower than when I wasn’t using an explicit
+stack.  For perspective, this takes about the same time, with 1000
+times as many iterations:</p>
+<pre><code>macrope = require 'macrope'
+function doit(N)
+    s = 0
+    for i = 1, N do s = s + i end
+    s = tostring(s)
+    return s
+end
+=doit(100*1000*1000)
+</code></pre>
+<p>Building the same string this way instead gets a further 5× speedup:</p>
+<pre><code>macrope = require 'macrope'
+N = 10000
+s = macrope.macrope ''
+for i = 1, N do s = s .. 'xxxxxxxxxx' end
+s = tostring(s)
+</code></pre>
+<p>Most of this speedup is in the explicit loop there, which took two
+thirds of the time before and now runs one tenth as many iterations.</p>
+<p>This is the linear-search worst case that forced me to use an explicit
+stack in the <code>__tostring</code> function to avoid stack overflows, at the
+cost of a 2.5× slowdown in the <code>tostring</code> call.  If you did some kind
+of tree balancing during the construction of the graph, it probably
+wouldn’t speed it up (doing more work on each iteration would probably
+slow it down instead, even if the working set shrank) but it could
+speed the final tree traversal substantially.</p>
+<p>A different kind of worst case is the other example above:</p>
+<pre><code>macrope = require 'macrope'
+x = macrope.macrope 'x'
+for i = 1, 25 do x = x .. x end
+tostring(x)
+</code></pre>
+<p>This doesn’t take long to construct, because there are only 26 nodes
+in the DAG, but in the <code>tostring</code> call the single leafnode is visited
+33 million times; that’s why it takes 30–40 seconds.  Constructing the
+same string as follows instead takes 1.3 seconds, about 30 times
+faster:</p>
+<pre><code>macrope = require 'macrope'
+x = macrope.macrope 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+for i = 1, 20 do x = x .. x end
+#tostring(x)
+</code></pre>
+<p>So it wouldn’t take a lot of tree optimization to speed things up by
+quite a lot in this case.</p>
+<h2>Leafnode coalescence, and when it isn’t enough</h2>
+<p>The simplest measure would be to have a special case for concatenating
+short const leafnodes: if the total length of the result is under some
+threshold, somewhere in the range of 16–128 bytes, it’s better to just
+copy all the bytes into a new const node instead of making a
+concatenation node.  This would help a lot with the million-laughs DAG
+above but would only slightly worsen the problem of successive
+concatenation at the end.</p>
+<p>You could be a little more sophisticated and get a linear improvement
+by having your concatenation operator coalesce with non-root
+leafnodes, something that’s dramatically easier to expressin a
+language with pattern-matching (here <code>^</code> is OCaml’s string
+concatenation operator):</p>
+<pre><code>let cat2 a b = match (a, b) with 
+| (Leaf(n1, s1), Leaf(n2, s2)) when n1+n2 &lt; 128 -&gt;
+    leaf(s1 ^ s2)
+| (Cat(_, x, Leaf(n1, s1)), Leaf(n2, s2)) when n1+n2 &lt; 128 -&gt;
+    cat x (leaf(s1 ^ s2))
+| (Leaf(n1, s1), Cat(_, Leaf(n2, s2), x)) when n1+n2 &lt; 128 -&gt;
+    cat (leaf(s1 ^ s2)) x
+| (_, _) -&gt;
+    cat a b
+</code></pre>
+<p>This successfully reduces the tree depth by a linear factor — 128 in
+this case — in the simple scenarios considered above.  It might speed
+up or slow down the tree construction, though if it does slow it down,
+that’s probably just because 128 is a bit too big.  However, it
+doesn’t help in all cases — consider the case of alternately adding to
+the beginning and the end of the string:</p>
+<pre><code>cat2 (cat2 (leaf "x") (cat2 (cat2 (leaf "x")
+                             (leaf (String.make 128 'h')))
+                       (leaf "x")))
+     (leaf "x")
+</code></pre>
+<p>The initial <code>String.make 128 'h'</code> produces a large leafnode, and the
+following operations of appending or prepending a single character are
+then blocked from coalescing.</p>
+<p>Evidently it would be useful to have a tree structure with rigorous
+guarantees on worst-case behavior.</p>
+<h2>B-tree ropes</h2>
+<p>B-trees are great for worst-case performance.  The tree has a uniform
+depth on every path from the root to the branches, and the high
+branching factor minimizes the number of internal nodes on which we
+must waste storage space and the amount of memory needed for tree
+traversal.  And, at least in principle, they’re simpler than other
+popular self-balancing trees such as red-black trees, AVL trees, and
+treaps.  (They also tend to be much faster, especially on modern deep
+memory hierarchies.)</p>
+<p>But can we use B-trees for ropes like the above?  I
+<a href="http://canonical.org/~kragen/dev3/brope.ml">started an OCaml implementation in 2015 and never finished it</a> but
+I think that in principle it’s straightforward.  To concatenate, you
+may need to add tree levels to the smaller rope, and then you can
+merge (by concatenating) newly-adjacent nodes moving down from the
+root until you encounter a place where merging would make the new node
+too big; then you stop.</p>
+<p>I still need to read Okasaki’s masterwork and the follow-on work in
+the decades since, but there’s a trap in amortized analysis of
+FP-persistent data structures — typically, amortized complexity
+analysis assumes that once you’ve done some big messy reorganization,
+like rehashing a hash table into a larger array of buckets, you can be
+sure that you won’t need to do it again anytime soon.  But with
+FP-persistent data structures (like ropes!) the state of the data
+structure immediately prior to the reorganization may still be
+accessible, and so it may be possible to provoke the reorganization
+over and over again by deriving new states from it.</p>
+<p>This suggests that to get good amortized performance from
+FP-persistent data structures, either you need mutability behind the
+curtain or you need good <em>worst-case</em> performance per update
+operation.  This is a connection I hadn’t previously suspected between
+the world of FP-persistent algorithms and the world of bounded-time
+algorithms, which are usually on opposite ends of the universe.</p>
+<p>B-trees in particular are relatively friendly to this.  Suppose you
+decide on nodes of about 128 bytes: 64–256 bytes of text for
+leafnodes, 8–32 pointers for internal nodes†.  The worst-case B-tree
+for a 4-gibibyte rope is 2²⁶ = 67108864 leaf nodes, which is at worst
+9 levels of internal nodes.  So, to concatenate it with another such
+rope, at worst you’d have to merge together 9 pairs of nodes, about
+2 KiB of memory traffic.  This is definitely worse than the 32 bytes
+or so of memory traffic used by <code>cat</code> or <code>__concat</code> above, by about a
+factor of 64, but it’s also fairly closely bounded.  Note that with a
+minimal branching factor of 8, the internal nodes are guaranteed to
+use no more than ⅐ of the leafnode memory.</p>
+<p>For smaller strings the cost is smaller — with those parameters,
+everything up to 512 bytes is guaranteed to fit into a single level of
+B-tree.</p>
+<p>For perspective, this suggests that the process of inserting a
+character (or arbitrary string) into the middle of an FP-persistent
+4-gibibyte rope will require on the order of a microsecond and ten
+kilobytes of allocation:</p>
+<ul>
+<li>18 new nodes, totaling 4 kilobytes in cache to break the tree into
+  two slices at the insertion point;</li>
+<li>9 new nodes, totaling 2 kilobytes in cache, to create the tree for
+  the new byte;</li>
+<li>9 new nodes, totaling 2 kilobytes in cache, to concatenate the new
+  byte to the left tree fragment;</li>
+<li>9 new nodes, totaling 2 kilobytes in cache, to concatenate the right
+  tree fragment onto that.</li>
+</ul>
+<p>Filling up these 10 newly allocated kilobytes of memory is going to
+take a few thousand instructions, which takes about a microsecond on
+modern CPUs.  You could probably reduce this cost in the average case
+with a simplified “buffer gap” approach in which you maintain separate
+left and right trees, so that you normally only pay the cost of
+creating the new byte’s tree and concatenating it onto the left tree.</p>
+<p>I feel like there may still be aspects of B-tree rebalancing I’m not
+appreciating, even without slicing.</p>
+<p>† CLRS claims that allowing nodes to be less than ½ full, as in the
+factor of ¼ in this example configuration, makes it no longer really a
+B-tree, and if we don’t allow nodes to be less than ⅔ full it becomes
+a “B*-tree”.  However, CLRS gets terminology wrong pretty often, so
+this might not be right.  My rationale for the extra factor of 2
+slack, which probably doesn't really apply in an FP-persistent context
+(at least not without more work), is to prevent pathological
+modification sequences from thrashing between splitting and joining
+the same node.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/performance.html">Performance</a> (149 notes)
+</li><li><a href="../topics/algorithms.html">Algorithms</a> (123 notes)
+</li><li><a href="../topics/python.html">Python</a> (27 notes)
+</li><li><a href="../topics/ocaml.html">OCaml</a> (8 notes)
+</li><li><a href="../topics/lua.html">Lua</a> (5 notes)
+</li><li>B trees</li></ul></div></html>

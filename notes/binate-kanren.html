@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html><title>Binate and KANREN ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Binate and KANREN</h1><div class="metadata">Kragen Javier Sitaker, 2018-12-02
+(3 minutes)</div><p>You can construct the relation describing your desired program by
+composing it from binary relations.</p>
+<p>I just woke up from a nightmare where I was scheduled to give a talk
+tonight at one of my two employers about some work I had just done,
+when the other employer informed me that they considered that work
+confidential to them and covered under my NDA to them, so I wasn’t
+going to be able to give the talk.  Since neither employer actually
+exists, this document briefly describes the work.</p>
+<p>Binate is a particularly terse way of writing down relations by
+algebraically composing them from more primitive, binary relations.
+It can only express binary relations, but it can express binary
+relations among tuples, so that isn’t actually a limitation.</p>
+<p>In particular, you write relations in terms of more primitive
+relations using conjunction or intersection <code>,</code>, union <code>;</code>, converse
+or inverse <code>~</code>, composition (concatenation), transitive closure <code>*</code>,
+either negation <code>!</code> or set subtraction <code>-</code>, and a form of N-ary
+Cartesian product: <code>{x: a, y: b, ...}</code> produces a relation from the
+intersection of the domains of a and b etc. to a set of tuples which
+are the domain of the new relations x and y etc., whose codomains are
+the codomains of a and b etc. respectively, constructed in the only
+reasonable way.  Literals are treated as relations from the entire
+universe to that literal.  This turns out to be sufficient to express
+anything you can express in Codd’s N-ary relational algebra or
+relational calculus.</p>
+<p>Kanren is a family of relational programming languages in which you
+program not by constructing functions but by constructing more general
+relations, which is to say that when you invoke them on different
+occasions, you can change your mind about which arguments are inputs
+and which are outputs.  This sounds like Prolog, but because Prolog
+contains a lot of extralogical operators, its ability to generalize is
+limited.</p>
+<p>When using Prolog semantics, the major advantage of Binate over Prolog
+is that programs are dramatically terser because they are point-free.
+For example:</p>
+<pre><code>ancestor = parent parent*.
+father = parent, "male" ~sex.
+sibling = parent ~parent.
+cousin = parent sibling ~parent.
+</code></pre>
+<p>The major advantage of Kanren and relational programming over
+functional programming is that, in cases where you need to use both a
+function and its inverse, you avoid having to write the inverse
+explicitly, which sort of doubles your programming power.  Indeed, a
+function of multiple arguments may have many inverses, and you only
+have to write it once.  Additionally, it’s often much easier to
+describe a predicate you would like to find instances to satisfy than
+it is to describe an algorithm to generate them — this is the general
+virtue of constraint-oriented programming or programming with
+solvers — and at times you would like to change the search or solver
+algorithm without changing the predicate you are trying to satisfy.</p>
+<p>So, the trade-secret insight from my dream was this: by composing your
+program out of binary relations, you can describe the computation you
+want in a somewhat terser fashion than any previous language.  You can
+beat APL for terseness.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/syntax.html">Syntax</a> (28 notes)
+</li><li><a href="../topics/constraints.html">Constraint satisfaction</a> (9 notes)
+</li><li><a href="../topics/prolog.html">Prolog and logic programming</a> (8 notes)
+</li><li><a href="../topics/minikanren.html">miniKANREN</a> (6 notes)
+</li><li><a href="../topics/binary-relations.html">Binary relations</a> (6 notes)
+</li><li><a href="../topics/binate.html">Binate</a> (3 notes)
+</li></ul></div></html>

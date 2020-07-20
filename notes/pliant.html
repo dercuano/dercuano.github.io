@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html><title>Some notes on FullPliant and Pliant ⁑ Dercuano</title><meta charset="utf-8"></meta><link href="../liabilities/style.css" rel="stylesheet"></link><meta content="width=device-width, initial-scale=1.0" name="viewport"></meta><h1>Some notes on FullPliant and Pliant</h1><div class="metadata">Kragen Javier Sitaker, 2018-04-27
+(9 minutes)</div><p>So I’ve been reading through the FullPliant website.</p>
+<h2>Summary</h2>
+<p>Pliant is a programming language that represents an exploration of a
+promising but underexplored corner of the language design space.  It
+has static typing with a frequently used escape hatch to ad-hoc
+polymorphism, like Java, but with minimal, extensible syntax, like
+Tcl, Forth, or to a lesser extent, Ruby, Scheme, or Common Lisp.  It
+uses ref counting.</p>
+<p>In more detail: the author, Hubert Tonneau, clearly has an
+unreasonably high opinion of himself, but the system he’s built seems
+reasonably efficient; it’s not quite the full operating system he
+makes it out to be, but it’s pretty close.  He’s built a text editor;
+an IDE; a compiler; a graphical user interface all the way down to raw
+pixels; a database; a web page framework; servers for SMTP, HTTP, and
+VNC RFB; a bandwidth-optimized GUI remoting protocol; a compiler; and
+a sampling profiler.  The programming language is syntactically close
+to being a Lisp with some syntax sugar and macros, but it’s explicitly
+and statically typed, allowing a relatively simple compiler to get
+good performance.  Memory management uses reference counting or,
+optionally, explicit malloc and free.  The database is an IMS-like
+hierarchical database, with a modern
+disk-as-tape-for-the-transaction-log design.  The system is poorly
+documented, but it appears that the language has both first-class
+functions and dynamic method dispatch.</p>
+<p>The main compiler is written in Pliant, bootstrapped from a subset
+written in C.</p>
+<p>This seems like a pretty reasonable overall design for the stuff he’s
+trying to do, and it seems to be reasonably successful.  The
+signal-to-noise ratio of the example code below is very high.</p>
+<p>I wish there were documentation in French, as Tonneau’s English is
+very poor, and although the existing documentation comes out to book
+length (I’ve been reading it for days), it’s quite sketchy at best.</p>
+<p>Tonneau is only casually familiar with the literature and related work
+in the field, so he has reinvented a number of things.</p>
+<h2>Syntax and Embedded DSLs in Pliant</h2>
+<p>One of the more interesting features of Pliant is how he uses the
+macro system and syntactic sugar to get Ruby-like DSL power for things
+like the GUI; here’s a snippet of an example from the manual:</p>
+<pre><code>var Float total := 0
+each a o:article
+  row
+    cell
+      input "" a:ref
+    hook
+      cell
+        input "" a:ppu
+      cell
+        input "" a:count
+    change
+      section_replay "content"
+    cell
+      text (String a:count*a:ppu)
+      total += a:count*a.ppu
+    cell
+      button "remove"
+        o:article delete keyof:a
+        section_replay "content"
+</code></pre>
+<p>Pliant’s syntax is extensible, so this code can take advantage of
+Ruby-like blocks passed to macros.  It builds a table with the
+price-per-unit and count cells wrapped in an on-change hook.  Even for
+ordinary functions rather than macros, the argument semantics permit
+by-reference in-out parameters, so the <code>input</code> control can be hooked
+directly to the database record field with a minimum of fuss.
+<code>section_replay</code> re-executes the code block to draw the named
+“section” of the UI, which, as it happens, includes the code snippet
+above.  That implies closure semantics; see below.</p>
+<p>The <code>each</code> macro is not specific to the database module, but in this
+case is iterating over a database query result; as you can imagine, it
+declares the variable <code>a</code> provided as its first argument, and iterates
+over the subordinate records in <code>o:article</code>.</p>
+<p>The whole infix and indentation syntax thing is just syntax sugar over
+S-expressions; part of the code above is, I think, syntactic sugar for
+the following S-expression in conventional notation:</p>
+<pre><code>(cell ({} (text (String (* (a count) (a ppu))))
+          (+= total (* (a count) (a ppu)))))
+</code></pre>
+<p>The syntax is perhaps unfortunately so minimalistic that I haven’t yet
+figured out how to tell when a bareword will be evaluated as a
+variable and when it will be treated as a symbol, even in contexts
+where the head of the clause is clearly a variable and not a macro
+name.  Here, for example, <code>total</code> is a variable, but <code>count</code> and <code>ppu</code>
+are names of methods to call.  I don’t know if defining methods
+creates a variable in the environment that refers to the corresponding
+generic function or what.</p>
+<p>Pliant macros (“meta functions”) are not source-to-source
+transformations; rather, they emit the compiler’s intermediate
+representation for their part of the AST, possibly after incorporating
+the IR from their child nodes.  Tonneau argues that this makes them
+more orthogonally composable than Lisp macros, but the complexity cost
+in the implementation of each macro is high, and I am not convinced of
+his thesis as its benefits.</p>
+<p>As an example, Tonneau explains the <code>thread</code> macro in the manual.  To
+implement the closure semantic required (similar to those of <code>button</code>)
+it invokes the compiler function <code>uses</code> on the emitted IR from the
+child nodes to determine which variables must be closed over, then
+explicitly creates code to copy the variable contents into the child
+thread.  I have no idea how that interacts with the optional reference
+counting machinery.</p>
+<h2>Pointer semantics in Pliant</h2>
+<p>Reference counting in Pliant depends on the use of smart-pointer
+classes like Arrow and Link, which are instantiated with the type of
+their targets; I think this makes them parametrically polymorphic, but
+because the type system is never explained anywhere, I’m not sure.</p>
+<p>The usual kinds of pointers in Pliant are implicitly dereferenced;
+they are transparent references to the underlying variable, and
+support the same operations as a variable of the underlying type,
+including <code>:=</code>, plus a separate <code>:&gt;</code> operation which reseats it to
+point to a different value.  They can refer to variables inside
+arrays, dictionaries, and other containers, and they can even be used
+as iterators in something like the C++ style, but address arithmetic
+is not normal.  An example from the manual of iterating over the
+elements of a dictionary with key elements of some type xxx mapped to
+value elements of some type yyy:</p>
+<pre><code>var (Dictionary xxx yyy) d
+var Pointer:yyy p
+p :&gt; d first
+while exists:p
+    foo p
+    p :&gt; d next p
+</code></pre>
+<p>This is equivalent to this use of <code>each</code>:</p>
+<pre><code>var (Dictionary xxx yyy) d
+each p d
+    foo p
+</code></pre>
+<p>There’s a separate <code>Address</code> type that does support address
+arithmetic, requires an explicit dereferencing operation, and carries
+no target type.</p>
+<p>Implicit dereferencing clearly poses problems for manipulating pointer
+chains; there’s a <code>:&gt;&gt;</code> operation to reseat the second (or possibly
+ultimate) pointer in such a chain.</p>
+<p>I speculate that the implicit nature of Pliant dereferencing is
+helpful to making embedded DSLs.</p>
+<h2>Runtime error handling in Pliant</h2>
+<p>Pliant has a little-used exception system.  By default, it indicates
+errors through abrupt termination of the Pliant process; file I/O
+operations also have a <code>safe</code> option to instead use function return
+values.  There is no apparent support for Golang-like multiple return
+values with compiler warnings on unused variables, nor for
+Haskell-like variant types with pattern matching.</p>
+<p>When an exception is caught, the exception system does not immediately
+transfer control to the error handler; it appears to continue
+execution normally with a pending error stored somewhere, indicated by
+the <code>iserror</code> boolean function.</p>
+<p>There is syntactic sugar for propagating exceptions; an equivalent to
+the</p>
+<pre><code>foo bar
+if iserror
+    return
+</code></pre>
+<p>is</p>
+<pre><code>foo bar ?
+</code></pre>
+<p>Abrupt process termination provides a source-level stack trace.</p>
+<p>I said the exception system was little-used, but it is used
+consistently in some places.  In particular the <code>compile</code> method on
+AST nodes normally indicates compile errors using exceptions.</p>
+<h2>Reference Counting and Dynamic Dispatch in Pliant</h2>
+<p>Any Pliant variable can be an “object”, with a header containing a
+reference count (which I suppose implies it must be heap-allocated)
+and a type pointer, or not.  Various parts of the Pliant machinery
+assume that they are operating on objects, and this is sometimes
+verified at compile time.  The <code>Link</code> smart pointer type has the
+semantics of <code>Pointer</code>, plus increments and decrements reference
+counts, and the <code>Arrow</code> smart pointer type is the analogous
+reference-counted version of <code>Address</code>.</p>
+<p>Reference counting in Pliant is apparently thread-safe.  I don’t know
+whether this makes it a bottleneck in heavily multithreaded code.</p>
+<p>I don’t understand the semantics of method calls and dynamic dispatch
+much at all.</p>
+<p>The type pointer can be accessed with the <code>entry_type</code> function for
+dynamic type tests.</p>
+<h2>The Pliant database</h2>
+<p>The Pliant database is made of typed records arranged in a tree; some
+of the fields can be multivalued, and their values have another record
+type, as in older hierarchical databases like IMS.  I haven’t found
+anything permitting polymorphic record types or indices.</p>
+<p>Tonneau admits that the database’s hierarchical design is less
+flexible than an RDBMS, but considers it adequate.  His idea of
+RDBMSes is pretty hazy; he thinks they autonomously decide which
+indices to create.</p>
+<p>I don’t know what the database’s transaction semantics are.</p><script src="../liabilities/addtoc.js"></script><div><h2>Topics</h2><ul><li><a href="../topics/programming.html">Programming</a> (286 notes)
+</li><li><a href="../topics/independence.html">Independence</a> (63 notes)
+</li><li><a href="../topics/programming-languages.html">Programming languages</a> (47 notes)
+</li><li><a href="../topics/operating-systems.html">Operating systems</a> (18 notes)
+</li><li><a href="../topics/bootstrapping.html">Bootstrapping</a> (12 notes)
+</li></ul></div></html>
